@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-base text-content font-sans antialiased;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  ::selection {
+    background: rgba(0, 229, 255, 0.28);
+  }
+
+  /* Neon scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #172233;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #223449;
+    background-clip: content-box;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply bg-transparent outline-none;
+  }
+}
+
+@layer components {
+  .app-drag {
+    -webkit-app-region: drag;
+  }
+  .app-no-drag {
+    -webkit-app-region: no-drag;
+  }
+
+  .panel {
+    @apply bg-surface border border-border rounded-xl;
+  }
+
+  .neon-ring {
+    @apply border border-neon/60 shadow-neon;
+  }
+
+  .btn {
+    @apply app-no-drag inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2
+      text-sm font-medium transition-all duration-150 select-none
+      disabled:opacity-40 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-neon/15 text-neon border border-neon/50
+      hover:bg-neon/25 hover:shadow-neon-sm;
+  }
+  .btn-ghost {
+    @apply btn text-content-muted border border-transparent
+      hover:text-content hover:bg-white/5;
+  }
+  .btn-outline {
+    @apply btn border border-border text-content
+      hover:border-borderStrong hover:bg-white/5;
+  }
+  .btn-danger {
+    @apply btn text-red-300 border border-red-500/30 hover:bg-red-500/10 hover:border-red-500/50;
+  }
+
+  .field {
+    @apply w-full rounded-lg bg-overlay border border-border px-3 py-2 text-sm text-content
+      placeholder:text-content-faint transition-colors
+      focus:border-neon/60 focus:shadow-neon-sm;
+  }
+
+  .label {
+    @apply block text-xs font-medium uppercase tracking-wider text-content-faint mb-1.5;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium
+      border border-border text-content-muted;
+  }
+
+  .neon-text {
+    text-shadow: 0 0 12px rgba(0, 229, 255, 0.55);
+  }
+
+  /* Rendered markdown for assistant messages */
+  .prose-acp {
+    @apply text-content text-sm leading-relaxed;
+    word-break: break-word;
+  }
+  .prose-acp > *:first-child {
+    margin-top: 0;
+  }
+  .prose-acp > *:last-child {
+    margin-bottom: 0;
+  }
+  .prose-acp p {
+    @apply my-2;
+  }
+  .prose-acp h1,
+  .prose-acp h2,
+  .prose-acp h3 {
+    @apply font-semibold mt-4 mb-2 text-content;
+  }
+  .prose-acp h1 {
+    @apply text-lg;
+  }
+  .prose-acp h2 {
+    @apply text-base;
+  }
+  .prose-acp ul {
+    @apply list-disc pl-5 my-2 space-y-1;
+  }
+  .prose-acp ol {
+    @apply list-decimal pl-5 my-2 space-y-1;
+  }
+  .prose-acp a {
+    @apply text-neon underline decoration-neon/40 hover:decoration-neon;
+  }
+  .prose-acp blockquote {
+    @apply border-l-2 border-neon/40 pl-3 my-2 text-content-muted italic;
+  }
+  .prose-acp code {
+    @apply font-mono text-[0.85em] rounded px-1.5 py-0.5 bg-white/[0.06] text-neon;
+  }
+  .prose-acp pre {
+    @apply my-3 rounded-lg border border-border bg-black/40 p-3 overflow-x-auto;
+  }
+  .prose-acp pre code {
+    @apply bg-transparent p-0 text-content text-[0.85em];
+  }
+  .prose-acp table {
+    @apply my-3 w-full text-xs border-collapse;
+  }
+  .prose-acp th,
+  .prose-acp td {
+    @apply border border-border px-2 py-1 text-left;
+  }
+  .prose-acp hr {
+    @apply my-4 border-border;
+  }
+}
