@@ -6,6 +6,9 @@ dist/
 out/
 *.tsbuildinfo
 
+# Test coverage
+coverage/
+
 # Logs
 *.log
 npm-debug.log*
@@ -34,3 +37,5 @@ vault.json
 connections.json
 conversations.json
 settings.json
+
+response.html
