@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Agent Control Panel — Product Backlog &amp; Delivery Tracker</title>
+
+    <!-- Clawpilot theme detection (must run first) -->
+    <script>
+      (() => {
+        const param = new URLSearchParams(window.location.search).get("scoutTheme");
+        const theme =
+          param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
+    <style>
+      :root {
+        color-scheme: light;
+        --cp-bg: #f7f4ef;
+        --cp-bg-elevated: #fcfbf8;
+        --cp-surface: #ffffff;
+        --cp-surface-soft: #f5f5f5;
+        --cp-border: #dedede;
+        --cp-border-strong: #919191;
+        --cp-text: #242424;
+        --cp-text-muted: #5c5c5c;
+        --cp-text-soft: #6f6f6f;
+        --cp-accent: #b11f4b;
+        --cp-accent-hover: #9a1a41;
+        --cp-accent-soft: rgba(177, 31, 75, 0.08);
+        --cp-accent-fg: #ffffff;
+        --cp-success: #16a34a;
+        --cp-danger: #dc2626;
+        --cp-warning: #f59e0b;
+        --cp-link: #0078d4;
+        --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+        --cp-overlay: rgba(255, 255, 255, 0.8);
+        --cp-panel: rgba(255, 255, 255, 0.86);
+        --cp-panel-strong: rgba(255, 255, 255, 0.96);
+        --cp-sheen: rgba(255, 255, 255, 0.55);
+        --cp-highlight: rgba(177, 31, 75, 0.12);
+      }
+      html[data-theme="dark"] {
+        color-scheme: dark;
+        --cp-bg: #3d3b3a;
+        --cp-bg-elevated: #343231;
+        --cp-surface: #292929;
+        --cp-surface-soft: #2e2e2e;
+        --cp-border: #474747;
+        --cp-border-strong: #5f5f5f;
+        --cp-text: #dedede;
+        --cp-text-muted: #919191;
+        --cp-text-soft: #b0b0b0;
+        --cp-accent: #fd8ea1;
+        --cp-accent-hover: #fb7b91;
+        --cp-accent-soft: rgba(253, 142, 161, 0.14);
+        --cp-accent-fg: #1a1a1a;
+        --cp-success: #4ade80;
+        --cp-danger: #f87171;
+        --cp-warning: #fbbf24;
+        --cp-link: #4da6ff;
+        --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+        --cp-overlay: rgba(41, 41, 41, 0.88);
+        --cp-panel: rgba(41, 41, 41, 0.72);
+        --cp-panel-strong: rgba(41, 41, 41, 0.96);
+        --cp-sheen: rgba(255, 255, 255, 0.04);
+        --cp-highlight: rgba(253, 142, 161, 0.12);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--cp-bg);
+        color: var(--cp-text);
+        font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 24px 80px; }
+
+      code, .mono {
+        font-family: Consolas, "Courier New", Courier, monospace;
+        font-size: 0.86em;
+      }
+
+      /* ---------- Header ---------- */
+      header.page {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--cp-border);
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--cp-accent);
+        margin: 0 0 6px;
+      }
+      header.page h1 { margin: 0; font-size: 1.7rem; letter-spacing: -0.01em; }
+      header.page p.sub { margin: 6px 0 0; color: var(--cp-text-muted); max-width: 62ch; }
+      .head-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+      .btn {
+        appearance: none;
+        border: 1px solid var(--cp-border);
+        background: var(--cp-surface);
+        color: var(--cp-text);
+        border-radius: 0.625rem;
+        padding: 8px 12px;
+        font: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+      }
+      .btn:hover { border-color: var(--cp-border-strong); background: var(--cp-surface-soft); }
+      .btn.primary { background: var(--cp-accent); border-color: var(--cp-accent); color: var(--cp-accent-fg); }
+      .btn.primary:hover { background: var(--cp-accent-hover); border-color: var(--cp-accent-hover); }
+
+      .sprint-banner {
+        margin: 20px 0 8px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 18px;
+        padding: 14px 18px;
+        background: var(--cp-accent-soft);
+        border: 1px solid var(--cp-border);
+        border-left: 4px solid var(--cp-accent);
+        border-radius: 0.625rem;
+      }
+      .sprint-banner strong { color: var(--cp-accent); }
+      .sprint-banner .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--cp-border-strong); }
+      .sprint-banner span.muted { color: var(--cp-text-muted); font-size: 0.9rem; }
+
+      /* ---------- KPIs ---------- */
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+        margin: 22px 0;
+      }
+      .kpi {
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 16px;
+        padding: 16px 18px;
+        box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+      }
+      .kpi .label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cp-text-soft); font-weight: 700; }
+      .kpi .value { font-size: 2rem; font-weight: 700; margin: 6px 0 2px; letter-spacing: -0.02em; }
+      .kpi .value small { font-size: 0.95rem; font-weight: 600; color: var(--cp-text-muted); }
+      .kpi .foot { font-size: 0.82rem; color: var(--cp-text-muted); }
+
+      .bar { height: 8px; border-radius: 999px; background: var(--cp-surface-soft); overflow: hidden; border: 1px solid var(--cp-border); }
+      .bar > span { display: block; height: 100%; background: var(--cp-accent); border-radius: 999px; transition: width 0.4s ease; }
+      .bar.success > span { background: var(--cp-success); }
+
+      /* ---------- Sections ---------- */
+      section.block { margin: 34px 0 0; }
+      section.block > h2 {
+        font-size: 1.12rem;
+        margin: 0 0 4px;
+        display: flex; align-items: center; gap: 10px;
+      }
+      section.block > p.hint { margin: 0 0 16px; color: var(--cp-text-muted); font-size: 0.9rem; }
+
+      /* ---------- Release / Epic progress ---------- */
+      .prog-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; }
+      .prog-card {
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 14px;
+        padding: 15px 16px;
+      }
+      .prog-card .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+      .prog-card .name { font-weight: 700; }
+      .prog-card .name small { display: block; font-weight: 500; color: var(--cp-text-soft); font-size: 0.78rem; margin-top: 2px; }
+      .prog-card .pct { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--cp-text-muted); }
+      .prog-card .meta { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--cp-text-soft); margin-top: 8px; }
+      .rel-tag { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--cp-border); }
+
+      /* ---------- Toolbar ---------- */
+      .toolbar {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        margin: 8px 0 16px;
+        padding: 12px 14px;
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 14px;
+        position: sticky; top: 0; z-index: 20;
+      }
+      .toolbar input[type="search"], .toolbar select {
+        font: inherit; font-size: 0.85rem;
+        padding: 7px 10px;
+        border-radius: 0.5rem;
+        border: 1px solid var(--cp-border);
+        background: var(--cp-bg-elevated);
+        color: var(--cp-text);
+      }
+      .toolbar input[type="search"] { min-width: 210px; flex: 1 1 210px; }
+      .toolbar .spacer { flex: 1; }
+      .seg { display: inline-flex; border: 1px solid var(--cp-border); border-radius: 0.5rem; overflow: hidden; }
+      .seg button {
+        appearance: none; border: 0; background: var(--cp-bg-elevated); color: var(--cp-text);
+        font: inherit; font-size: 0.83rem; font-weight: 600; padding: 7px 14px; cursor: pointer;
+      }
+      .seg button[aria-pressed="true"] { background: var(--cp-accent); color: var(--cp-accent-fg); }
+      .count-note { font-size: 0.8rem; color: var(--cp-text-soft); }
+
+      /* ---------- Badges ---------- */
+      .badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: 0.72rem; font-weight: 700;
+        padding: 2px 9px; border-radius: 999px;
+        border: 1px solid transparent; white-space: nowrap;
+      }
+      .badge .swatch { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+      .badge.epic { background: var(--cp-surface-soft); color: var(--cp-text-muted); border-color: var(--cp-border); }
+
+      /* ---------- Table view ---------- */
+      .table-scroll { overflow-x: auto; border: 1px solid var(--cp-border); border-radius: 14px; }
+      table.backlog { width: 100%; border-collapse: collapse; font-size: 0.88rem; background: var(--cp-surface); }
+      table.backlog thead th {
+        text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+        color: var(--cp-text-soft); font-weight: 700;
+        padding: 11px 12px; border-bottom: 1px solid var(--cp-border);
+        position: sticky; top: 0; background: var(--cp-surface-soft);
+      }
+      table.backlog tbody td { padding: 11px 12px; border-bottom: 1px solid var(--cp-border); vertical-align: top; }
+      table.backlog tbody tr.main:hover { background: var(--cp-accent-soft); }
+      table.backlog tbody tr.main { cursor: pointer; }
+      .story-id { font-weight: 700; color: var(--cp-accent); white-space: nowrap; }
+      .story-title { font-weight: 600; }
+      .story-line { color: var(--cp-text-muted); font-size: 0.85rem; margin-top: 2px; }
+      .chev { color: var(--cp-text-soft); transition: transform 0.15s; display: inline-block; }
+      tr.main.open .chev { transform: rotate(90deg); }
+      td.pts { text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
+      select.status-sel {
+        font: inherit; font-size: 0.78rem; font-weight: 700;
+        padding: 4px 8px; border-radius: 999px;
+        border: 1px solid var(--cp-border); background: var(--cp-bg-elevated); color: var(--cp-text);
+        cursor: pointer;
+      }
+      tr.detail td { background: var(--cp-bg-elevated); }
+      tr.detail .ac-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+      @media (max-width: 720px) { tr.detail .ac-wrap { grid-template-columns: 1fr; } }
+      .ac-wrap h5 { margin: 0 0 6px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cp-text-soft); }
+      .ac-wrap ul { margin: 0; padding-left: 18px; }
+      .ac-wrap li { margin: 3px 0; }
+      .trace-chip { display: inline-block; font-size: 0.7rem; padding: 1px 7px; margin: 2px 4px 2px 0; border-radius: 6px; background: var(--cp-surface-soft); border: 1px solid var(--cp-border); color: var(--cp-text-muted); }
+
+      /* ---------- Board view ---------- */
+      .board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(240px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 8px; }
+      .col {
+        background: var(--cp-bg-elevated); border: 1px solid var(--cp-border);
+        border-radius: 14px; padding: 12px; min-height: 120px; display: flex; flex-direction: column;
+      }
+      .col.drag-over { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+      .col > .col-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: 700; font-size: 0.82rem; }
+      .col > .col-head .n { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 999px; padding: 0 8px; font-size: 0.72rem; color: var(--cp-text-muted); }
+      .card {
+        background: var(--cp-surface); border: 1px solid var(--cp-border);
+        border-left: 3px solid var(--cp-border-strong);
+        border-radius: 10px; padding: 10px 11px; margin-bottom: 9px; cursor: grab;
+        box-shadow: 0 0 2px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.10);
+      }
+      .card:active { cursor: grabbing; }
+      .card .c-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 5px; }
+      .card .c-id { font-size: 0.72rem; font-weight: 700; color: var(--cp-accent); }
+      .card .c-pts { font-size: 0.72rem; font-weight: 700; color: var(--cp-text-muted); background: var(--cp-surface-soft); border-radius: 999px; padding: 1px 8px; }
+      .card .c-title { font-weight: 600; font-size: 0.88rem; }
+      .card .c-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+      .card.new::after { content: "NEW"; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.08em; color: var(--cp-accent); border: 1px solid var(--cp-accent); border-radius: 5px; padding: 0 4px; margin-left: 6px; }
+
+      .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0 0; font-size: 0.8rem; color: var(--cp-text-muted); }
+      .legend span { display: inline-flex; align-items: center; gap: 6px; }
+      .legend .sw { width: 10px; height: 10px; border-radius: 3px; }
+
+      footer.page { margin-top: 46px; padding-top: 18px; border-top: 1px solid var(--cp-border); color: var(--cp-text-soft); font-size: 0.82rem; display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; }
+      .hidden { display: none !important; }
+
+      @media print {
+        .toolbar, .head-actions, .seg, select.status-sel { display: none !important; }
+        .board { display: none !important; }
+        body { background: #fff; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="page">
+        <div>
+          <p class="eyebrow">Product Management · Delivery Tracker</p>
+          <h1>AI Agent Control Panel — Product Backlog</h1>
+          <p class="sub">
+            Single source of truth for requirements, user stories, sprint progress, and release
+            delivery. Statuses are editable and saved to your browser — drag cards on the board or
+            change status inline in the table.
+          </p>
+        </div>
+        <div class="head-actions">
+          <button class="btn" id="themeBtn" type="button" title="Toggle light / dark">◐ Theme</button>
+          <button class="btn" id="exportBtn" type="button">⭳ Export JSON</button>
+          <button class="btn" id="printBtn" type="button">⎙ Print</button>
+          <button class="btn" id="resetBtn" type="button">↺ Reset</button>
+        </div>
+      </header>
+
+      <div class="sprint-banner">
+        <span>🚀 Active release: <strong id="activeRelName">v0.2 — Deploy &amp; Personalize</strong></span>
+        <span class="dot"></span>
+        <span class="muted" id="activeRelWindow">Target: 2026-07 · Sprint focus: ship signing, presets &amp; test suite</span>
+        <span class="dot"></span>
+        <span class="muted">Product: <code>agent-control-panel</code> v0.1.0</span>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <!-- Release progress -->
+      <section class="block">
+        <h2>Release delivery</h2>
+        <p class="hint">Progress by release, measured in delivered story points (Done ÷ total).</p>
+        <div class="prog-grid" id="releaseGrid"></div>
+      </section>
+
+      <!-- Epic progress -->
+      <section class="block">
+        <h2>Epics</h2>
+        <p class="hint">Feature themes grouped from the technical specification and the roadmap for new features.</p>
+        <div class="prog-grid" id="epicGrid"></div>
+      </section>
+
+      <!-- Backlog -->
+      <section class="block">
+        <h2>Product backlog &amp; user stories</h2>
+        <p class="hint">Filter, then edit status inline (table) or by dragging cards (board). Click a row to reveal acceptance criteria and spec traceability.</p>
+
+        <div class="toolbar">
+          <input type="search" id="search" placeholder="Search stories, IDs, personas…" />
+          <select id="fEpic"><option value="">All epics</option></select>
+          <select id="fStatus"><option value="">All statuses</option></select>
+          <select id="fRelease"><option value="">All releases</option></select>
+          <select id="fPriority">
+            <option value="">All priorities</option>
+            <option>Must</option><option>Should</option><option>Could</option>
+          </select>
+          <span class="spacer"></span>
+          <span class="count-note" id="countNote"></span>
+          <span class="seg" role="group" aria-label="View">
+            <button id="viewBoard" aria-pressed="true">Board</button>
+            <button id="viewTable" aria-pressed="false">Table</button>
+          </span>
+        </div>
+
+        <!-- Board view -->
+        <div id="boardView"><div class="board" id="board"></div></div>
+
+        <!-- Table view -->
+        <div id="tableView" class="hidden">
+          <div class="table-scroll">
+            <table class="backlog">
+              <thead>
+                <tr>
+                  <th style="width:34px"></th>
+                  <th style="width:92px">ID</th>
+                  <th>User story</th>
+                  <th style="width:140px">Epic</th>
+                  <th style="width:78px">Priority</th>
+                  <th style="width:52px">Pts</th>
+                  <th style="width:80px">Release</th>
+                  <th style="width:132px">Status</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="legend" id="legend"></div>
+      </section>
+
+      <footer class="page">
+        <span>Owner: Product Management · team-hunktronics</span>
+        <span id="savedNote">Changes auto-save to this browser.</span>
+        <span>Last generated: 2026-07-09</span>
+      </footer>
+    </div>
+
+    <script>
+      // ---------- Reference data ----------
+      const STATUSES = ["Backlog", "Ready", "In Progress", "In Review", "Done"];
+      const STATUS_COLOR = {
+        "Backlog": "var(--cp-text-soft)",
+        "Ready": "var(--cp-link)",
+        "In Progress": "var(--cp-warning)",
+        "In Review": "var(--cp-accent)",
+        "Done": "var(--cp-success)"
+      };
+      const PRIORITY_COLOR = { Must: "var(--cp-accent)", Should: "var(--cp-link)", Could: "var(--cp-text-soft)" };
+
+      const RELEASES = [
+        { id: "v0.1", name: "v0.1 — MVP Core Platform", note: "Shipped · 2026-05" },
+        { id: "v0.2", name: "v0.2 — Deploy & Personalize", note: "Active · target 2026-07" },
+        { id: "v0.3", name: "v0.3 — Reach & Automation", note: "Planned · target 2026-09" },
+        { id: "Unscheduled", name: "Unscheduled backlog", note: "Not yet committed" }
+      ];
+
+      const EPICS = [
+        { id: "E1", name: "Provider Connections" },
+        { id: "E2", name: "Credential Security" },
+        { id: "E3", name: "Chat & Streaming" },
+        { id: "E4", name: "Conversations" },
+        { id: "E5", name: "GitHub Auth" },
+        { id: "E6", name: "Prompt Presets" },
+        { id: "E7", name: "Theming" },
+        { id: "E8", name: "Attachments & Vision" },
+        { id: "E9", name: "Tools / Function Calling" },
+        { id: "E10", name: "Distribution & Auto-Update" },
+        { id: "E11", name: "Quality & CI" }
+      ];
+
+      // ---------- Backlog (user stories) ----------
+      const DEFAULT_STORIES = [
+        { id: "US-101", epic: "E1", title: "Manage multiple provider connections",
+          story: "As a developer, I want to add and manage multiple provider connections, so that I can switch LLM backends per conversation.",
+          priority: "Must", points: 8, status: "Done", release: "v0.1", isNew: false,
+          ac: ["List, create, update and remove connections", "Per-provider metadata drives the editor UI", "New connections get a UUID; labels capped at 120 chars"],
+          traces: ["FR-CONN-01", "FR-CONN-02", "FR-CONN-03", "FR-CONN-05"] },
+        { id: "US-102", epic: "E1", title: "Test a connection before use",
+          story: "As a user, I want to test a connection, so that I know my credentials and endpoint work before I start chatting.",
+          priority: "Must", points: 3, status: "Done", release: "v0.1", isNew: false,
+          ac: ["Attempts to list models", "Returns ok/fail, a message and discovered models", "Clear success/failure feedback with model counts"],
+          traces: ["FR-CONN-04", "NFR-UX-02"] },
+        { id: "US-103", epic: "E1", title: "Discover models with fallback suggestions",
+          story: "As a user, I want model discovery with fallback suggestions, so that I can pick a model even when a provider has no list endpoint.",
+          priority: "Should", points: 3, status: "Done", release: "v0.1", isNew: false,
+          ac: ["List models via the provider adapter", "On failure, fall back to suggested models and surface the error"],
+          traces: ["FR-MOD-01", "FR-MOD-02", "NFR-UX-03"] },
+
+        { id: "US-201", epic: "E2", title: "Encrypt API keys with the OS keychain",
+          story: "As a security-conscious user, I want my API keys encrypted at rest by the OS keychain, so that my secrets are protected even if files are copied.",
+          priority: "Must", points: 8, status: "Done", release: "v0.1", isNew: false,
+          ac: ["Secrets encrypted via safeStorage, stored as 0600 base64 ciphertext", "Empty secrets rejected", "Encryption fails closed when unavailable"],
+          traces: ["FR-SEC-01", "FR-SEC-05", "SEC-02", "SEC-08"] },
+        { id: "US-202", epic: "E2", title: "Never expose plaintext keys to the UI",
+          story: "As a security-conscious user, I want the app to never send plaintext keys to the renderer, so that a UI compromise cannot leak my credentials.",
+          priority: "Must", points: 5, status: "Done", release: "v0.1", isNew: false,
+          ac: ["Secrets API is write/presence-only", "hasKey flag stays in sync", "Only allow-listed IPC channels are exposed"],
+          traces: ["FR-SEC-02", "FR-SEC-03", "FR-SEC-04", "SEC-03", "SEC-04"] },
+
+        { id: "US-301", epic: "E3", title: "Stream assistant responses",
+          story: "As a user, I want responses to stream token-by-token, so that I get fast feedback and the UI stays responsive.",
+          priority: "Must", points: 8, status: "Done", release: "v0.1", isNew: false,
+          ac: ["chat:send returns a stream id", "chunk/done/error events keyed by stream id", "Generation runs in background; concurrent streams supported"],
+          traces: ["FR-CHAT-01", "FR-CHAT-02", "FR-CHAT-05", "NFR-PERF-01"] },
+        { id: "US-302", epic: "E3", title: "Cancel an in-progress generation",
+          story: "As a user, I want to stop a running generation, so that I can abort long or wrong answers immediately.",
+          priority: "Must", points: 3, status: "Done", release: "v0.1", isNew: false,
+          ac: ["chat:cancel aborts the underlying request", "Aborts map to a friendly ‘Generation stopped.’ message", "Streams removed from the active registry"],
+          traces: ["FR-CHAT-03", "FR-CHAT-06", "NFR-REL-04"] },
+        { id: "US-303", epic: "E3", title: "Render Markdown with syntax highlighting",
+          story: "As a user, I want assistant messages rendered as rich Markdown with code highlighting, so that answers and snippets are easy to read.",
+          priority: "Should", points: 3, status: "Done", release: "v0.1", isNew: false,
+          ac: ["GitHub-flavoured Markdown", "Syntax-highlighted code blocks"],
+          traces: ["FR-CHAT-07", "NFR-UX-04"] },
+
+        { id: "US-401", epic: "E4", title: "Create, select and delete conversations",
+          story: "As a user, I want to manage conversations, so that I can keep separate threads for different tasks.",
+          priority: "Must", points: 5, status: "Done", release: "v0.1", isNew: false,
+          ac: ["Create / select / delete conversations", "Auto-title from the first user message (≤48 chars)"],
+          traces: ["FR-CONV-01", "FR-CONV-03"] },
+        { id: "US-402", epic: "E4", title: "Persist conversations across restarts",
+          story: "As a user, I want my conversations saved locally, so that my history survives app restarts.",
+          priority: "Must", points: 3, status: "Done", release: "v0.1", isNew: false,
+          ac: ["Persist to local storage and reload on startup", "Persist when a stream finishes or errors", "Corrupt files fall back to safe defaults"],
+          traces: ["FR-CONV-02", "FR-CONV-04", "NFR-REL-02"] },
+        { id: "US-403", epic: "E4", title: "Full-text search across conversations",
+          story: "As a heavy user, I want to search across all my conversations, so that I can quickly find a past answer.",
+          priority: "Should", points: 5, status: "Ready", release: "v0.2", isNew: true,
+          ac: ["Search box filters conversation list by content", "Matches highlighted in results", "Search runs locally with no network calls"],
+          traces: ["Future work §12", "NFR-PRV-01"] },
+        { id: "US-404", epic: "E4", title: "Export a conversation (Markdown / JSON)",
+          story: "As a user, I want to export a conversation, so that I can archive or share it outside the app.",
+          priority: "Could", points: 3, status: "In Review", release: "v0.2", isNew: true,
+          ac: ["Export selected conversation as Markdown and JSON", "Includes model + timestamps", "Uses the OS save dialog"],
+          traces: ["Future work §12"] },
+
+        { id: "US-501", epic: "E5", title: "Sign in with GitHub device flow",
+          story: "As a user, I want GitHub device-flow login, so that I can authenticate without copy-pasting tokens.",
+          priority: "Must", points: 5, status: "Done", release: "v0.1", isNew: false,
+          ac: ["Emit user code + verification URI to the UI", "Poll honouring interval, slow_down, expiry, denial", "Store token as the connection's encrypted secret", "Allow cancelling the flow"],
+          traces: ["FR-GH-01", "FR-GH-02", "FR-GH-03", "FR-GH-04", "NFR-REL-03"] },
+
+        { id: "US-601", epic: "E6", title: "Per-connection prompt & parameter presets",
+          story: "As a power user, I want to save system-prompt and parameter presets per connection, so that I can reuse tuned configurations quickly.",
+          priority: "Should", points: 5, status: "In Progress", release: "v0.2", isNew: true,
+          ac: ["Save/edit named presets (system prompt, temperature, max tokens)", "Apply a preset when starting a conversation", "Presets persisted locally"],
+          traces: ["Future work §12", "FR-SET-01"] },
+
+        { id: "US-701", epic: "E7", title: "Additional themes and light mode",
+          story: "As a user, I want theme options beyond neon-blue, so that I can personalize the app to my taste.",
+          priority: "Could", points: 3, status: "Ready", release: "v0.2", isNew: true,
+          ac: ["At least one additional theme + system light/dark", "Theme choice persisted in settings", "No layout regressions across views"],
+          traces: ["Future work §12", "FR-SET-01"] },
+
+        { id: "US-801", epic: "E8", title: "Attach images for vision models",
+          story: "As a user, I want to attach images to a message, so that I can use vision-capable models.",
+          priority: "Could", points: 8, status: "Backlog", release: "v0.3", isNew: true,
+          ac: ["Attach one or more images to a user message", "Images encoded per provider vision API", "Graceful fallback when the model has no vision support"],
+          traces: ["Future work §12"] },
+
+        { id: "US-901", epic: "E9", title: "Tool / function-calling support",
+          story: "As an advanced user, I want tool and function-calling support, so that the agent can invoke external tools during a chat.",
+          priority: "Should", points: 13, status: "Backlog", release: "Unscheduled", isNew: true,
+          ac: ["Define tool schemas surfaced to capable providers", "Render tool calls and results in the transcript", "User approval before a tool executes"],
+          traces: ["Future work §12"] },
+
+        { id: "US-1001", epic: "E10", title: "Signed & notarized macOS builds",
+          story: "As a distributor, I want signed and notarized macOS builds, so that users can install without Gatekeeper warnings.",
+          priority: "Must", points: 5, status: "In Progress", release: "v0.2", isNew: true,
+          ac: ["Configure identity, hardenedRuntime and entitlements", "Notarize the DMG/ZIP in the packaging step", "Fresh install shows no ‘unidentified developer’ warning"],
+          traces: ["Deployment gap §10", "NFR-CMP-01"] },
+        { id: "US-1002", epic: "E10", title: "In-app auto-update",
+          story: "As a user, I want the app to update itself, so that I receive new features without manual reinstalls.",
+          priority: "Should", points: 8, status: "Backlog", release: "v0.3", isNew: true,
+          ac: ["Check for updates and download in the background", "Prompt to restart and apply", "Updates verified against the signing identity"],
+          traces: ["Future work §12"] },
+        { id: "US-1003", epic: "E10", title: "Windows installer",
+          story: "As a Windows user, I want a Windows installer, so that I can run the app on my platform.",
+          priority: "Could", points: 8, status: "Backlog", release: "Unscheduled", isNew: true,
+          ac: ["NSIS/MSI build target", "Secrets use Windows DPAPI backend", "Smoke test on Windows 11"],
+          traces: ["Future work §12", "NFR-CMP-02"] },
+        { id: "US-1004", epic: "E10", title: "Linux packages (AppImage / deb)",
+          story: "As a Linux user, I want Linux packages, so that I can install and run the app on my distro.",
+          priority: "Could", points: 5, status: "Backlog", release: "Unscheduled", isNew: true,
+          ac: ["AppImage and .deb targets", "Secrets use the Linux secret service", "Smoke test on a mainstream distro"],
+          traces: ["Future work §12", "NFR-CMP-02"] },
+
+        { id: "US-1101", epic: "E11", title: "Automated unit & integration tests",
+          story: "As a maintainer, I want an automated test suite, so that regressions are caught before release.",
+          priority: "Should", points: 8, status: "In Progress", release: "v0.2", isNew: true,
+          ac: ["Unit tests for providers, vault and store", "Integration tests for IPC handlers", "Coverage reported in the run"],
+          traces: ["Future work §12", "NFR-MNT-04"] },
+        { id: "US-1102", epic: "E11", title: "CI pipeline (build & test on PR)",
+          story: "As a maintainer, I want CI to build and test on every pull request, so that broken changes are blocked automatically.",
+          priority: "Should", points: 5, status: "Ready", release: "v0.3", isNew: true,
+          ac: ["Typecheck, lint/format and tests run on PR", "Packaged build produced on tagged releases", "Red pipeline blocks merge"],
+          traces: ["Future work §12", "NFR-MNT-04"] }
+      ];
+
+      // ---------- State ----------
+      const LS_KEY = "acp-backlog-overrides-v1";
+      let overrides = {};
+      try { overrides = JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch (e) { overrides = {}; }
+
+      const epicName = (id) => (EPICS.find((e) => e.id === id) || {}).name || id;
+      const statusOf = (s) => overrides[s.id] || s.status;
+      const stories = () => DEFAULT_STORIES.map((s) => ({ ...s, status: statusOf(s) }));
+
+      function save() { localStorage.setItem(LS_KEY, JSON.stringify(overrides)); }
+      function setStatus(id, status) {
+        const def = DEFAULT_STORIES.find((s) => s.id === id);
+        if (!def) return;
+        if (status === def.status) delete overrides[id];
+        else overrides[id] = status;
+        save();
+        renderAll();
+      }
+
+      const esc = (str) =>
+        String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+      function badge(text, color, extraClass) {
+        return '<span class="badge ' + (extraClass || "") + '" style="color:' + color +
+          ';border-color:' + color + ';background:transparent"><span class="swatch"></span>' + esc(text) + "</span>";
+      }
+
+      // ---------- KPIs ----------
+      function renderKPIs() {
+        const all = stories();
+        const total = all.length;
+        const totalPts = all.reduce((a, s) => a + s.points, 0);
+        const done = all.filter((s) => s.status === "Done");
+        const donePts = done.reduce((a, s) => a + s.points, 0);
+        const inFlight = all.filter((s) => s.status === "In Progress" || s.status === "In Review");
+        const backlog = all.filter((s) => s.status === "Backlog");
+        const v2 = all.filter((s) => s.release === "v0.2");
+        const v2done = v2.filter((s) => s.status === "Done").reduce((a, s) => a + s.points, 0);
+        const v2pts = v2.reduce((a, s) => a + s.points, 0);
+        const pct = totalPts ? Math.round((donePts / totalPts) * 100) : 0;
+        const v2pct = v2pts ? Math.round((v2done / v2pts) * 100) : 0;
+
+        const cards = [
+          { label: "Delivery progress", value: pct + "<small>%</small>",
+            foot: donePts + " / " + totalPts + " story points done",
+            bar: '<div class="bar success" style="margin-top:10px"><span style="width:' + pct + '%"></span></div>' },
+          { label: "Stories shipped", value: done.length + '<small> / ' + total + "</small>",
+            foot: (total - done.length) + " remaining across " + EPICS.length + " epics" },
+          { label: "Active sprint (v0.2)", value: v2pct + "<small>%</small>",
+            foot: v2.length + " stories · " + v2done + "/" + v2pts + " pts",
+            bar: '<div class="bar" style="margin-top:10px"><span style="width:' + v2pct + '%"></span></div>' },
+          { label: "In flight now", value: String(inFlight.length),
+            foot: "In Progress or In Review" },
+          { label: "Backlog", value: String(backlog.length),
+            foot: backlog.reduce((a, s) => a + s.points, 0) + " pts not started" }
+        ];
+        document.getElementById("kpiGrid").innerHTML = cards
+          .map((c) => '<div class="kpi"><div class="label">' + c.label + '</div><div class="value">' +
+            c.value + '</div><div class="foot">' + c.foot + "</div>" + (c.bar || "") + "</div>")
+          .join("");
+      }
+
+      // ---------- Release + Epic progress ----------
+      function progressCard(name, note, list, tag) {
+        const pts = list.reduce((a, s) => a + s.points, 0);
+        const donePts = list.filter((s) => s.status === "Done").reduce((a, s) => a + s.points, 0);
+        const pct = pts ? Math.round((donePts / pts) * 100) : 0;
+        const done = list.filter((s) => s.status === "Done").length;
+        return '<div class="prog-card"><div class="top"><div class="name">' + esc(name) +
+          (note ? '<small>' + esc(note) + "</small>" : "") + '</div>' +
+          (tag ? '<span class="rel-tag">' + tag + "</span>" : '<span class="pct">' + pct + "%</span>") +
+          '</div><div class="bar' + (pct === 100 ? " success" : "") + '"><span style="width:' + pct +
+          '%"></span></div><div class="meta"><span>' + done + " / " + list.length + " stories</span><span>" +
+          donePts + " / " + pts + " pts</span></div></div>";
+      }
+
+      function renderReleases() {
+        const all = stories();
+        document.getElementById("releaseGrid").innerHTML = RELEASES
+          .map((r) => progressCard(r.name, r.note, all.filter((s) => s.release === r.id)))
+          .join("");
+      }
+      function renderEpics() {
+        const all = stories();
+        document.getElementById("epicGrid").innerHTML = EPICS
+          .map((e) => {
+            const list = all.filter((s) => s.epic === e.id);
+            if (!list.length) return "";
+            const hasNew = list.some((s) => s.isNew);
+            return progressCard(e.name + (hasNew ? "" : ""), e.id + " · " + list.length + " stories" + (hasNew ? " · has new features" : ""), list);
+          })
+          .join("");
+      }
+
+      // ---------- Filters ----------
+      const F = { search: "", epic: "", status: "", release: "", priority: "" };
+      function filtered() {
+        return stories().filter((s) => {
+          if (F.epic && s.epic !== F.epic) return false;
+          if (F.status && s.status !== F.status) return false;
+          if (F.release && s.release !== F.release) return false;
+          if (F.priority && s.priority !== F.priority) return false;
+          if (F.search) {
+            const hay = (s.id + " " + s.title + " " + s.story + " " + epicName(s.epic)).toLowerCase();
+            if (!hay.includes(F.search.toLowerCase())) return false;
+          }
+          return true;
+        });
+      }
+
+      // ---------- Table ----------
+      function renderTable() {
+        const list = filtered();
+        const rows = list.map((s) => {
+          const statusSel = '<select class="status-sel" data-id="' + s.id + '" style="color:' +
+            STATUS_COLOR[s.status] + '">' +
+            STATUSES.map((st) => '<option' + (st === s.status ? " selected" : "") + ">" + st + "</option>").join("") +
+            "</select>";
+          const traces = s.traces.map((t) => '<span class="trace-chip">' + esc(t) + "</span>").join("");
+          const acs = s.ac.map((a) => "<li>" + esc(a) + "</li>").join("");
+          const main =
+            '<tr class="main" data-id="' + s.id + '">' +
+            '<td><span class="chev">▸</span></td>' +
+            '<td><span class="story-id">' + esc(s.id) + "</span></td>" +
+            '<td><div class="story-title">' + esc(s.title) + (s.isNew ? ' <span class="badge" style="color:var(--cp-accent);border-color:var(--cp-accent)">NEW</span>' : "") +
+            '</div><div class="story-line">' + esc(s.story) + "</div></td>" +
+            '<td>' + badge(epicName(s.epic), "var(--cp-text-muted)", "epic") + "</td>" +
+            "<td>" + badge(s.priority, PRIORITY_COLOR[s.priority]) + "</td>" +
+            '<td class="pts">' + s.points + "</td>" +
+            '<td><span class="rel-tag">' + esc(s.release) + "</span></td>" +
+            "<td>" + statusSel + "</td></tr>";
+          const detail =
+            '<tr class="detail hidden" data-detail="' + s.id + '"><td colspan="8">' +
+            '<div class="ac-wrap"><div><h5>Acceptance criteria</h5><ul>' + acs + "</ul></div>" +
+            "<div><h5>Traceability</h5>" + traces + "</div></div></td></tr>";
+          return main + detail;
+        }).join("");
+        document.getElementById("tbody").innerHTML = rows ||
+          '<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--cp-text-soft)">No stories match the current filters.</td></tr>';
+
+        document.querySelectorAll("select.status-sel").forEach((sel) => {
+          sel.addEventListener("click", (e) => e.stopPropagation());
+          sel.addEventListener("change", (e) => setStatus(e.target.dataset.id, e.target.value));
+        });
+        document.querySelectorAll("tr.main").forEach((tr) => {
+          tr.addEventListener("click", () => {
+            const d = document.querySelector('tr[data-detail="' + tr.dataset.id + '"]');
+            tr.classList.toggle("open");
+            if (d) d.classList.toggle("hidden");
+          });
+        });
+      }
+
+      // ---------- Board ----------
+      function renderBoard() {
+        const list = filtered();
+        const board = document.getElementById("board");
+        board.innerHTML = STATUSES.map((st) => {
+          const items = list.filter((s) => s.status === st);
+          const cards = items.map((s) => {
+            const tags = badge(s.priority, PRIORITY_COLOR[s.priority]) +
+              badge(epicName(s.epic), "var(--cp-text-muted)", "epic") +
+              '<span class="badge epic">' + esc(s.release) + "</span>";
+            return '<div class="card' + (s.isNew ? " new" : "") + '" draggable="true" data-id="' + s.id +
+              '" style="border-left-color:' + STATUS_COLOR[st] + '">' +
+              '<div class="c-top"><span class="c-id">' + esc(s.id) + '</span><span class="c-pts">' + s.points +
+              ' pts</span></div><div class="c-title">' + esc(s.title) + '</div><div class="c-tags">' + tags +
+              "</div></div>";
+          }).join("");
+          return '<div class="col" data-status="' + st + '"><div class="col-head"><span style="color:' +
+            STATUS_COLOR[st] + '">● ' + st + '</span><span class="n">' + items.length + "</span></div>" +
+            cards + "</div>";
+        }).join("");
+
+        board.querySelectorAll(".card").forEach((card) => {
+          card.addEventListener("dragstart", (e) => {
+            e.dataTransfer.setData("text/plain", card.dataset.id);
+            e.dataTransfer.effectAllowed = "move";
+          });
+        });
+        board.querySelectorAll(".col").forEach((col) => {
+          col.addEventListener("dragover", (e) => { e.preventDefault(); col.classList.add("drag-over"); });
+          col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
+          col.addEventListener("drop", (e) => {
+            e.preventDefault();
+            col.classList.remove("drag-over");
+            const id = e.dataTransfer.getData("text/plain");
+            if (id) setStatus(id, col.dataset.status);
+          });
+        });
+      }
+
+      function renderCount() {
+        const n = filtered().length;
+        document.getElementById("countNote").textContent =
+          n + " of " + DEFAULT_STORIES.length + " stories shown";
+      }
+
+      function renderViews() { renderTable(); renderBoard(); renderCount(); }
+      function renderAll() { renderKPIs(); renderReleases(); renderEpics(); renderViews(); }
+
+      // ---------- Legend & filter option population ----------
+      function initStaticUI() {
+        document.getElementById("legend").innerHTML =
+          "<strong style='color:var(--cp-text)'>Status:</strong>" +
+          STATUSES.map((st) => '<span><span class="sw" style="background:' + STATUS_COLOR[st] + '"></span>' + st + "</span>").join("") +
+          "<span style='margin-left:8px'><strong style='color:var(--cp-text)'>Priority:</strong></span>" +
+          Object.keys(PRIORITY_COLOR).map((p) => '<span><span class="sw" style="background:' + PRIORITY_COLOR[p] + '"></span>' + p + "</span>").join("");
+
+        const fEpic = document.getElementById("fEpic");
+        EPICS.forEach((e) => { const o = document.createElement("option"); o.value = e.id; o.textContent = e.name; fEpic.appendChild(o); });
+        const fStatus = document.getElementById("fStatus");
+        STATUSES.forEach((st) => { const o = document.createElement("option"); o.value = st; o.textContent = st; fStatus.appendChild(o); });
+        const fRelease = document.getElementById("fRelease");
+        RELEASES.forEach((r) => { const o = document.createElement("option"); o.value = r.id; o.textContent = r.id; fRelease.appendChild(o); });
+      }
+
+      // ---------- Events ----------
+      document.getElementById("search").addEventListener("input", (e) => { F.search = e.target.value; renderViews(); });
+      document.getElementById("fEpic").addEventListener("change", (e) => { F.epic = e.target.value; renderViews(); });
+      document.getElementById("fStatus").addEventListener("change", (e) => { F.status = e.target.value; renderViews(); });
+      document.getElementById("fRelease").addEventListener("change", (e) => { F.release = e.target.value; renderViews(); });
+      document.getElementById("fPriority").addEventListener("change", (e) => { F.priority = e.target.value; renderViews(); });
+
+      const boardView = document.getElementById("boardView");
+      const tableView = document.getElementById("tableView");
+      const vB = document.getElementById("viewBoard");
+      const vT = document.getElementById("viewTable");
+      vB.addEventListener("click", () => {
+        boardView.classList.remove("hidden"); tableView.classList.add("hidden");
+        vB.setAttribute("aria-pressed", "true"); vT.setAttribute("aria-pressed", "false");
+      });
+      vT.addEventListener("click", () => {
+        tableView.classList.remove("hidden"); boardView.classList.add("hidden");
+        vT.setAttribute("aria-pressed", "true"); vB.setAttribute("aria-pressed", "false");
+      });
+
+      document.getElementById("themeBtn").addEventListener("click", () => {
+        const cur = document.documentElement.getAttribute("data-theme");
+        document.documentElement.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+        renderAll();
+      });
+      document.getElementById("printBtn").addEventListener("click", () => window.print());
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        if (confirm("Reset all status changes back to the baseline plan?")) {
+          overrides = {}; save(); renderAll();
+        }
+      });
+      document.getElementById("exportBtn").addEventListener("click", () => {
+        const data = { product: "AI Agent Control Panel", exportedAt: new Date().toISOString(),
+          stories: stories().map((s) => ({ id: s.id, epic: epicName(s.epic), title: s.title,
+            priority: s.priority, points: s.points, release: s.release, status: s.status })) };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "acp-product-backlog.json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+
+      // ---------- Boot ----------
+      initStaticUI();
+      renderAll();
+    </script>
+  </body>
+</html>

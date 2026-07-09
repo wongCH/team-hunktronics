@@ -1,0 +1,1180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Agent Control Panel — Technical Specification</title>
+
+    <!-- Clawpilot theme detection (must run before any other JS) -->
+    <script>
+      (() => {
+        const param = new URLSearchParams(window.location.search).get('scoutTheme');
+        const theme =
+          param || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+
+    <style>
+      :root {
+        color-scheme: light;
+        --cp-bg: #f7f4ef;
+        --cp-bg-elevated: #fcfbf8;
+        --cp-surface: #ffffff;
+        --cp-surface-soft: #f5f5f5;
+        --cp-border: #dedede;
+        --cp-border-strong: #919191;
+        --cp-text: #242424;
+        --cp-text-muted: #5c5c5c;
+        --cp-text-soft: #6f6f6f;
+        --cp-accent: #b11f4b;
+        --cp-accent-hover: #9a1a41;
+        --cp-accent-soft: rgba(177, 31, 75, 0.08);
+        --cp-accent-fg: #ffffff;
+        --cp-success: #16a34a;
+        --cp-danger: #dc2626;
+        --cp-warning: #f59e0b;
+        --cp-link: #0078d4;
+        --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+        --cp-overlay: rgba(255, 255, 255, 0.8);
+        --cp-panel: rgba(255, 255, 255, 0.86);
+        --cp-panel-strong: rgba(255, 255, 255, 0.96);
+        --cp-sheen: rgba(255, 255, 255, 0.55);
+        --cp-highlight: rgba(177, 31, 75, 0.12);
+      }
+      html[data-theme='dark'] {
+        color-scheme: dark;
+        --cp-bg: #3d3b3a;
+        --cp-bg-elevated: #343231;
+        --cp-surface: #292929;
+        --cp-surface-soft: #2e2e2e;
+        --cp-border: #474747;
+        --cp-border-strong: #5f5f5f;
+        --cp-text: #dedede;
+        --cp-text-muted: #919191;
+        --cp-text-soft: #b0b0b0;
+        --cp-accent: #fd8ea1;
+        --cp-accent-hover: #fb7b91;
+        --cp-accent-soft: rgba(253, 142, 161, 0.14);
+        --cp-accent-fg: #1a1a1a;
+        --cp-success: #4ade80;
+        --cp-danger: #f87171;
+        --cp-warning: #fbbf24;
+        --cp-link: #4da6ff;
+        --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+        --cp-overlay: rgba(41, 41, 41, 0.88);
+        --cp-panel: rgba(41, 41, 41, 0.72);
+        --cp-panel-strong: rgba(41, 41, 41, 0.96);
+        --cp-sheen: rgba(255, 255, 255, 0.04);
+        --cp-highlight: rgba(253, 142, 161, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--cp-bg);
+        color: var(--cp-text);
+        font-family: 'Segoe UI', Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      code,
+      pre,
+      .mono {
+        font-family: Consolas, 'Courier New', Courier, monospace;
+      }
+
+      /* Layout */
+      .layout {
+        display: grid;
+        grid-template-columns: 288px minmax(0, 1fr);
+        max-width: 1320px;
+        margin: 0 auto;
+      }
+      nav.toc {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100vh;
+        overflow-y: auto;
+        padding: 28px 20px 40px;
+        border-right: 1px solid var(--cp-border);
+        background: var(--cp-bg-elevated);
+      }
+      nav.toc .brand {
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: 0.2px;
+        margin-bottom: 4px;
+      }
+      nav.toc .brand span {
+        color: var(--cp-accent);
+      }
+      nav.toc .brand-sub {
+        color: var(--cp-text-muted);
+        font-size: 12.5px;
+        margin-bottom: 18px;
+      }
+      nav.toc a {
+        display: block;
+        color: var(--cp-text-muted);
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: 0.625rem;
+        font-size: 13.5px;
+        border-left: 2px solid transparent;
+      }
+      nav.toc a:hover {
+        color: var(--cp-text);
+        background: var(--cp-surface-soft);
+      }
+      nav.toc a.active {
+        color: var(--cp-accent);
+        background: var(--cp-accent-soft);
+        border-left-color: var(--cp-accent);
+        font-weight: 600;
+      }
+      nav.toc a.sub {
+        padding-left: 22px;
+        font-size: 12.5px;
+      }
+
+      main {
+        padding: 0 48px 120px;
+        min-width: 0;
+      }
+
+      /* Hero */
+      header.hero {
+        padding: 52px 0 28px;
+        border-bottom: 1px solid var(--cp-border);
+        margin-bottom: 8px;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--cp-accent);
+      }
+      h1 {
+        font-size: 34px;
+        line-height: 1.2;
+        margin: 10px 0 6px;
+        letter-spacing: -0.3px;
+      }
+      .subtitle {
+        color: var(--cp-text-muted);
+        font-size: 16px;
+        max-width: 60ch;
+      }
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        margin-top: 26px;
+      }
+      .meta-cell {
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 0.625rem;
+        padding: 10px 14px;
+      }
+      .meta-cell .k {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--cp-text-soft);
+      }
+      .meta-cell .v {
+        font-weight: 600;
+        font-size: 14px;
+        margin-top: 2px;
+      }
+
+      section {
+        padding-top: 40px;
+        scroll-margin-top: 20px;
+      }
+      h2 {
+        font-size: 24px;
+        margin: 0 0 6px;
+        letter-spacing: -0.2px;
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+      h2 .num {
+        color: var(--cp-accent);
+        font-size: 18px;
+        font-weight: 700;
+      }
+      h3 {
+        font-size: 17px;
+        margin: 28px 0 8px;
+      }
+      h4 {
+        font-size: 14px;
+        margin: 18px 0 6px;
+        color: var(--cp-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      a.inline {
+        color: var(--cp-link);
+      }
+      ul,
+      ol {
+        margin: 8px 0;
+        padding-left: 22px;
+      }
+      li {
+        margin: 4px 0;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid var(--cp-border);
+        margin: 40px 0 0;
+      }
+
+      .lead {
+        font-size: 16px;
+        color: var(--cp-text-muted);
+      }
+
+      /* Cards */
+      .card {
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: 0 0 2px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.14);
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .stat {
+        text-align: center;
+      }
+      .stat .big {
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--cp-accent);
+      }
+      .stat .lbl {
+        font-size: 12.5px;
+        color: var(--cp-text-muted);
+      }
+
+      /* Tables */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 14px 0;
+        font-size: 13.5px;
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      thead th {
+        text-align: left;
+        background: var(--cp-surface-soft);
+        color: var(--cp-text);
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--cp-border);
+      }
+      tbody td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--cp-border);
+        vertical-align: top;
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      tbody tr:hover {
+        background: var(--cp-accent-soft);
+      }
+      td .req-id,
+      .req-id {
+        font-family: Consolas, 'Courier New', Courier, monospace;
+        font-weight: 700;
+        color: var(--cp-accent);
+        white-space: nowrap;
+      }
+      td.center {
+        text-align: center;
+      }
+
+      code:not(pre code) {
+        background: var(--cp-surface-soft);
+        border: 1px solid var(--cp-border);
+        padding: 1px 6px;
+        border-radius: 6px;
+        font-size: 12.5px;
+        color: var(--cp-text);
+      }
+      pre {
+        background: var(--cp-bg-elevated);
+        border: 1px solid var(--cp-border);
+        border-radius: 12px;
+        padding: 14px 16px;
+        overflow-x: auto;
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+
+      /* Badges */
+      .badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+        border: 1px solid transparent;
+      }
+      .badge.must {
+        background: var(--cp-accent-soft);
+        color: var(--cp-accent);
+        border-color: var(--cp-accent);
+      }
+      .badge.should {
+        color: var(--cp-warning);
+        border-color: var(--cp-warning);
+        background: transparent;
+      }
+      .badge.could {
+        color: var(--cp-text-muted);
+        border-color: var(--cp-border-strong);
+        background: transparent;
+      }
+      .badge.ok {
+        color: var(--cp-success);
+        border-color: var(--cp-success);
+        background: transparent;
+      }
+      .badge.exp {
+        color: var(--cp-warning);
+        border-color: var(--cp-warning);
+        background: transparent;
+      }
+      .badge.no {
+        color: var(--cp-text-soft);
+        border-color: var(--cp-border);
+        background: transparent;
+      }
+      .pill {
+        display: inline-block;
+        background: var(--cp-surface-soft);
+        border: 1px solid var(--cp-border);
+        color: var(--cp-text-muted);
+        border-radius: 999px;
+        padding: 2px 10px;
+        font-size: 12px;
+        margin: 2px 4px 2px 0;
+      }
+
+      /* Architecture diagram */
+      .arch {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin: 18px 0;
+      }
+      .arch-row {
+        display: grid;
+        grid-template-columns: 130px 1fr;
+        gap: 14px;
+        align-items: stretch;
+      }
+      .arch-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--cp-accent-fg);
+        background: var(--cp-accent);
+        border-radius: 12px;
+        padding: 10px;
+      }
+      .arch-label.muted {
+        background: var(--cp-border-strong);
+        color: var(--cp-bg-elevated);
+      }
+      .arch-boxes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .arch-box {
+        flex: 1 1 130px;
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      .arch-box b {
+        display: block;
+        font-size: 13px;
+      }
+      .arch-box small {
+        color: var(--cp-text-soft);
+        font-size: 11.5px;
+      }
+      .arrow {
+        text-align: center;
+        color: var(--cp-text-soft);
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .callout {
+        border-left: 3px solid var(--cp-accent);
+        background: var(--cp-accent-soft);
+        padding: 12px 16px;
+        border-radius: 0 12px 12px 0;
+        margin: 16px 0;
+      }
+      .callout.warn {
+        border-left-color: var(--cp-warning);
+        background: transparent;
+        border: 1px solid var(--cp-warning);
+        border-left-width: 3px;
+      }
+      .callout b {
+        color: var(--cp-text);
+      }
+
+      /* Theme toggle */
+      .theme-toggle {
+        position: fixed;
+        top: 16px;
+        right: 18px;
+        z-index: 50;
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        color: var(--cp-text);
+        border-radius: 999px;
+        padding: 7px 14px;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 0 2px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.14);
+      }
+      .theme-toggle:hover {
+        border-color: var(--cp-accent);
+        color: var(--cp-accent);
+      }
+      footer {
+        margin-top: 60px;
+        padding-top: 20px;
+        border-top: 1px solid var(--cp-border);
+        color: var(--cp-text-soft);
+        font-size: 12.5px;
+      }
+
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        nav.toc {
+          position: static;
+          height: auto;
+          border-right: none;
+          border-bottom: 1px solid var(--cp-border);
+        }
+        main {
+          padding: 0 22px 80px;
+        }
+      }
+      @media print {
+        nav.toc,
+        .theme-toggle {
+          display: none;
+        }
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        tbody tr:hover {
+          background: transparent;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <button class="theme-toggle" id="themeToggle" type="button">◐ Theme</button>
+
+    <div class="layout">
+      <nav class="toc" id="toc">
+        <div class="brand">AI Agent <span>Control Panel</span></div>
+        <div class="brand-sub">Technical Specification</div>
+        <a href="#doc-control">Document Control</a>
+        <a href="#intro"><b>1.</b> Introduction</a>
+        <a href="#scope" class="sub">1.1 Scope</a>
+        <a href="#glossary" class="sub">1.2 Glossary</a>
+        <a href="#overview"><b>2.</b> System Overview</a>
+        <a href="#stack" class="sub">2.1 Technology Stack</a>
+        <a href="#architecture"><b>3.</b> Architecture</a>
+        <a href="#datamodel"><b>4.</b> Data Model</a>
+        <a href="#functional"><b>5.</b> Functional Requirements</a>
+        <a href="#ipc"><b>6.</b> IPC / API Contract</a>
+        <a href="#providers"><b>7.</b> Provider Matrix</a>
+        <a href="#nonfunctional"><b>8.</b> Non-Functional Reqs</a>
+        <a href="#security"><b>9.</b> Security Requirements</a>
+        <a href="#build"><b>10.</b> Build &amp; Deployment</a>
+        <a href="#constraints"><b>11.</b> Constraints &amp; Assumptions</a>
+        <a href="#outofscope"><b>12.</b> Out of Scope</a>
+        <a href="#traceability"><b>13.</b> Traceability</a>
+      </nav>
+
+      <main>
+        <header class="hero">
+          <div class="eyebrow">Software Requirements &amp; Technical Specification</div>
+          <h1>AI Agent Control Panel</h1>
+          <p class="subtitle">
+            A cross-platform Electron desktop application for chatting with multiple LLM backends
+            from a single interface, with API keys encrypted at rest by the operating system
+            keychain.
+          </p>
+          <div class="meta-grid">
+            <div class="meta-cell"><div class="k">Document ID</div><div class="v">ACP-SRS-001</div></div>
+            <div class="meta-cell"><div class="k">Version</div><div class="v">0.1.0 (MVP)</div></div>
+            <div class="meta-cell"><div class="k">Status</div><div class="v">Draft</div></div>
+            <div class="meta-cell"><div class="k">Date</div><div class="v">2026-07-09</div></div>
+            <div class="meta-cell"><div class="k">Owner</div><div class="v">team-hunktronics</div></div>
+            <div class="meta-cell"><div class="k">License</div><div class="v">MIT</div></div>
+          </div>
+        </header>
+
+        <!-- DOCUMENT CONTROL -->
+        <section id="doc-control">
+          <h2><span class="num">§</span> Document Control</h2>
+          <table>
+            <thead>
+              <tr><th>Version</th><th>Date</th><th>Author</th><th>Summary of change</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">0.1.0</td><td>2026-07-09</td><td>team-hunktronics</td><td>Initial specification derived from the MVP codebase.</td></tr>
+            </tbody>
+          </table>
+          <div class="grid-2">
+            <div class="card stat"><div class="big" id="frCount">—</div><div class="lbl">Functional requirements</div></div>
+            <div class="card stat"><div class="big" id="nfrCount">—</div><div class="lbl">Non-functional requirements</div></div>
+            <div class="card stat"><div class="big" id="secCount">—</div><div class="lbl">Security requirements</div></div>
+            <div class="card stat"><div class="big">6</div><div class="lbl">LLM providers supported</div></div>
+          </div>
+        </section>
+
+        <!-- 1 INTRODUCTION -->
+        <section id="intro">
+          <h2><span class="num">1</span> Introduction</h2>
+          <p class="lead">
+            This document captures the functional and non-functional requirements and the technical
+            design of the AI Agent Control Panel (internally <code>agent-control-panel</code>). It is
+            intended for engineers, reviewers, and QA working on the product.
+          </p>
+          <h4>Purpose</h4>
+          <p>
+            Provide a single, secure desktop client that lets a user configure connections to
+            several Large Language Model (LLM) providers, store credentials safely, and hold
+            streaming chat conversations that persist locally.
+          </p>
+          <h4>Product perspective</h4>
+          <p>
+            The application is a self-contained Electron desktop app. It has no backend server of its
+            own; each configured connection talks directly from the user's machine to the chosen
+            provider's HTTPS API. All state (connections, conversations, settings, encrypted secrets)
+            is persisted to the OS <em>user-data</em> directory.
+          </p>
+
+          <div id="scope">
+            <h3>1.1 Scope</h3>
+            <h4>In scope</h4>
+            <ul>
+              <li>Managing multiple provider connections (Ollama, OpenAI, Anthropic, GitHub Models, OpenAI-compatible endpoints, GitHub Copilot).</li>
+              <li>Encrypted, OS-backed storage of API keys and tokens.</li>
+              <li>GitHub OAuth device-flow login for token-based providers.</li>
+              <li>Model discovery, streaming chat with cancellation, and locally persisted conversations.</li>
+              <li>Application settings including active connection/model and experimental toggles.</li>
+            </ul>
+            <h4>Out of scope (MVP)</h4>
+            <p>See <a class="inline" href="#outofscope">§12 Out of Scope</a>.</p>
+          </div>
+
+          <div id="glossary">
+            <h3>1.2 Glossary &amp; Definitions</h3>
+            <table>
+              <thead><tr><th style="width:180px">Term</th><th>Definition</th></tr></thead>
+              <tbody>
+                <tr><td><b>Main process</b></td><td>The Electron Node.js process that owns windows, file system, and privileged operations.</td></tr>
+                <tr><td><b>Renderer</b></td><td>The sandboxed Chromium process running the React UI. Has no direct Node access.</td></tr>
+                <tr><td><b>Preload</b></td><td>Isolated bridge script exposing a narrow, typed API to the renderer via <code>contextBridge</code>.</td></tr>
+                <tr><td><b>Vault</b></td><td>Encrypted secret store backed by the OS keychain via Electron <code>safeStorage</code>.</td></tr>
+                <tr><td><b>Store</b></td><td>Plaintext (non-secret) JSON persistence for connections, conversations, and settings.</td></tr>
+                <tr><td><b>Connection</b></td><td>A configured provider endpoint (type, label, base URL, default model, key presence).</td></tr>
+                <tr><td><b>Provider</b></td><td>An adapter implementing model listing and streaming chat for a given backend.</td></tr>
+                <tr><td><b>Device flow</b></td><td>GitHub OAuth flow where the user authorizes via a code, suitable for public clients.</td></tr>
+                <tr><td><b>MoSCoW</b></td><td>Prioritization: <span class="badge must">Must</span> <span class="badge should">Should</span> <span class="badge could">Could</span>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 2 SYSTEM OVERVIEW -->
+        <section id="overview">
+          <h2><span class="num">2</span> System Overview</h2>
+          <p>
+            The product follows Electron's three-process security model. The React renderer never
+            touches Node APIs directly; it communicates with the main process exclusively through a
+            small, allow-listed, typed IPC surface exposed by the preload bridge. Secrets are held,
+            encrypted, and used only within the main process.
+          </p>
+
+          <div class="arch">
+            <div class="arch-row">
+              <div class="arch-label">Renderer<br />(Chromium)</div>
+              <div class="arch-boxes">
+                <div class="arch-box"><b>React 18 UI</b><small>Chat, Composer, Sidebar, Connections &amp; Settings modals</small></div>
+                <div class="arch-box"><b>Zustand stores</b><small>useAppStore, useChatStore</small></div>
+                <div class="arch-box"><b>window.api</b><small>typed client wrapper</small></div>
+              </div>
+            </div>
+            <div class="arrow">▲ &nbsp; contextBridge &nbsp; ▼</div>
+            <div class="arch-row">
+              <div class="arch-label muted">Preload<br />(isolated)</div>
+              <div class="arch-boxes">
+                <div class="arch-box"><b>Allow-listed IPC</b><small>invoke() calls + event subscriptions; no secrets returned</small></div>
+              </div>
+            </div>
+            <div class="arrow">▲ &nbsp; ipcMain / ipcRenderer &nbsp; ▼</div>
+            <div class="arch-row">
+              <div class="arch-label">Main<br />(Node.js)</div>
+              <div class="arch-boxes">
+                <div class="arch-box"><b>IPC handlers</b><small>connections, secrets, models, chat, settings, github</small></div>
+                <div class="arch-box"><b>Vault</b><small>safeStorage encrypt/decrypt → vault.json</small></div>
+                <div class="arch-box"><b>Store</b><small>connections / conversations / settings JSON</small></div>
+                <div class="arch-box"><b>Providers</b><small>Provider interface + device flow</small></div>
+              </div>
+            </div>
+            <div class="arrow">▼ &nbsp; HTTPS (fetch, SSE streaming) &nbsp; ▼</div>
+            <div class="arch-row">
+              <div class="arch-label muted">External</div>
+              <div class="arch-boxes">
+                <div class="arch-box"><b>LLM providers</b><small>OpenAI, Anthropic, Ollama, GitHub Models/Copilot, OpenAI-compatible</small></div>
+                <div class="arch-box"><b>OS keychain</b><small>macOS Keychain / Win DPAPI / Linux secret service</small></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="stack">
+            <h3>2.1 Technology Stack</h3>
+            <table>
+              <thead><tr><th>Layer</th><th>Technology</th><th>Version</th></tr></thead>
+              <tbody>
+                <tr><td>Runtime shell</td><td>Electron</td><td class="mono">31.7.7</td></tr>
+                <tr><td>Build / bundling</td><td>electron-vite + Vite</td><td class="mono">2.3.x / 5.3.x</td></tr>
+                <tr><td>UI framework</td><td>React + React DOM</td><td class="mono">18.3.x</td></tr>
+                <tr><td>State management</td><td>Zustand</td><td class="mono">4.5.x</td></tr>
+                <tr><td>Styling</td><td>Tailwind CSS + PostCSS + Autoprefixer</td><td class="mono">3.4.x</td></tr>
+                <tr><td>Markdown rendering</td><td>react-markdown, remark-gfm, rehype-highlight, highlight.js</td><td class="mono">—</td></tr>
+                <tr><td>Language</td><td>TypeScript</td><td class="mono">5.5.x</td></tr>
+                <tr><td>Packaging</td><td>electron-builder</td><td class="mono">24.13.x</td></tr>
+                <tr><td>Tooling</td><td>Prettier, Node.js</td><td class="mono">3.3.x / 18+</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 3 ARCHITECTURE -->
+        <section id="architecture">
+          <h2><span class="num">3</span> Architecture</h2>
+          <h3>3.1 Process responsibilities</h3>
+          <ul>
+            <li><b>Main</b> — window lifecycle, security policy (navigation/window-open handling), IPC registration, provider orchestration, encrypted vault, plaintext store, and GitHub device flow.</li>
+            <li><b>Preload</b> — exposes <code>window.api</code> with namespaced methods (<code>vault</code>, <code>connections</code>, <code>secrets</code>, <code>models</code>, <code>chat</code>, <code>conversations</code>, <code>settings</code>, <code>github</code>, <code>shell</code>). Only these channels are reachable from the UI.</li>
+            <li><b>Renderer</b> — React UI plus two Zustand stores: <code>useAppStore</code> (connections, settings, models, modals, vault status) and <code>useChatStore</code> (conversations, streaming lifecycle).</li>
+          </ul>
+
+          <h3>3.2 Streaming chat flow</h3>
+          <ol>
+            <li>Renderer calls <code>chat.send()</code>; main validates the connection/model, resolves the provider and context, and creates a <code>streamId</code> plus an <code>AbortController</code>.</li>
+            <li>The provider streams tokens; the main process forwards each delta to the renderer via <code>chat:chunk</code> events, then emits <code>chat:done</code> or <code>chat:error</code>.</li>
+            <li>The renderer appends deltas to the trailing assistant message and persists the conversation on completion.</li>
+            <li><code>chat.cancel(streamId)</code> aborts the underlying request; the stream is removed from the active map.</li>
+          </ol>
+
+          <h3>3.3 Persistence layout</h3>
+          <p>All files live in the Electron <code>userData</code> directory (never in the repository):</p>
+          <table>
+            <thead><tr><th>File</th><th>Content</th><th>Sensitivity</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">vault.json</td><td>Base64 ciphertext of secrets, written with mode <code>0600</code></td><td><span class="badge must">Encrypted</span></td></tr>
+              <tr><td class="mono">connections.json</td><td>Connection configs (no secrets; <code>hasKey</code> flag only)</td><td><span class="badge no">Non-secret</span></td></tr>
+              <tr><td class="mono">conversations.json</td><td>Chat history</td><td><span class="badge no">Local</span></td></tr>
+              <tr><td class="mono">settings.json</td><td>App settings</td><td><span class="badge no">Local</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 4 DATA MODEL -->
+        <section id="datamodel">
+          <h2><span class="num">4</span> Data Model</h2>
+          <p>Core shared types (defined in <code>src/shared/types.ts</code>) used across all processes.</p>
+
+          <h4>ConnectionConfig</h4>
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">id</td><td class="mono">string</td><td>UUID; also the vault key.</td></tr>
+              <tr><td class="mono">providerType</td><td class="mono">ProviderType</td><td>One of the 6 allow-listed provider types.</td></tr>
+              <tr><td class="mono">label</td><td class="mono">string</td><td>Required, trimmed, max 120 chars.</td></tr>
+              <tr><td class="mono">baseUrl?</td><td class="mono">string</td><td>Override for Ollama / OpenAI-compatible.</td></tr>
+              <tr><td class="mono">defaultModel?</td><td class="mono">string</td><td>Preferred model id.</td></tr>
+              <tr><td class="mono">hasKey</td><td class="mono">boolean</td><td>Whether a secret exists — <em>never</em> the key itself.</td></tr>
+              <tr><td class="mono">createdAt / updatedAt</td><td class="mono">number</td><td>Epoch millis.</td></tr>
+            </tbody>
+          </table>
+
+          <h4>Conversation &amp; ChatMessage</h4>
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">id / title</td><td class="mono">string</td><td>Title auto-derived from first user message.</td></tr>
+              <tr><td class="mono">connectionId / model</td><td class="mono">string | null</td><td>Binding used for the last send.</td></tr>
+              <tr><td class="mono">messages[]</td><td class="mono">ChatMessage</td><td><code>{ role: 'system'|'user'|'assistant', content: string }</code></td></tr>
+              <tr><td class="mono">createdAt / updatedAt</td><td class="mono">number</td><td>Epoch millis.</td></tr>
+            </tbody>
+          </table>
+
+          <h4>AppSettings</h4>
+          <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">theme</td><td class="mono">'neon-blue'</td><td>Active visual theme.</td></tr>
+              <tr><td class="mono">experimentalCopilot</td><td class="mono">boolean</td><td>Gate for the Copilot provider.</td></tr>
+              <tr><td class="mono">activeConnectionId</td><td class="mono">string | null</td><td>Current selection.</td></tr>
+              <tr><td class="mono">activeModel</td><td class="mono">string | null</td><td>Current model.</td></tr>
+              <tr><td class="mono">githubClientId</td><td class="mono">string</td><td>OAuth client id for device flow (public, configurable).</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 5 FUNCTIONAL REQUIREMENTS -->
+        <section id="functional">
+          <h2><span class="num">5</span> Functional Requirements</h2>
+          <p class="lead">
+            Each requirement has a stable ID and a MoSCoW priority
+            (<span class="badge must">Must</span> <span class="badge should">Should</span>
+            <span class="badge could">Could</span>).
+          </p>
+
+          <h3>5.1 Application Shell &amp; Window</h3>
+          <table>
+            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id fr">FR-APP-01</span></td><td>Launch a single main window (1180×800, min 900×600) with a macOS hidden-inset title bar and custom traffic-light position.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-APP-02</span></td><td>Show the window only once the renderer is ready to display, to avoid a blank/white flash.</td><td class="center"><span class="badge should">Should</span></td></tr>
+              <tr><td><span class="req-id fr">FR-APP-03</span></td><td>On macOS, re-create the window when the app is activated and no window is open.</td><td class="center"><span class="badge should">Should</span></td></tr>
+              <tr><td><span class="req-id fr">FR-APP-04</span></td><td>Quit when all windows are closed, except on macOS where the app remains active.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-APP-05</span></td><td>Open external <code>http(s)</code> links in the OS default browser and deny in-app navigation/window creation.</td><td class="center"><span class="badge must">Must</span></td></tr>
+            </tbody>
+          </table>
+
+          <h3>5.2 Provider Connections</h3>
+          <table>
+            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id fr">FR-CONN-01</span></td><td>List all saved connections.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CONN-02</span></td><td>Create or update a connection; a non-empty label and a valid provider type are required, with optional base URL and default model.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CONN-03</span></td><td>Remove a connection and simultaneously clear its stored secret.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CONN-04</span></td><td>Test a connection by attempting to list models, returning success state, a message, and any discovered models.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CONN-05</span></td><td>Drive the connection editor UI from per-provider metadata (key/base-URL requirements, placeholders, docs links, defaults).</td><td class="center"><span class="badge should">Should</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CONN-06</span></td><td>Generate a UUID for new connections and truncate labels to 120 characters.</td><td class="center"><span class="badge could">Could</span></td></tr>
+            </tbody>
+          </table>
+
+          <h3>5.3 Credential / Secret Management</h3>
+          <table>
+            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id fr">FR-SEC-01</span></td><td>Store a per-connection secret encrypted via the OS keychain; reject empty secrets.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-SEC-02</span></td><td>Clear a stored secret for a connection.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-SEC-03</span></td><td>Report whether a secret exists for a connection (boolean only).</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-SEC-04</span></td><td>Keep the <code>hasKey</code> flag on the connection synchronized whenever a secret is set or cleared.</td><td class="center"><span class="badge should">Should</span></td></tr>
+              <tr><td><span class="req-id fr">FR-SEC-05</span></td><td>Report vault availability and the active encryption backend name to the UI.</td><td class="center"><span class="badge must">Must</span></td></tr>
+            </tbody>
+          </table>
+
+          <h3>5.4 Model Discovery</h3>
+          <table>
+            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id fr">FR-MOD-01</span></td><td>List available models for a connection via its provider adapter.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-MOD-02</span></td><td>On listing failure, fall back to the provider's suggested models and surface the error message.</td><td class="center"><span class="badge should">Should</span></td></tr>
+            </tbody>
+          </table>
+
+          <h3>5.5 Chat &amp; Streaming</h3>
+          <table>
+            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id fr">FR-CHAT-01</span></td><td>Send a chat request (connection, model, message history, optional params) and return a stream identifier.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CHAT-02</span></td><td>Stream assistant output incrementally to the UI via chunk/done/error events keyed by stream id.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CHAT-03</span></td><td>Allow cancelling an in-progress generation, aborting the underlying request.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CHAT-04</span></td><td>Reject Copilot chat unless the experimental Copilot setting is enabled.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CHAT-05</span></td><td>Run generation in the background so the UI stays responsive; support concurrent streams tracked by id.</td><td class="center"><span class="badge should">Should</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CHAT-06</span></td><td>Map an aborted request to a friendly "Generation stopped." message and render errors inline in the assistant bubble.</td><td class="center"><span class="badge should">Should</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CHAT-07</span></td><td>Render assistant messages as Markdown with GitHub-flavoured syntax highlighting.</td><td class="center"><span class="badge should">Should</span></td></tr>
+            </tbody>
+          </table>
+
+          <h3>5.6 Conversation Management</h3>
+          <table>
+            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id fr">FR-CONV-01</span></td><td>Create, select, and delete conversations.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CONV-02</span></td><td>Persist conversations to local storage and reload them on startup.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CONV-03</span></td><td>Auto-title a new conversation from the first user message (≤48 chars).</td><td class="center"><span class="badge could">Could</span></td></tr>
+              <tr><td><span class="req-id fr">FR-CONV-04</span></td><td>Persist the conversation when a stream finishes or errors.</td><td class="center"><span class="badge should">Should</span></td></tr>
+            </tbody>
+          </table>
+
+          <h3>5.7 Settings</h3>
+          <table>
+            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id fr">FR-SET-01</span></td><td>Read and partially update application settings.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-SET-02</span></td><td>Persist the active connection and active model across restarts.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-SET-03</span></td><td>Provide a toggle for experimental Copilot support.</td><td class="center"><span class="badge should">Should</span></td></tr>
+              <tr><td><span class="req-id fr">FR-SET-04</span></td><td>Allow configuring the GitHub OAuth client id used for device flow.</td><td class="center"><span class="badge could">Could</span></td></tr>
+            </tbody>
+          </table>
+
+          <h3>5.8 GitHub Device-Flow Authentication</h3>
+          <table>
+            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id fr">FR-GH-01</span></td><td>Start a GitHub device flow for a connection and emit the user code and verification URI to the UI.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-GH-02</span></td><td>Poll for authorization honouring the server interval, <code>slow_down</code>, <code>expired_token</code>, and <code>access_denied</code> responses.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-GH-03</span></td><td>On success, store the returned token as the connection's encrypted secret.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id fr">FR-GH-04</span></td><td>Allow cancelling an in-progress device flow.</td><td class="center"><span class="badge should">Should</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 6 IPC CONTRACT -->
+        <section id="ipc">
+          <h2><span class="num">6</span> IPC / API Contract</h2>
+          <p>
+            All renderer ↔ main communication uses the channels below (from
+            <code>src/shared/ipc.ts</code>), surfaced as typed methods on <code>window.api</code>.
+            Request/response types are shared, guaranteeing compile-time consistency across
+            processes.
+          </p>
+          <table>
+            <thead><tr><th>Channel</th><th>Kind</th><th>Request → Response</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">vault:status</td><td>invoke</td><td class="mono">() → VaultStatus</td></tr>
+              <tr><td class="mono">connections:list</td><td>invoke</td><td class="mono">() → ConnectionConfig[]</td></tr>
+              <tr><td class="mono">connections:upsert</td><td>invoke</td><td class="mono">(conn) → ConnectionConfig[]</td></tr>
+              <tr><td class="mono">connections:remove</td><td>invoke</td><td class="mono">(id) → ConnectionConfig[]</td></tr>
+              <tr><td class="mono">connections:test</td><td>invoke</td><td class="mono">(id) → TestResult</td></tr>
+              <tr><td class="mono">secrets:set</td><td>invoke</td><td class="mono">(id, secret) → { ok }</td></tr>
+              <tr><td class="mono">secrets:clear</td><td>invoke</td><td class="mono">(id) → { ok }</td></tr>
+              <tr><td class="mono">secrets:has</td><td>invoke</td><td class="mono">(id) → boolean</td></tr>
+              <tr><td class="mono">models:list</td><td>invoke</td><td class="mono">(id) → ModelInfo[]</td></tr>
+              <tr><td class="mono">chat:send</td><td>invoke</td><td class="mono">(ChatRequest) → { streamId }</td></tr>
+              <tr><td class="mono">chat:cancel</td><td>invoke</td><td class="mono">(streamId) → { ok }</td></tr>
+              <tr><td class="mono">chat:chunk / chat:done / chat:error</td><td>event</td><td class="mono">main → renderer (streaming)</td></tr>
+              <tr><td class="mono">conversations:list / save / delete</td><td>invoke</td><td class="mono">(…) → Conversation[]</td></tr>
+              <tr><td class="mono">settings:get / set</td><td>invoke</td><td class="mono">(patch?) → AppSettings</td></tr>
+              <tr><td class="mono">github:startDeviceFlow</td><td>invoke</td><td class="mono">(connectionId, scope?) → DeviceFlowResult</td></tr>
+              <tr><td class="mono">github:deviceCode</td><td>event</td><td class="mono">main → renderer (user code)</td></tr>
+              <tr><td class="mono">github:cancelDeviceFlow</td><td>invoke</td><td class="mono">() → { ok }</td></tr>
+              <tr><td class="mono">shell:openExternal</td><td>invoke</td><td class="mono">(url) → { ok }</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 7 PROVIDER MATRIX -->
+        <section id="providers">
+          <h2><span class="num">7</span> Provider Capability Matrix</h2>
+          <table>
+            <thead>
+              <tr><th>Provider</th><th class="center">Key</th><th class="center">Base URL</th><th class="center">Device flow</th><th class="center">Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><b>Ollama</b> <small>(local)</small></td><td class="center"><span class="badge no">No</span></td><td class="center"><span class="badge must">Required</span></td><td class="center"><span class="badge no">—</span></td><td class="center"><span class="badge ok">Stable</span></td></tr>
+              <tr><td><b>OpenAI</b></td><td class="center"><span class="badge must">Required</span></td><td class="center"><span class="badge no">Default</span></td><td class="center"><span class="badge no">—</span></td><td class="center"><span class="badge ok">Stable</span></td></tr>
+              <tr><td><b>Anthropic (Claude)</b></td><td class="center"><span class="badge must">Required</span></td><td class="center"><span class="badge no">Default</span></td><td class="center"><span class="badge no">—</span></td><td class="center"><span class="badge ok">Stable</span></td></tr>
+              <tr><td><b>GitHub Models</b></td><td class="center"><span class="badge must">Token</span></td><td class="center"><span class="badge no">Default</span></td><td class="center"><span class="badge ok">Yes</span></td><td class="center"><span class="badge ok">Stable</span></td></tr>
+              <tr><td><b>OpenAI-compatible</b></td><td class="center"><span class="badge should">Optional</span></td><td class="center"><span class="badge must">Required</span></td><td class="center"><span class="badge no">—</span></td><td class="center"><span class="badge ok">Stable</span></td></tr>
+              <tr><td><b>GitHub Copilot</b></td><td class="center"><span class="badge no">No</span></td><td class="center"><span class="badge no">—</span></td><td class="center"><span class="badge ok">Yes</span></td><td class="center"><span class="badge exp">Experimental</span></td></tr>
+            </tbody>
+          </table>
+          <div class="callout warn">
+            <b>Note:</b> The GitHub Copilot provider is experimental and unofficial; using it may
+            violate GitHub's Terms of Service. It is disabled unless explicitly enabled in Settings
+            (FR-CHAT-04 / FR-SET-03).
+          </div>
+        </section>
+
+        <!-- 8 NON-FUNCTIONAL -->
+        <section id="nonfunctional">
+          <h2><span class="num">8</span> Non-Functional Requirements</h2>
+
+          <h3>8.1 Performance</h3>
+          <table>
+            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id nfr">NFR-PERF-01</span></td><td>Assistant responses must render incrementally as tokens arrive; the UI must not block during generation.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-PERF-02</span></td><td>Generation runs on background tasks in the main process; multiple streams may run concurrently.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-PERF-03</span></td><td>The window must appear without a blank flash (deferred show until ready).</td></tr>
+              <tr><td><span class="req-id nfr">NFR-PERF-04</span></td><td>Vault contents are cached in memory after first read to avoid repeated disk/decrypt cost.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>8.2 Reliability</h3>
+          <table>
+            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id nfr">NFR-REL-01</span></td><td>Provider and IPC errors are surfaced as user-facing messages rather than crashing the app.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-REL-02</span></td><td>Missing or corrupt persistence files fall back to safe defaults (empty lists / default settings).</td></tr>
+              <tr><td><span class="req-id nfr">NFR-REL-03</span></td><td>Device flow tolerates pending/slow-down responses and honours expiry and denial.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-REL-04</span></td><td>Aborted or completed streams are removed from the active-stream registry to prevent leaks.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>8.3 Usability &amp; UX</h3>
+          <table>
+            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id nfr">NFR-UX-01</span></td><td>Native-feeling macOS chrome (hidden-inset title bar, custom traffic-light offset, dark-mode support).</td></tr>
+              <tr><td><span class="req-id nfr">NFR-UX-02</span></td><td>Connection testing provides clear success/failure feedback including model counts.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-UX-03</span></td><td>Model selection offers fallback suggestions when a provider has no list endpoint.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-UX-04</span></td><td>Rich Markdown chat rendering with code syntax highlighting.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>8.4 Portability &amp; Compatibility</h3>
+          <table>
+            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id nfr">NFR-CMP-01</span></td><td>Primary target is macOS arm64, packaged as DMG and ZIP.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-CMP-02</span></td><td>Secret storage abstracts across macOS Keychain, Windows DPAPI, and Linux secret service, keeping the codebase cross-platform ready.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-CMP-03</span></td><td>Requires Node.js 18+ and runs on Electron 31 / Chromium.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>8.5 Maintainability</h3>
+          <table>
+            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id nfr">NFR-MNT-01</span></td><td>TypeScript is used across all processes with a single shared types module for cross-process contracts.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-MNT-02</span></td><td>Providers implement a common <code>Provider</code> interface, so new backends can be added without touching the UI or IPC layer.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-MNT-03</span></td><td>IPC channel names are centralized as constants to avoid string drift.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-MNT-04</span></td><td>Code is formatted with Prettier and type-checked via a dedicated script.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>8.6 Privacy &amp; Observability</h3>
+          <table>
+            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id nfr">NFR-PRV-01</span></td><td>Local-first: no telemetry or analytics; all data stays in the user-data directory.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-PRV-02</span></td><td>Requests go directly from the user's machine to the selected provider; no intermediary server.</td></tr>
+              <tr><td><span class="req-id nfr">NFR-OBS-01</span></td><td>Detached DevTools are available in development; runtime failures are returned through IPC responses/events.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 9 SECURITY -->
+        <section id="security">
+          <h2><span class="num">9</span> Security Requirements</h2>
+          <p class="lead">Security is a first-class, non-negotiable concern for this application.</p>
+          <table>
+            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
+            <tbody>
+              <tr><td><span class="req-id sec">SEC-01</span></td><td>The renderer runs with <code>contextIsolation: true</code>, <code>nodeIntegration: false</code>, and <code>sandbox: true</code>.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id sec">SEC-02</span></td><td>Secrets are encrypted at rest with the OS keychain (<code>safeStorage</code>), stored as base64 ciphertext with file permission <code>0600</code>.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id sec">SEC-03</span></td><td>Plaintext secrets never cross IPC to the renderer; the secrets API is write-/presence-only.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id sec">SEC-04</span></td><td>Only an explicit allow-list of IPC channels is exposed to the UI through <code>contextBridge</code>.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id sec">SEC-05</span></td><td>In-app navigation is blocked; only <code>http(s)</code> links are opened externally, and <code>window.open</code> is denied.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id sec">SEC-06</span></td><td>Provider type and connection payloads are validated against an allow-list before use.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id sec">SEC-07</span></td><td>The <code>openExternal</code> handler validates the URL scheme to prevent arbitrary command/URI execution.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id sec">SEC-08</span></td><td>Encryption must fail closed: if OS encryption is unavailable, storing/decrypting secrets throws rather than persisting plaintext.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id sec">SEC-09</span></td><td>No secrets, tokens, or credential files are committed to the repository; local data files are git-ignored, and only a public OAuth client id is embedded.</td><td class="center"><span class="badge must">Must</span></td></tr>
+              <tr><td><span class="req-id sec">SEC-10</span></td><td>The experimental Copilot path is disabled by default and gated behind an explicit user opt-in.</td><td class="center"><span class="badge should">Should</span></td></tr>
+            </tbody>
+          </table>
+          <div class="callout">
+            <b>OWASP alignment:</b> The design mitigates common risks — secrets are never exposed to
+            the untrusted renderer (sensitive-data exposure), IPC input is validated (injection),
+            navigation and link handling are constrained (SSRF/redirect), and the client stores no
+            secrets in source control.
+          </div>
+        </section>
+
+        <!-- 10 BUILD -->
+        <section id="build">
+          <h2><span class="num">10</span> Build, Packaging &amp; Deployment</h2>
+          <h4>Scripts</h4>
+          <table>
+            <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">npm run dev</td><td>Start the app in development with hot reload and detached DevTools.</td></tr>
+              <tr><td class="mono">npm run build</td><td>Build main, preload, and renderer bundles.</td></tr>
+              <tr><td class="mono">npm run typecheck</td><td>Type-check the whole project with <code>tsc --noEmit</code>.</td></tr>
+              <tr><td class="mono">npm run format</td><td>Format sources with Prettier.</td></tr>
+              <tr><td class="mono">npm run package</td><td>Build and package a macOS app via electron-builder.</td></tr>
+            </tbody>
+          </table>
+          <h4>Packaging</h4>
+          <ul>
+            <li>App id <code>com.hunktronics.agentcontrolpanel</code>, product name “Agent Control Panel”, category developer-tools.</li>
+            <li>Targets: DMG + ZIP for macOS arm64; dark-mode support enabled.</li>
+            <li>Code signing and notarization are intentionally omitted for local MVP builds and <b>must</b> be added before public distribution.</li>
+          </ul>
+          <div class="callout warn">
+            <b>Deployment gap:</b> Add <code>identity</code>, <code>hardenedRuntime</code>,
+            entitlements, and notarization configuration prior to shipping outside the team.
+          </div>
+        </section>
+
+        <!-- 11 CONSTRAINTS -->
+        <section id="constraints">
+          <h2><span class="num">11</span> Constraints &amp; Assumptions</h2>
+          <h4>Constraints</h4>
+          <ul>
+            <li>Must run as a desktop app; no server-side component is permitted.</li>
+            <li>Secrets must be handled only in the main process and encrypted by the OS keychain.</li>
+            <li>The renderer must remain sandboxed with context isolation on.</li>
+            <li>OS encryption must be available for secret-backed providers to function.</li>
+          </ul>
+          <h4>Assumptions</h4>
+          <ul>
+            <li>The user supplies valid provider credentials or a reachable local endpoint (e.g. Ollama).</li>
+            <li>Network access to the selected provider's HTTPS API is available.</li>
+            <li>The embedded GitHub OAuth client id is a public client identifier (not a secret).</li>
+          </ul>
+        </section>
+
+        <!-- 12 OUT OF SCOPE -->
+        <section id="outofscope">
+          <h2><span class="num">12</span> Out of Scope / Future Work</h2>
+          <div class="grid-2">
+            <div class="card">
+              <h4 style="margin-top:0">Not in the MVP</h4>
+              <span class="pill">Multi-window</span><span class="pill">Cloud sync</span>
+              <span class="pill">Team sharing</span><span class="pill">Telemetry</span>
+              <span class="pill">Auto-update</span><span class="pill">Code signing / notarization</span>
+              <span class="pill">Windows / Linux installers</span><span class="pill">Plugins/tools/function-calling</span>
+              <span class="pill">Attachments / images</span><span class="pill">Conversation search/export</span>
+            </div>
+            <div class="card">
+              <h4 style="margin-top:0">Candidate future requirements</h4>
+              <ul style="margin:0">
+                <li>Signed &amp; notarized distributables with auto-update.</li>
+                <li>Additional themes beyond <code>neon-blue</code>.</li>
+                <li>System prompt / parameter presets per connection.</li>
+                <li>Conversation export and full-text search.</li>
+                <li>Automated unit/integration test suite (currently none).</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- 13 TRACEABILITY -->
+        <section id="traceability">
+          <h2><span class="num">13</span> Traceability</h2>
+          <p>
+            Each requirement ID maps to a subsystem in the codebase, enabling verification and change
+            impact analysis.
+          </p>
+          <table>
+            <thead><tr><th>Requirement group</th><th>Primary source module(s)</th></tr></thead>
+            <tbody>
+              <tr><td>FR-APP-*</td><td class="mono">src/main/index.ts</td></tr>
+              <tr><td>FR-CONN-*, FR-MOD-*</td><td class="mono">src/main/ipc.ts, src/main/store.ts, src/main/providers/*</td></tr>
+              <tr><td>FR-SEC-* / SEC-02, SEC-08</td><td class="mono">src/main/vault.ts, src/main/ipc.ts</td></tr>
+              <tr><td>FR-CHAT-*</td><td class="mono">src/main/ipc.ts, src/main/providers/stream.ts, src/renderer/src/store/useChatStore.ts</td></tr>
+              <tr><td>FR-CONV-*, FR-SET-*</td><td class="mono">src/main/store.ts, src/renderer/src/store/*</td></tr>
+              <tr><td>FR-GH-*</td><td class="mono">src/main/github/deviceFlow.ts, src/main/ipc.ts</td></tr>
+              <tr><td>SEC-01, SEC-04, SEC-05</td><td class="mono">src/main/index.ts, src/preload/index.ts</td></tr>
+              <tr><td>IPC contract (§6)</td><td class="mono">src/shared/ipc.ts, src/preload/index.ts</td></tr>
+              <tr><td>Data model (§4)</td><td class="mono">src/shared/types.ts</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <footer>
+          <p>
+            AI Agent Control Panel — Technical Specification · Document ACP-SRS-001 · Version 0.1.0 ·
+            Generated 2026-07-09 · team-hunktronics · MIT License. Derived from the project source of
+            record; update this document alongside behavioural changes.
+          </p>
+        </footer>
+      </main>
+    </div>
+
+    <script>
+      // Theme toggle
+      const toggle = document.getElementById('themeToggle');
+      toggle.addEventListener('click', () => {
+        const root = document.documentElement;
+        const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+      });
+
+      // Requirement counters (computed from the DOM for accuracy)
+      const count = (sel) => document.querySelectorAll(sel).length;
+      document.getElementById('frCount').textContent = count('.req-id.fr');
+      document.getElementById('nfrCount').textContent = count('.req-id.nfr');
+      document.getElementById('secCount').textContent = count('.req-id.sec');
+
+      // Scrollspy for the table of contents
+      const links = Array.from(document.querySelectorAll('nav.toc a'));
+      const map = new Map();
+      links.forEach((a) => {
+        const id = a.getAttribute('href').slice(1);
+        const el = document.getElementById(id);
+        if (el) map.set(el, a);
+      });
+      const spy = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              links.forEach((l) => l.classList.remove('active'));
+              const a = map.get(entry.target);
+              if (a) a.classList.add('active');
+            }
+          });
+        },
+        { rootMargin: '-10% 0px -80% 0px', threshold: 0 }
+      );
+      map.forEach((_a, el) => spy.observe(el));
+    </script>
+  </body>
+</html>
