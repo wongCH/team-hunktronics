@@ -1,0 +1,65 @@
+{
+  "prdFile": "docs/prds/conversation-context-preservation.md",
+  "lastAccessed": "2026-07-12T00:00:00Z",
+  "currentPhase": "build",
+  "questionsAsked": [
+    "product-name",
+    "core-problem",
+    "solution-approach",
+    "scope-boundaries",
+    "success-metrics",
+    "nfr-targets"
+  ],
+  "answeredQuestions": {
+    "product-name": "Conversation Context Preservation",
+    "core-problem": "Long conversation threads replay full history without budget control, causing quality, cost, and latency risks.",
+    "solution-approach": "Per-conversation context budgeting with rolling summary and recent-turn prioritization.",
+    "scope-boundaries": "In scope: conversation metadata, prompt assembly, summarization, persistence, tests. Out of scope: cross-conversation memory and cloud sync.",
+    "success-metrics": "Coherence retention, reduced prompt token usage, stable long-thread response latency.",
+    "nfr-targets": "Reliability, privacy-safe diagnostics, migration safety, and bounded processing overhead."
+  },
+  "referencesProcessed": [
+    {
+      "file": "docs/technical-spec.html",
+      "status": "analyzed",
+      "timestamp": "2026-07-12T00:00:00Z",
+      "keyFindings": "Current local-first Electron architecture and provider flow constraints.",
+      "integratedSections": [
+        "problem-definition",
+        "scope",
+        "dependencies"
+      ],
+      "conflicts": [],
+      "pendingActions": []
+    },
+    {
+      "file": "docs/response.html",
+      "status": "analyzed",
+      "timestamp": "2026-07-12T00:00:00Z",
+      "keyFindings": "Recommended context budgeting and rolling summary strategy.",
+      "integratedSections": [
+        "functional-requirements",
+        "nfr",
+        "risks"
+      ],
+      "conflicts": [],
+      "pendingActions": []
+    }
+  ],
+  "nextActions": [
+    "Confirm acceptance thresholds and provider-specific context defaults",
+    "Confirm synchronous versus asynchronous summarization for V1",
+    "Confirm rollout and ownership details"
+  ],
+  "qualityChecks": [
+    "goals-defined",
+    "scope-clarified",
+    "requirements-drafted",
+    "risks-identified"
+  ],
+  "userPreferences": {
+    "detail-level": "comprehensive",
+    "question-style": "structured",
+    "response-artifact": "docs/response.html for findings"
+  }
+}

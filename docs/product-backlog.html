@@ -8,10 +8,10 @@
     <!-- Clawpilot theme detection (must run first) -->
     <script>
       (() => {
-        const param = new URLSearchParams(window.location.search).get("scoutTheme");
+        const param = new URLSearchParams(window.location.search).get('scoutTheme');
         const theme =
-          param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-        document.documentElement.setAttribute("data-theme", theme);
+          param || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
       })();
     </script>
 
@@ -42,7 +42,7 @@
         --cp-sheen: rgba(255, 255, 255, 0.55);
         --cp-highlight: rgba(177, 31, 75, 0.12);
       }
-      html[data-theme="dark"] {
+      html[data-theme='dark'] {
         color-scheme: dark;
         --cp-bg: #3d3b3a;
         --cp-bg-elevated: #343231;
@@ -69,21 +69,34 @@
         --cp-highlight: rgba(253, 142, 161, 0.12);
       }
 
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
 
       body {
         margin: 0;
         background: var(--cp-bg);
         color: var(--cp-text);
-        font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family:
+          'Segoe UI',
+          Aptos,
+          Calibri,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
       }
 
-      .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 24px 80px; }
+      .wrap {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 28px 24px 80px;
+      }
 
-      code, .mono {
-        font-family: Consolas, "Courier New", Courier, monospace;
+      code,
+      .mono {
+        font-family: Consolas, 'Courier New', Courier, monospace;
         font-size: 0.86em;
       }
 
@@ -105,9 +118,22 @@
         color: var(--cp-accent);
         margin: 0 0 6px;
       }
-      header.page h1 { margin: 0; font-size: 1.7rem; letter-spacing: -0.01em; }
-      header.page p.sub { margin: 6px 0 0; color: var(--cp-text-muted); max-width: 62ch; }
-      .head-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      header.page h1 {
+        margin: 0;
+        font-size: 1.7rem;
+        letter-spacing: -0.01em;
+      }
+      header.page p.sub {
+        margin: 6px 0 0;
+        color: var(--cp-text-muted);
+        max-width: 62ch;
+      }
+      .head-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
 
       .btn {
         appearance: none;
@@ -120,11 +146,24 @@
         font-size: 0.85rem;
         font-weight: 600;
         cursor: pointer;
-        transition: background 0.15s, border-color 0.15s, color 0.15s;
+        transition:
+          background 0.15s,
+          border-color 0.15s,
+          color 0.15s;
       }
-      .btn:hover { border-color: var(--cp-border-strong); background: var(--cp-surface-soft); }
-      .btn.primary { background: var(--cp-accent); border-color: var(--cp-accent); color: var(--cp-accent-fg); }
-      .btn.primary:hover { background: var(--cp-accent-hover); border-color: var(--cp-accent-hover); }
+      .btn:hover {
+        border-color: var(--cp-border-strong);
+        background: var(--cp-surface-soft);
+      }
+      .btn.primary {
+        background: var(--cp-accent);
+        border-color: var(--cp-accent);
+        color: var(--cp-accent-fg);
+      }
+      .btn.primary:hover {
+        background: var(--cp-accent-hover);
+        border-color: var(--cp-accent-hover);
+      }
 
       .sprint-banner {
         margin: 20px 0 8px;
@@ -138,9 +177,19 @@
         border-left: 4px solid var(--cp-accent);
         border-radius: 0.625rem;
       }
-      .sprint-banner strong { color: var(--cp-accent); }
-      .sprint-banner .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--cp-border-strong); }
-      .sprint-banner span.muted { color: var(--cp-text-muted); font-size: 0.9rem; }
+      .sprint-banner strong {
+        color: var(--cp-accent);
+      }
+      .sprint-banner .dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--cp-border-strong);
+      }
+      .sprint-banner span.muted {
+        color: var(--cp-text-muted);
+        font-size: 0.9rem;
+      }
 
       /* ---------- KPIs ---------- */
       .kpi-grid {
@@ -154,145 +203,458 @@
         border: 1px solid var(--cp-border);
         border-radius: 16px;
         padding: 16px 18px;
-        box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+        box-shadow:
+          0 0 2px rgba(0, 0, 0, 0.12),
+          0 1px 2px rgba(0, 0, 0, 0.14);
       }
-      .kpi .label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cp-text-soft); font-weight: 700; }
-      .kpi .value { font-size: 2rem; font-weight: 700; margin: 6px 0 2px; letter-spacing: -0.02em; }
-      .kpi .value small { font-size: 0.95rem; font-weight: 600; color: var(--cp-text-muted); }
-      .kpi .foot { font-size: 0.82rem; color: var(--cp-text-muted); }
+      .kpi .label {
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--cp-text-soft);
+        font-weight: 700;
+      }
+      .kpi .value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 6px 0 2px;
+        letter-spacing: -0.02em;
+      }
+      .kpi .value small {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--cp-text-muted);
+      }
+      .kpi .foot {
+        font-size: 0.82rem;
+        color: var(--cp-text-muted);
+      }
 
-      .bar { height: 8px; border-radius: 999px; background: var(--cp-surface-soft); overflow: hidden; border: 1px solid var(--cp-border); }
-      .bar > span { display: block; height: 100%; background: var(--cp-accent); border-radius: 999px; transition: width 0.4s ease; }
-      .bar.success > span { background: var(--cp-success); }
+      .bar {
+        height: 8px;
+        border-radius: 999px;
+        background: var(--cp-surface-soft);
+        overflow: hidden;
+        border: 1px solid var(--cp-border);
+      }
+      .bar > span {
+        display: block;
+        height: 100%;
+        background: var(--cp-accent);
+        border-radius: 999px;
+        transition: width 0.4s ease;
+      }
+      .bar.success > span {
+        background: var(--cp-success);
+      }
 
       /* ---------- Sections ---------- */
-      section.block { margin: 34px 0 0; }
+      section.block {
+        margin: 34px 0 0;
+      }
       section.block > h2 {
         font-size: 1.12rem;
         margin: 0 0 4px;
-        display: flex; align-items: center; gap: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
-      section.block > p.hint { margin: 0 0 16px; color: var(--cp-text-muted); font-size: 0.9rem; }
+      section.block > p.hint {
+        margin: 0 0 16px;
+        color: var(--cp-text-muted);
+        font-size: 0.9rem;
+      }
 
       /* ---------- Release / Epic progress ---------- */
-      .prog-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; }
+      .prog-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+        gap: 14px;
+      }
+      .priority-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
       .prog-card {
         background: var(--cp-surface);
         border: 1px solid var(--cp-border);
         border-radius: 14px;
         padding: 15px 16px;
       }
-      .prog-card .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
-      .prog-card .name { font-weight: 700; }
-      .prog-card .name small { display: block; font-weight: 500; color: var(--cp-text-soft); font-size: 0.78rem; margin-top: 2px; }
-      .prog-card .pct { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--cp-text-muted); }
-      .prog-card .meta { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--cp-text-soft); margin-top: 8px; }
-      .rel-tag { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--cp-border); }
+      .prog-card .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+      .prog-card .name {
+        font-weight: 700;
+      }
+      .prog-card .name small {
+        display: block;
+        font-weight: 500;
+        color: var(--cp-text-soft);
+        font-size: 0.78rem;
+        margin-top: 2px;
+      }
+      .prog-card .pct {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        color: var(--cp-text-muted);
+      }
+      .prog-card .meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.78rem;
+        color: var(--cp-text-soft);
+        margin-top: 8px;
+      }
+      .rel-tag {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--cp-border);
+      }
 
       /* ---------- Toolbar ---------- */
       .toolbar {
-        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
         margin: 8px 0 16px;
         padding: 12px 14px;
         background: var(--cp-surface);
         border: 1px solid var(--cp-border);
         border-radius: 14px;
-        position: sticky; top: 0; z-index: 20;
+        position: sticky;
+        top: 0;
+        z-index: 20;
       }
-      .toolbar input[type="search"], .toolbar select {
-        font: inherit; font-size: 0.85rem;
+      .toolbar input[type='search'],
+      .toolbar select {
+        font: inherit;
+        font-size: 0.85rem;
         padding: 7px 10px;
         border-radius: 0.5rem;
         border: 1px solid var(--cp-border);
         background: var(--cp-bg-elevated);
         color: var(--cp-text);
       }
-      .toolbar input[type="search"] { min-width: 210px; flex: 1 1 210px; }
-      .toolbar .spacer { flex: 1; }
-      .seg { display: inline-flex; border: 1px solid var(--cp-border); border-radius: 0.5rem; overflow: hidden; }
-      .seg button {
-        appearance: none; border: 0; background: var(--cp-bg-elevated); color: var(--cp-text);
-        font: inherit; font-size: 0.83rem; font-weight: 600; padding: 7px 14px; cursor: pointer;
+      .toolbar input[type='search'] {
+        min-width: 210px;
+        flex: 1 1 210px;
       }
-      .seg button[aria-pressed="true"] { background: var(--cp-accent); color: var(--cp-accent-fg); }
-      .count-note { font-size: 0.8rem; color: var(--cp-text-soft); }
+      .toolbar .spacer {
+        flex: 1;
+      }
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--cp-border);
+        border-radius: 0.5rem;
+        overflow: hidden;
+      }
+      .seg button {
+        appearance: none;
+        border: 0;
+        background: var(--cp-bg-elevated);
+        color: var(--cp-text);
+        font: inherit;
+        font-size: 0.83rem;
+        font-weight: 600;
+        padding: 7px 14px;
+        cursor: pointer;
+      }
+      .seg button[aria-pressed='true'] {
+        background: var(--cp-accent);
+        color: var(--cp-accent-fg);
+      }
+      .count-note {
+        font-size: 0.8rem;
+        color: var(--cp-text-soft);
+      }
 
       /* ---------- Badges ---------- */
       .badge {
-        display: inline-flex; align-items: center; gap: 5px;
-        font-size: 0.72rem; font-weight: 700;
-        padding: 2px 9px; border-radius: 999px;
-        border: 1px solid transparent; white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        white-space: nowrap;
       }
-      .badge .swatch { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-      .badge.epic { background: var(--cp-surface-soft); color: var(--cp-text-muted); border-color: var(--cp-border); }
+      .badge .swatch {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .badge.epic {
+        background: var(--cp-surface-soft);
+        color: var(--cp-text-muted);
+        border-color: var(--cp-border);
+      }
 
       /* ---------- Table view ---------- */
-      .table-scroll { overflow-x: auto; border: 1px solid var(--cp-border); border-radius: 14px; }
-      table.backlog { width: 100%; border-collapse: collapse; font-size: 0.88rem; background: var(--cp-surface); }
-      table.backlog thead th {
-        text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
-        color: var(--cp-text-soft); font-weight: 700;
-        padding: 11px 12px; border-bottom: 1px solid var(--cp-border);
-        position: sticky; top: 0; background: var(--cp-surface-soft);
+      .table-scroll {
+        overflow-x: auto;
+        border: 1px solid var(--cp-border);
+        border-radius: 14px;
       }
-      table.backlog tbody td { padding: 11px 12px; border-bottom: 1px solid var(--cp-border); vertical-align: top; }
-      table.backlog tbody tr.main:hover { background: var(--cp-accent-soft); }
-      table.backlog tbody tr.main { cursor: pointer; }
-      .story-id { font-weight: 700; color: var(--cp-accent); white-space: nowrap; }
-      .story-title { font-weight: 600; }
-      .story-line { color: var(--cp-text-muted); font-size: 0.85rem; margin-top: 2px; }
-      .chev { color: var(--cp-text-soft); transition: transform 0.15s; display: inline-block; }
-      tr.main.open .chev { transform: rotate(90deg); }
-      td.pts { text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
-      select.status-sel {
-        font: inherit; font-size: 0.78rem; font-weight: 700;
-        padding: 4px 8px; border-radius: 999px;
-        border: 1px solid var(--cp-border); background: var(--cp-bg-elevated); color: var(--cp-text);
+      table.backlog {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        background: var(--cp-surface);
+      }
+      table.backlog thead th {
+        text-align: left;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--cp-text-soft);
+        font-weight: 700;
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--cp-border);
+        position: sticky;
+        top: 0;
+        background: var(--cp-surface-soft);
+      }
+      table.backlog tbody td {
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--cp-border);
+        vertical-align: top;
+      }
+      table.backlog tbody tr.main:hover {
+        background: var(--cp-accent-soft);
+      }
+      table.backlog tbody tr.main {
         cursor: pointer;
       }
-      tr.detail td { background: var(--cp-bg-elevated); }
-      tr.detail .ac-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-      @media (max-width: 720px) { tr.detail .ac-wrap { grid-template-columns: 1fr; } }
-      .ac-wrap h5 { margin: 0 0 6px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cp-text-soft); }
-      .ac-wrap ul { margin: 0; padding-left: 18px; }
-      .ac-wrap li { margin: 3px 0; }
-      .trace-chip { display: inline-block; font-size: 0.7rem; padding: 1px 7px; margin: 2px 4px 2px 0; border-radius: 6px; background: var(--cp-surface-soft); border: 1px solid var(--cp-border); color: var(--cp-text-muted); }
+      .story-id {
+        font-weight: 700;
+        color: var(--cp-accent);
+        white-space: nowrap;
+      }
+      .story-title {
+        font-weight: 600;
+      }
+      .story-line {
+        color: var(--cp-text-muted);
+        font-size: 0.85rem;
+        margin-top: 2px;
+      }
+      .chev {
+        color: var(--cp-text-soft);
+        transition: transform 0.15s;
+        display: inline-block;
+      }
+      tr.main.open .chev {
+        transform: rotate(90deg);
+      }
+      td.pts {
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+      select.status-sel {
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--cp-border);
+        background: var(--cp-bg-elevated);
+        color: var(--cp-text);
+        cursor: pointer;
+      }
+      tr.detail td {
+        background: var(--cp-bg-elevated);
+      }
+      tr.detail .ac-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      @media (max-width: 720px) {
+        .priority-grid {
+          grid-template-columns: 1fr;
+        }
+        tr.detail .ac-wrap {
+          grid-template-columns: 1fr;
+        }
+      }
+      .ac-wrap h5 {
+        margin: 0 0 6px;
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--cp-text-soft);
+      }
+      .ac-wrap ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .ac-wrap li {
+        margin: 3px 0;
+      }
+      .trace-chip {
+        display: inline-block;
+        font-size: 0.7rem;
+        padding: 1px 7px;
+        margin: 2px 4px 2px 0;
+        border-radius: 6px;
+        background: var(--cp-surface-soft);
+        border: 1px solid var(--cp-border);
+        color: var(--cp-text-muted);
+      }
 
       /* ---------- Board view ---------- */
-      .board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(240px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 8px; }
+      .board {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(240px, 1fr);
+        gap: 14px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+      }
       .col {
-        background: var(--cp-bg-elevated); border: 1px solid var(--cp-border);
-        border-radius: 14px; padding: 12px; min-height: 120px; display: flex; flex-direction: column;
+        background: var(--cp-bg-elevated);
+        border: 1px solid var(--cp-border);
+        border-radius: 14px;
+        padding: 12px;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
       }
-      .col.drag-over { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
-      .col > .col-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: 700; font-size: 0.82rem; }
-      .col > .col-head .n { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 999px; padding: 0 8px; font-size: 0.72rem; color: var(--cp-text-muted); }
+      .col.drag-over {
+        border-color: var(--cp-accent);
+        background: var(--cp-accent-soft);
+      }
+      .col > .col-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-weight: 700;
+        font-size: 0.82rem;
+      }
+      .col > .col-head .n {
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 999px;
+        padding: 0 8px;
+        font-size: 0.72rem;
+        color: var(--cp-text-muted);
+      }
       .card {
-        background: var(--cp-surface); border: 1px solid var(--cp-border);
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
         border-left: 3px solid var(--cp-border-strong);
-        border-radius: 10px; padding: 10px 11px; margin-bottom: 9px; cursor: grab;
-        box-shadow: 0 0 2px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.10);
+        border-radius: 10px;
+        padding: 10px 11px;
+        margin-bottom: 9px;
+        cursor: grab;
+        box-shadow:
+          0 0 2px rgba(0, 0, 0, 0.1),
+          0 1px 2px rgba(0, 0, 0, 0.1);
       }
-      .card:active { cursor: grabbing; }
-      .card .c-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 5px; }
-      .card .c-id { font-size: 0.72rem; font-weight: 700; color: var(--cp-accent); }
-      .card .c-pts { font-size: 0.72rem; font-weight: 700; color: var(--cp-text-muted); background: var(--cp-surface-soft); border-radius: 999px; padding: 1px 8px; }
-      .card .c-title { font-weight: 600; font-size: 0.88rem; }
-      .card .c-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-      .card.new::after { content: "NEW"; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.08em; color: var(--cp-accent); border: 1px solid var(--cp-accent); border-radius: 5px; padding: 0 4px; margin-left: 6px; }
+      .card:active {
+        cursor: grabbing;
+      }
+      .card .c-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 5px;
+      }
+      .card .c-id {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--cp-accent);
+      }
+      .card .c-pts {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--cp-text-muted);
+        background: var(--cp-surface-soft);
+        border-radius: 999px;
+        padding: 1px 8px;
+      }
+      .card .c-title {
+        font-weight: 600;
+        font-size: 0.88rem;
+      }
+      .card .c-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 8px;
+      }
+      .card.new::after {
+        content: 'NEW';
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: var(--cp-accent);
+        border: 1px solid var(--cp-accent);
+        border-radius: 5px;
+        padding: 0 4px;
+        margin-left: 6px;
+      }
 
-      .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0 0; font-size: 0.8rem; color: var(--cp-text-muted); }
-      .legend span { display: inline-flex; align-items: center; gap: 6px; }
-      .legend .sw { width: 10px; height: 10px; border-radius: 3px; }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin: 14px 0 0;
+        font-size: 0.8rem;
+        color: var(--cp-text-muted);
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend .sw {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+      }
 
-      footer.page { margin-top: 46px; padding-top: 18px; border-top: 1px solid var(--cp-border); color: var(--cp-text-soft); font-size: 0.82rem; display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; }
-      .hidden { display: none !important; }
+      footer.page {
+        margin-top: 46px;
+        padding-top: 18px;
+        border-top: 1px solid var(--cp-border);
+        color: var(--cp-text-soft);
+        font-size: 0.82rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        justify-content: space-between;
+      }
+      .hidden {
+        display: none !important;
+      }
 
       @media print {
-        .toolbar, .head-actions, .seg, select.status-sel { display: none !important; }
-        .board { display: none !important; }
-        body { background: #fff; }
+        .toolbar,
+        .head-actions,
+        .seg,
+        select.status-sel {
+          display: none !important;
+        }
+        .board {
+          display: none !important;
+        }
+        body {
+          background: #fff;
+        }
       }
     </style>
   </head>
@@ -309,7 +671,9 @@
           </p>
         </div>
         <div class="head-actions">
-          <button class="btn" id="themeBtn" type="button" title="Toggle light / dark">◐ Theme</button>
+          <button class="btn" id="themeBtn" type="button" title="Toggle light / dark">
+            ◐ Theme
+          </button>
           <button class="btn" id="exportBtn" type="button">⭳ Export JSON</button>
           <button class="btn" id="printBtn" type="button">⎙ Print</button>
           <button class="btn" id="resetBtn" type="button">↺ Reset</button>
@@ -317,15 +681,66 @@
       </header>
 
       <div class="sprint-banner">
-        <span>🚀 Active release: <strong id="activeRelName">v0.2 — Deploy &amp; Personalize</strong></span>
+        <span>Active release: <strong id="activeRelName">v0.2 — Context Foundation</strong></span>
         <span class="dot"></span>
-        <span class="muted" id="activeRelWindow">Target: 2026-07 · Sprint focus: ship signing, presets &amp; test suite</span>
+        <span class="muted" id="activeRelWindow"
+          >Target: 2026-08 · Sprint focus: SQLite, normalized messages, and bounded context
+          assembly</span
+        >
         <span class="dot"></span>
         <span class="muted">Product: <code>agent-control-panel</code> v0.1.0</span>
       </div>
 
       <!-- KPIs -->
       <div class="kpi-grid" id="kpiGrid"></div>
+
+      <section class="block">
+        <h2>Pending execution order</h2>
+        <p class="hint">
+          The shortest dependency path to durable context and executable MCP tools.
+        </p>
+        <div class="prog-grid priority-grid">
+          <article class="prog-card">
+            <div class="top">
+              <span class="name">1. SQLite foundation<small>US-1201, US-1202</small></span
+              ><span class="rel-tag">Now</span>
+            </div>
+            <p class="hint">
+              Add migrations, import JSON safely, and normalize messages, runs, and context
+              snapshots.
+            </p>
+          </article>
+          <article class="prog-card">
+            <div class="top">
+              <span class="name">2. Context assembly<small>US-1301, US-1302</small></span
+              ><span class="rel-tag">Next</span>
+            </div>
+            <p class="hint">
+              Move prompt authority into the main process and enforce model-aware token budgets.
+            </p>
+          </article>
+          <article class="prog-card">
+            <div class="top">
+              <span class="name">3. Memory lifecycle<small>US-1303, US-1304, US-1305</small></span
+              ><span class="rel-tag">Then</span>
+            </div>
+            <p class="hint">
+              Add checkpoint summaries, provenance-backed memory, diagnostics, and long-thread
+              evaluation.
+            </p>
+          </article>
+          <article class="prog-card">
+            <div class="top">
+              <span class="name">4. MCP execution<small>US-1401, US-1402, US-1403</small></span
+              ><span class="rel-tag">After context</span>
+            </div>
+            <p class="hint">
+              Configure authenticated servers, discover tools, and execute calls through
+              approval-aware agent runs.
+            </p>
+          </article>
+        </div>
+      </section>
 
       <!-- Release progress -->
       <section class="block">
@@ -337,23 +752,36 @@
       <!-- Epic progress -->
       <section class="block">
         <h2>Epics</h2>
-        <p class="hint">Feature themes grouped from the technical specification and the roadmap for new features.</p>
+        <p class="hint">
+          Feature themes grouped from the technical specification and the roadmap for new features.
+        </p>
         <div class="prog-grid" id="epicGrid"></div>
       </section>
 
       <!-- Backlog -->
       <section class="block">
         <h2>Product backlog &amp; user stories</h2>
-        <p class="hint">Filter, then edit status inline (table) or by dragging cards (board). Click a row to reveal acceptance criteria and spec traceability.</p>
+        <p class="hint">
+          Filter, then edit status inline (table) or by dragging cards (board). Click a row to
+          reveal acceptance criteria and spec traceability.
+        </p>
 
         <div class="toolbar">
           <input type="search" id="search" placeholder="Search stories, IDs, personas…" />
-          <select id="fEpic"><option value="">All epics</option></select>
-          <select id="fStatus"><option value="">All statuses</option></select>
-          <select id="fRelease"><option value="">All releases</option></select>
+          <select id="fEpic">
+            <option value="">All epics</option>
+          </select>
+          <select id="fStatus">
+            <option value="">All statuses</option>
+          </select>
+          <select id="fRelease">
+            <option value="">All releases</option>
+          </select>
           <select id="fPriority">
             <option value="">All priorities</option>
-            <option>Must</option><option>Should</option><option>Could</option>
+            <option>Must</option>
+            <option>Should</option>
+            <option>Could</option>
           </select>
           <span class="spacer"></span>
           <span class="count-note" id="countNote"></span>
@@ -372,14 +800,14 @@
             <table class="backlog">
               <thead>
                 <tr>
-                  <th style="width:34px"></th>
-                  <th style="width:92px">ID</th>
+                  <th style="width: 34px"></th>
+                  <th style="width: 92px">ID</th>
                   <th>User story</th>
-                  <th style="width:140px">Epic</th>
-                  <th style="width:78px">Priority</th>
-                  <th style="width:52px">Pts</th>
-                  <th style="width:80px">Release</th>
-                  <th style="width:132px">Status</th>
+                  <th style="width: 140px">Epic</th>
+                  <th style="width: 78px">Priority</th>
+                  <th style="width: 52px">Pts</th>
+                  <th style="width: 80px">Release</th>
+                  <th style="width: 132px">Status</th>
                 </tr>
               </thead>
               <tbody id="tbody"></tbody>
@@ -393,182 +821,701 @@
       <footer class="page">
         <span>Owner: Product Management · team-hunktronics</span>
         <span id="savedNote">Changes auto-save to this browser.</span>
-        <span>Last generated: 2026-07-09</span>
+        <span>Last updated: 2026-07-12</span>
       </footer>
     </div>
 
     <script>
       // ---------- Reference data ----------
-      const STATUSES = ["Backlog", "Ready", "In Progress", "In Review", "Done"];
+      const STATUSES = ['Backlog', 'Ready', 'In Progress', 'In Review', 'Done'];
       const STATUS_COLOR = {
-        "Backlog": "var(--cp-text-soft)",
-        "Ready": "var(--cp-link)",
-        "In Progress": "var(--cp-warning)",
-        "In Review": "var(--cp-accent)",
-        "Done": "var(--cp-success)"
+        Backlog: 'var(--cp-text-soft)',
+        Ready: 'var(--cp-link)',
+        'In Progress': 'var(--cp-warning)',
+        'In Review': 'var(--cp-accent)',
+        Done: 'var(--cp-success)'
       };
-      const PRIORITY_COLOR = { Must: "var(--cp-accent)", Should: "var(--cp-link)", Could: "var(--cp-text-soft)" };
+      const PRIORITY_COLOR = {
+        Must: 'var(--cp-accent)',
+        Should: 'var(--cp-link)',
+        Could: 'var(--cp-text-soft)'
+      };
 
       const RELEASES = [
-        { id: "v0.1", name: "v0.1 — MVP Core Platform", note: "Shipped · 2026-05" },
-        { id: "v0.2", name: "v0.2 — Deploy & Personalize", note: "Active · target 2026-07" },
-        { id: "v0.3", name: "v0.3 — Reach & Automation", note: "Planned · target 2026-09" },
-        { id: "Unscheduled", name: "Unscheduled backlog", note: "Not yet committed" }
+        { id: 'v0.1', name: 'v0.1 — MVP Core Platform', note: 'Shipped · 2026-05' },
+        { id: 'v0.2', name: 'v0.2 — Context Foundation', note: 'Active · target 2026-08' },
+        { id: 'v0.3', name: 'v0.3 — Memory & MCP', note: 'Planned · target 2026-09' },
+        { id: 'v0.4', name: 'v0.4 — Distribution & Automation', note: 'Planned · target 2026-Q4' },
+        { id: 'Unscheduled', name: 'Unscheduled backlog', note: 'Not yet committed' }
       ];
 
       const EPICS = [
-        { id: "E1", name: "Provider Connections" },
-        { id: "E2", name: "Credential Security" },
-        { id: "E3", name: "Chat & Streaming" },
-        { id: "E4", name: "Conversations" },
-        { id: "E5", name: "GitHub Auth" },
-        { id: "E6", name: "Prompt Presets" },
-        { id: "E7", name: "Theming" },
-        { id: "E8", name: "Attachments & Vision" },
-        { id: "E9", name: "Tools / Function Calling" },
-        { id: "E10", name: "Distribution & Auto-Update" },
-        { id: "E11", name: "Quality & CI" }
+        { id: 'E1', name: 'Provider Connections' },
+        { id: 'E2', name: 'Credential Security' },
+        { id: 'E3', name: 'Chat & Streaming' },
+        { id: 'E4', name: 'Conversations' },
+        { id: 'E5', name: 'GitHub Auth' },
+        { id: 'E6', name: 'Prompt Presets' },
+        { id: 'E7', name: 'Theming' },
+        { id: 'E8', name: 'Attachments & Vision' },
+        { id: 'E9', name: 'Tools / Function Calling' },
+        { id: 'E10', name: 'Distribution & Auto-Update' },
+        { id: 'E11', name: 'Quality & CI' },
+        { id: 'E12', name: 'Data & Persistence' },
+        { id: 'E13', name: 'Context & Memory' },
+        { id: 'E14', name: 'MCP Integration' }
       ];
 
       // ---------- Backlog (user stories) ----------
       const DEFAULT_STORIES = [
-        { id: "US-101", epic: "E1", title: "Manage multiple provider connections",
-          story: "As a developer, I want to add and manage multiple provider connections, so that I can switch LLM backends per conversation.",
-          priority: "Must", points: 8, status: "Done", release: "v0.1", isNew: false,
-          ac: ["List, create, update and remove connections", "Per-provider metadata drives the editor UI", "New connections get a UUID; labels capped at 120 chars"],
-          traces: ["FR-CONN-01", "FR-CONN-02", "FR-CONN-03", "FR-CONN-05"] },
-        { id: "US-102", epic: "E1", title: "Test a connection before use",
-          story: "As a user, I want to test a connection, so that I know my credentials and endpoint work before I start chatting.",
-          priority: "Must", points: 3, status: "Done", release: "v0.1", isNew: false,
-          ac: ["Attempts to list models", "Returns ok/fail, a message and discovered models", "Clear success/failure feedback with model counts"],
-          traces: ["FR-CONN-04", "NFR-UX-02"] },
-        { id: "US-103", epic: "E1", title: "Discover models with fallback suggestions",
-          story: "As a user, I want model discovery with fallback suggestions, so that I can pick a model even when a provider has no list endpoint.",
-          priority: "Should", points: 3, status: "Done", release: "v0.1", isNew: false,
-          ac: ["List models via the provider adapter", "On failure, fall back to suggested models and surface the error"],
-          traces: ["FR-MOD-01", "FR-MOD-02", "NFR-UX-03"] },
+        {
+          id: 'US-101',
+          epic: 'E1',
+          title: 'Manage multiple provider connections',
+          story:
+            'As a developer, I want to add and manage multiple provider connections, so that I can switch LLM backends per conversation.',
+          priority: 'Must',
+          points: 8,
+          status: 'Done',
+          release: 'v0.1',
+          isNew: false,
+          ac: [
+            'List, create, update and remove connections',
+            'Per-provider metadata drives the editor UI',
+            'New connections get a UUID; labels capped at 120 chars'
+          ],
+          traces: ['FR-CONN-01', 'FR-CONN-02', 'FR-CONN-03', 'FR-CONN-05']
+        },
+        {
+          id: 'US-102',
+          epic: 'E1',
+          title: 'Test a connection before use',
+          story:
+            'As a user, I want to test a connection, so that I know my credentials and endpoint work before I start chatting.',
+          priority: 'Must',
+          points: 3,
+          status: 'Done',
+          release: 'v0.1',
+          isNew: false,
+          ac: [
+            'Attempts to list models',
+            'Returns ok/fail, a message and discovered models',
+            'Clear success/failure feedback with model counts'
+          ],
+          traces: ['FR-CONN-04', 'NFR-UX-02']
+        },
+        {
+          id: 'US-103',
+          epic: 'E1',
+          title: 'Discover models with fallback suggestions',
+          story:
+            'As a user, I want model discovery with fallback suggestions, so that I can pick a model even when a provider has no list endpoint.',
+          priority: 'Should',
+          points: 3,
+          status: 'Done',
+          release: 'v0.1',
+          isNew: false,
+          ac: [
+            'List models via the provider adapter',
+            'On failure, fall back to suggested models and surface the error'
+          ],
+          traces: ['FR-MOD-01', 'FR-MOD-02', 'NFR-UX-03']
+        },
+        {
+          id: 'US-104',
+          epic: 'E1',
+          title: 'Connect to LM Studio as a local provider',
+          story:
+            'As a local-model user, I want a dedicated LM Studio connection, so that I can discover and chat with models served on my Mac without an API key.',
+          priority: 'Must',
+          points: 3,
+          status: 'Done',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'Dedicated LM Studio option appears beside GitHub Copilot',
+            'Defaults to http://127.0.0.1:1234/v1',
+            'Model discovery and chat use the OpenAI-compatible adapter without authorization'
+          ],
+          traces: ['Provider registry', 'Connection picker', 'providers.test.ts']
+        },
 
-        { id: "US-201", epic: "E2", title: "Encrypt API keys with the OS keychain",
-          story: "As a security-conscious user, I want my API keys encrypted at rest by the OS keychain, so that my secrets are protected even if files are copied.",
-          priority: "Must", points: 8, status: "Done", release: "v0.1", isNew: false,
-          ac: ["Secrets encrypted via safeStorage, stored as 0600 base64 ciphertext", "Empty secrets rejected", "Encryption fails closed when unavailable"],
-          traces: ["FR-SEC-01", "FR-SEC-05", "SEC-02", "SEC-08"] },
-        { id: "US-202", epic: "E2", title: "Never expose plaintext keys to the UI",
-          story: "As a security-conscious user, I want the app to never send plaintext keys to the renderer, so that a UI compromise cannot leak my credentials.",
-          priority: "Must", points: 5, status: "Done", release: "v0.1", isNew: false,
-          ac: ["Secrets API is write/presence-only", "hasKey flag stays in sync", "Only allow-listed IPC channels are exposed"],
-          traces: ["FR-SEC-02", "FR-SEC-03", "FR-SEC-04", "SEC-03", "SEC-04"] },
+        {
+          id: 'US-201',
+          epic: 'E2',
+          title: 'Encrypt API keys with the OS keychain',
+          story:
+            'As a security-conscious user, I want my API keys encrypted at rest by the OS keychain, so that my secrets are protected even if files are copied.',
+          priority: 'Must',
+          points: 8,
+          status: 'Done',
+          release: 'v0.1',
+          isNew: false,
+          ac: [
+            'Secrets encrypted via safeStorage, stored as 0600 base64 ciphertext',
+            'Empty secrets rejected',
+            'Encryption fails closed when unavailable'
+          ],
+          traces: ['FR-SEC-01', 'FR-SEC-05', 'SEC-02', 'SEC-08']
+        },
+        {
+          id: 'US-202',
+          epic: 'E2',
+          title: 'Never expose plaintext keys to the UI',
+          story:
+            'As a security-conscious user, I want the app to never send plaintext keys to the renderer, so that a UI compromise cannot leak my credentials.',
+          priority: 'Must',
+          points: 5,
+          status: 'Done',
+          release: 'v0.1',
+          isNew: false,
+          ac: [
+            'Secrets API is write/presence-only',
+            'hasKey flag stays in sync',
+            'Only allow-listed IPC channels are exposed'
+          ],
+          traces: ['FR-SEC-02', 'FR-SEC-03', 'FR-SEC-04', 'SEC-03', 'SEC-04']
+        },
 
-        { id: "US-301", epic: "E3", title: "Stream assistant responses",
-          story: "As a user, I want responses to stream token-by-token, so that I get fast feedback and the UI stays responsive.",
-          priority: "Must", points: 8, status: "Done", release: "v0.1", isNew: false,
-          ac: ["chat:send returns a stream id", "chunk/done/error events keyed by stream id", "Generation runs in background; concurrent streams supported"],
-          traces: ["FR-CHAT-01", "FR-CHAT-02", "FR-CHAT-05", "NFR-PERF-01"] },
-        { id: "US-302", epic: "E3", title: "Cancel an in-progress generation",
-          story: "As a user, I want to stop a running generation, so that I can abort long or wrong answers immediately.",
-          priority: "Must", points: 3, status: "Done", release: "v0.1", isNew: false,
-          ac: ["chat:cancel aborts the underlying request", "Aborts map to a friendly ‘Generation stopped.’ message", "Streams removed from the active registry"],
-          traces: ["FR-CHAT-03", "FR-CHAT-06", "NFR-REL-04"] },
-        { id: "US-303", epic: "E3", title: "Render Markdown with syntax highlighting",
-          story: "As a user, I want assistant messages rendered as rich Markdown with code highlighting, so that answers and snippets are easy to read.",
-          priority: "Should", points: 3, status: "Done", release: "v0.1", isNew: false,
-          ac: ["GitHub-flavoured Markdown", "Syntax-highlighted code blocks"],
-          traces: ["FR-CHAT-07", "NFR-UX-04"] },
+        {
+          id: 'US-301',
+          epic: 'E3',
+          title: 'Stream assistant responses',
+          story:
+            'As a user, I want responses to stream token-by-token, so that I get fast feedback and the UI stays responsive.',
+          priority: 'Must',
+          points: 8,
+          status: 'Done',
+          release: 'v0.1',
+          isNew: false,
+          ac: [
+            'chat:send returns a stream id',
+            'chunk/done/error events keyed by stream id',
+            'Generation runs in background; concurrent streams supported'
+          ],
+          traces: ['FR-CHAT-01', 'FR-CHAT-02', 'FR-CHAT-05', 'NFR-PERF-01']
+        },
+        {
+          id: 'US-302',
+          epic: 'E3',
+          title: 'Cancel an in-progress generation',
+          story:
+            'As a user, I want to stop a running generation, so that I can abort long or wrong answers immediately.',
+          priority: 'Must',
+          points: 3,
+          status: 'Done',
+          release: 'v0.1',
+          isNew: false,
+          ac: [
+            'chat:cancel aborts the underlying request',
+            'Aborts map to a friendly ‘Generation stopped.’ message',
+            'Streams removed from the active registry'
+          ],
+          traces: ['FR-CHAT-03', 'FR-CHAT-06', 'NFR-REL-04']
+        },
+        {
+          id: 'US-303',
+          epic: 'E3',
+          title: 'Render Markdown with syntax highlighting',
+          story:
+            'As a user, I want assistant messages rendered as rich Markdown with code highlighting, so that answers and snippets are easy to read.',
+          priority: 'Should',
+          points: 3,
+          status: 'Done',
+          release: 'v0.1',
+          isNew: false,
+          ac: ['GitHub-flavoured Markdown', 'Syntax-highlighted code blocks'],
+          traces: ['FR-CHAT-07', 'NFR-UX-04']
+        },
 
-        { id: "US-401", epic: "E4", title: "Create, select and delete conversations",
-          story: "As a user, I want to manage conversations, so that I can keep separate threads for different tasks.",
-          priority: "Must", points: 5, status: "Done", release: "v0.1", isNew: false,
-          ac: ["Create / select / delete conversations", "Auto-title from the first user message (≤48 chars)"],
-          traces: ["FR-CONV-01", "FR-CONV-03"] },
-        { id: "US-402", epic: "E4", title: "Persist conversations across restarts",
-          story: "As a user, I want my conversations saved locally, so that my history survives app restarts.",
-          priority: "Must", points: 3, status: "Done", release: "v0.1", isNew: false,
-          ac: ["Persist to local storage and reload on startup", "Persist when a stream finishes or errors", "Corrupt files fall back to safe defaults"],
-          traces: ["FR-CONV-02", "FR-CONV-04", "NFR-REL-02"] },
-        { id: "US-403", epic: "E4", title: "Full-text search across conversations",
-          story: "As a heavy user, I want to search across all my conversations, so that I can quickly find a past answer.",
-          priority: "Should", points: 5, status: "Ready", release: "v0.2", isNew: true,
-          ac: ["Search box filters conversation list by content", "Matches highlighted in results", "Search runs locally with no network calls"],
-          traces: ["Future work §12", "NFR-PRV-01"] },
-        { id: "US-404", epic: "E4", title: "Export a conversation (Markdown / JSON)",
-          story: "As a user, I want to export a conversation, so that I can archive or share it outside the app.",
-          priority: "Could", points: 3, status: "In Review", release: "v0.2", isNew: true,
-          ac: ["Export selected conversation as Markdown and JSON", "Includes model + timestamps", "Uses the OS save dialog"],
-          traces: ["Future work §12"] },
+        {
+          id: 'US-401',
+          epic: 'E4',
+          title: 'Create, select and delete conversations',
+          story:
+            'As a user, I want to manage conversations, so that I can keep separate threads for different tasks.',
+          priority: 'Must',
+          points: 5,
+          status: 'Done',
+          release: 'v0.1',
+          isNew: false,
+          ac: [
+            'Create / select / delete conversations',
+            'Auto-title from the first user message (≤48 chars)'
+          ],
+          traces: ['FR-CONV-01', 'FR-CONV-03']
+        },
+        {
+          id: 'US-402',
+          epic: 'E4',
+          title: 'Persist conversations across restarts',
+          story:
+            'As a user, I want my conversations saved locally, so that my history survives app restarts.',
+          priority: 'Must',
+          points: 3,
+          status: 'Done',
+          release: 'v0.1',
+          isNew: false,
+          ac: [
+            'Persist to local storage and reload on startup',
+            'Persist when a stream finishes or errors',
+            'Corrupt files fall back to safe defaults'
+          ],
+          traces: ['FR-CONV-02', 'FR-CONV-04', 'NFR-REL-02']
+        },
+        {
+          id: 'US-403',
+          epic: 'E4',
+          title: 'Full-text search across conversations',
+          story:
+            'As a heavy user, I want to search across all my conversations, so that I can quickly find a past answer.',
+          priority: 'Should',
+          points: 5,
+          status: 'Ready',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'Search box filters conversation list by content',
+            'Matches highlighted in results',
+            'Search runs locally with no network calls'
+          ],
+          traces: ['Future work §12', 'NFR-PRV-01']
+        },
+        {
+          id: 'US-404',
+          epic: 'E4',
+          title: 'Export a conversation (Markdown / JSON)',
+          story:
+            'As a user, I want to export a conversation, so that I can archive or share it outside the app.',
+          priority: 'Could',
+          points: 3,
+          status: 'In Review',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'Export selected conversation as Markdown and JSON',
+            'Includes model + timestamps',
+            'Uses the OS save dialog'
+          ],
+          traces: ['Future work §12']
+        },
 
-        { id: "US-501", epic: "E5", title: "Sign in with GitHub device flow",
-          story: "As a user, I want GitHub device-flow login, so that I can authenticate without copy-pasting tokens.",
-          priority: "Must", points: 5, status: "Done", release: "v0.1", isNew: false,
-          ac: ["Emit user code + verification URI to the UI", "Poll honouring interval, slow_down, expiry, denial", "Store token as the connection's encrypted secret", "Allow cancelling the flow"],
-          traces: ["FR-GH-01", "FR-GH-02", "FR-GH-03", "FR-GH-04", "NFR-REL-03"] },
+        {
+          id: 'US-501',
+          epic: 'E5',
+          title: 'Sign in with GitHub device flow',
+          story:
+            'As a user, I want GitHub device-flow login, so that I can authenticate without copy-pasting tokens.',
+          priority: 'Must',
+          points: 5,
+          status: 'Done',
+          release: 'v0.1',
+          isNew: false,
+          ac: [
+            'Emit user code + verification URI to the UI',
+            'Poll honouring interval, slow_down, expiry, denial',
+            "Store token as the connection's encrypted secret",
+            'Allow cancelling the flow'
+          ],
+          traces: ['FR-GH-01', 'FR-GH-02', 'FR-GH-03', 'FR-GH-04', 'NFR-REL-03']
+        },
 
-        { id: "US-601", epic: "E6", title: "Per-connection prompt & parameter presets",
-          story: "As a power user, I want to save system-prompt and parameter presets per connection, so that I can reuse tuned configurations quickly.",
-          priority: "Should", points: 5, status: "In Progress", release: "v0.2", isNew: true,
-          ac: ["Save/edit named presets (system prompt, temperature, max tokens)", "Apply a preset when starting a conversation", "Presets persisted locally"],
-          traces: ["Future work §12", "FR-SET-01"] },
+        {
+          id: 'US-601',
+          epic: 'E6',
+          title: 'Per-connection prompt & parameter presets',
+          story:
+            'As a power user, I want to save system-prompt and parameter presets per connection, so that I can reuse tuned configurations quickly.',
+          priority: 'Should',
+          points: 5,
+          status: 'In Progress',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'Save/edit named presets (system prompt, temperature, max tokens)',
+            'Apply a preset when starting a conversation',
+            'Presets persisted locally'
+          ],
+          traces: ['Future work §12', 'FR-SET-01']
+        },
 
-        { id: "US-701", epic: "E7", title: "Additional themes and light mode",
-          story: "As a user, I want theme options beyond neon-blue, so that I can personalize the app to my taste.",
-          priority: "Could", points: 3, status: "Ready", release: "v0.2", isNew: true,
-          ac: ["At least one additional theme + system light/dark", "Theme choice persisted in settings", "No layout regressions across views"],
-          traces: ["Future work §12", "FR-SET-01"] },
+        {
+          id: 'US-701',
+          epic: 'E7',
+          title: 'Additional themes and light mode',
+          story:
+            'As a user, I want theme options beyond neon-blue, so that I can personalize the app to my taste.',
+          priority: 'Could',
+          points: 3,
+          status: 'Ready',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'At least one additional theme + system light/dark',
+            'Theme choice persisted in settings',
+            'No layout regressions across views'
+          ],
+          traces: ['Future work §12', 'FR-SET-01']
+        },
 
-        { id: "US-801", epic: "E8", title: "Attach images for vision models",
-          story: "As a user, I want to attach images to a message, so that I can use vision-capable models.",
-          priority: "Could", points: 8, status: "Backlog", release: "v0.3", isNew: true,
-          ac: ["Attach one or more images to a user message", "Images encoded per provider vision API", "Graceful fallback when the model has no vision support"],
-          traces: ["Future work §12"] },
+        {
+          id: 'US-801',
+          epic: 'E8',
+          title: 'Attach images for vision models',
+          story:
+            'As a user, I want to attach images to a message, so that I can use vision-capable models.',
+          priority: 'Could',
+          points: 8,
+          status: 'Backlog',
+          release: 'v0.3',
+          isNew: true,
+          ac: [
+            'Attach one or more images to a user message',
+            'Images encoded per provider vision API',
+            'Graceful fallback when the model has no vision support'
+          ],
+          traces: ['Future work §12']
+        },
 
-        { id: "US-901", epic: "E9", title: "Tool / function-calling support",
-          story: "As an advanced user, I want tool and function-calling support, so that the agent can invoke external tools during a chat.",
-          priority: "Should", points: 13, status: "Backlog", release: "Unscheduled", isNew: true,
-          ac: ["Define tool schemas surfaced to capable providers", "Render tool calls and results in the transcript", "User approval before a tool executes"],
-          traces: ["Future work §12"] },
+        {
+          id: 'US-901',
+          epic: 'E9',
+          title: 'Tool / function-calling support',
+          story:
+            'As an advanced user, I want tool and function-calling support, so that the agent can invoke external tools during a chat.',
+          priority: 'Must',
+          points: 13,
+          status: 'Ready',
+          release: 'v0.3',
+          isNew: true,
+          ac: [
+            'Define tool schemas surfaced to capable providers',
+            'Render tool calls and results in the transcript',
+            'User approval before a tool executes'
+          ],
+          traces: ['Future work §12', 'US-1403']
+        },
 
-        { id: "US-1001", epic: "E10", title: "Signed & notarized macOS builds",
-          story: "As a distributor, I want signed and notarized macOS builds, so that users can install without Gatekeeper warnings.",
-          priority: "Must", points: 5, status: "In Progress", release: "v0.2", isNew: true,
-          ac: ["Configure identity, hardenedRuntime and entitlements", "Notarize the DMG/ZIP in the packaging step", "Fresh install shows no ‘unidentified developer’ warning"],
-          traces: ["Deployment gap §10", "NFR-CMP-01"] },
-        { id: "US-1002", epic: "E10", title: "In-app auto-update",
-          story: "As a user, I want the app to update itself, so that I receive new features without manual reinstalls.",
-          priority: "Should", points: 8, status: "Backlog", release: "v0.3", isNew: true,
-          ac: ["Check for updates and download in the background", "Prompt to restart and apply", "Updates verified against the signing identity"],
-          traces: ["Future work §12"] },
-        { id: "US-1003", epic: "E10", title: "Windows installer",
-          story: "As a Windows user, I want a Windows installer, so that I can run the app on my platform.",
-          priority: "Could", points: 8, status: "Backlog", release: "Unscheduled", isNew: true,
-          ac: ["NSIS/MSI build target", "Secrets use Windows DPAPI backend", "Smoke test on Windows 11"],
-          traces: ["Future work §12", "NFR-CMP-02"] },
-        { id: "US-1004", epic: "E10", title: "Linux packages (AppImage / deb)",
-          story: "As a Linux user, I want Linux packages, so that I can install and run the app on my distro.",
-          priority: "Could", points: 5, status: "Backlog", release: "Unscheduled", isNew: true,
-          ac: ["AppImage and .deb targets", "Secrets use the Linux secret service", "Smoke test on a mainstream distro"],
-          traces: ["Future work §12", "NFR-CMP-02"] },
+        {
+          id: 'US-1001',
+          epic: 'E10',
+          title: 'Signed & notarized macOS builds',
+          story:
+            'As a distributor, I want signed and notarized macOS builds, so that users can install without Gatekeeper warnings.',
+          priority: 'Must',
+          points: 5,
+          status: 'In Progress',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'Configure identity, hardenedRuntime and entitlements',
+            'Notarize the DMG/ZIP in the packaging step',
+            'Fresh install shows no ‘unidentified developer’ warning'
+          ],
+          traces: ['Deployment gap §10', 'NFR-CMP-01']
+        },
+        {
+          id: 'US-1002',
+          epic: 'E10',
+          title: 'In-app auto-update',
+          story:
+            'As a user, I want the app to update itself, so that I receive new features without manual reinstalls.',
+          priority: 'Should',
+          points: 8,
+          status: 'Backlog',
+          release: 'v0.3',
+          isNew: true,
+          ac: [
+            'Check for updates and download in the background',
+            'Prompt to restart and apply',
+            'Updates verified against the signing identity'
+          ],
+          traces: ['Future work §12']
+        },
+        {
+          id: 'US-1003',
+          epic: 'E10',
+          title: 'Windows installer',
+          story:
+            'As a Windows user, I want a Windows installer, so that I can run the app on my platform.',
+          priority: 'Could',
+          points: 8,
+          status: 'Backlog',
+          release: 'Unscheduled',
+          isNew: true,
+          ac: [
+            'NSIS/MSI build target',
+            'Secrets use Windows DPAPI backend',
+            'Smoke test on Windows 11'
+          ],
+          traces: ['Future work §12', 'NFR-CMP-02']
+        },
+        {
+          id: 'US-1004',
+          epic: 'E10',
+          title: 'Linux packages (AppImage / deb)',
+          story:
+            'As a Linux user, I want Linux packages, so that I can install and run the app on my distro.',
+          priority: 'Could',
+          points: 5,
+          status: 'Backlog',
+          release: 'Unscheduled',
+          isNew: true,
+          ac: [
+            'AppImage and .deb targets',
+            'Secrets use the Linux secret service',
+            'Smoke test on a mainstream distro'
+          ],
+          traces: ['Future work §12', 'NFR-CMP-02']
+        },
 
-        { id: "US-1101", epic: "E11", title: "Automated unit & integration tests",
-          story: "As a maintainer, I want an automated test suite, so that regressions are caught before release.",
-          priority: "Should", points: 8, status: "In Progress", release: "v0.2", isNew: true,
-          ac: ["Unit tests for providers, vault and store", "Integration tests for IPC handlers", "Coverage reported in the run"],
-          traces: ["Future work §12", "NFR-MNT-04"] },
-        { id: "US-1102", epic: "E11", title: "CI pipeline (build & test on PR)",
-          story: "As a maintainer, I want CI to build and test on every pull request, so that broken changes are blocked automatically.",
-          priority: "Should", points: 5, status: "Ready", release: "v0.3", isNew: true,
-          ac: ["Typecheck, lint/format and tests run on PR", "Packaged build produced on tagged releases", "Red pipeline blocks merge"],
-          traces: ["Future work §12", "NFR-MNT-04"] }
+        {
+          id: 'US-1101',
+          epic: 'E11',
+          title: 'Automated unit & integration tests',
+          story:
+            'As a maintainer, I want an automated test suite, so that regressions are caught before release.',
+          priority: 'Should',
+          points: 8,
+          status: 'Done',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'Unit tests for providers, vault and store',
+            'Integration tests for IPC handlers',
+            'Coverage reported in the run'
+          ],
+          traces: ['Future work §12', 'NFR-MNT-04']
+        },
+        {
+          id: 'US-1102',
+          epic: 'E11',
+          title: 'CI pipeline (build & test on PR)',
+          story:
+            'As a maintainer, I want CI to build and test on every pull request, so that broken changes are blocked automatically.',
+          priority: 'Should',
+          points: 5,
+          status: 'Ready',
+          release: 'v0.3',
+          isNew: true,
+          ac: [
+            'Typecheck, lint/format and tests run on PR',
+            'Packaged build produced on tagged releases',
+            'Red pipeline blocks merge'
+          ],
+          traces: ['Future work §12', 'NFR-MNT-04']
+        },
+
+        {
+          id: 'US-1201',
+          epic: 'E12',
+          title: 'Introduce SQLite with safe JSON migration',
+          story:
+            'As a user, I want application state stored transactionally, so that conversations and agent work survive crashes and scale beyond whole-file JSON rewrites.',
+          priority: 'Must',
+          points: 8,
+          status: 'Ready',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'SQLite runs only in the Electron main process',
+            'Numbered migrations execute transactionally',
+            'Existing JSON imports once with fixture-tested backups',
+            'Secrets remain in the encrypted vault'
+          ],
+          traces: ['Context plan: Storage boundaries', 'NFR-004']
+        },
+        {
+          id: 'US-1202',
+          epic: 'E12',
+          title: 'Normalize messages, runs, and context snapshots',
+          story:
+            'As a maintainer, I want durable records for messages and model runs, so that context can be assembled, audited, and recovered without rewriting full conversations.',
+          priority: 'Must',
+          points: 8,
+          status: 'Backlog',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'Messages are immutable and ordered per conversation',
+            'Every model turn has a run lifecycle record',
+            'Each run stores selected context item IDs and token counts',
+            'Conversation deletion cascades through owned context'
+          ],
+          traces: ['Context plan: Core database records', 'FR-001', 'NFR-002']
+        },
+
+        {
+          id: 'US-1301',
+          epic: 'E13',
+          title: 'Centralize context assembly in the main process',
+          story:
+            'As a user, I want chat and agent requests to use one trusted context policy, so that the renderer cannot accidentally omit, duplicate, or leak context.',
+          priority: 'Must',
+          points: 8,
+          status: 'Ready',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'Renderer sends conversation ID and new user content instead of authoritative full history',
+            'Chat and agent runs share one ContextAssembler',
+            'Scope filtering occurs before relevance ranking',
+            'Selected context is snapshot before provider dispatch'
+          ],
+          traces: ['Context plan: Context assembly pipeline', 'FR-002', 'FR-005']
+        },
+        {
+          id: 'US-1302',
+          epic: 'E13',
+          title: 'Enforce model-aware context budgets',
+          story:
+            'As a long-conversation user, I want prompts bounded to the selected model, so that requests avoid token overflow while preserving the most important context.',
+          priority: 'Must',
+          points: 5,
+          status: 'Ready',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'Provider and model limits use conservative defaults with overrides',
+            'Completion capacity is reserved before prompt packing',
+            'Current user message and required identity are never silently removed',
+            'Complete turns are selected deterministically'
+          ],
+          traces: ['Context plan: Token budget policy', 'FR-002', 'FR-003', 'FR-006']
+        },
+        {
+          id: 'US-1303',
+          epic: 'E13',
+          title: 'Create provenance-backed checkpoint summaries',
+          story:
+            'As a user, I want older conversation segments summarized, so that long threads remain coherent without replaying every raw turn.',
+          priority: 'Must',
+          points: 8,
+          status: 'Backlog',
+          release: 'v0.3',
+          isNew: true,
+          ac: [
+            'Only closed segments outside the recent-turn window are summarized',
+            'Each summary references its source message range, model, and version',
+            'Raw messages remain intact',
+            'Failed summarization falls back to deterministic truncation'
+          ],
+          traces: ['Context plan: Memory lifecycle', 'FR-001', 'FR-004']
+        },
+        {
+          id: 'US-1304',
+          epic: 'E13',
+          title: 'Manage durable facts, decisions, and corrections',
+          story:
+            'As a user, I want confirmed preferences and decisions retained with provenance, so that agents remember important context and respect later corrections.',
+          priority: 'Must',
+          points: 8,
+          status: 'Backlog',
+          release: 'v0.3',
+          isNew: true,
+          ac: [
+            'Durable context items have scope, kind, importance, confidence, and source records',
+            'New confirmed facts supersede rather than overwrite stale facts',
+            'Expired or contradicted items are excluded',
+            'Cross-conversation retrieval remains disabled in the first release'
+          ],
+          traces: ['Context plan: Context layers', 'Context plan: Memory lifecycle']
+        },
+        {
+          id: 'US-1305',
+          epic: 'E13',
+          title: 'Evaluate and diagnose context selection',
+          story:
+            'As a maintainer, I want repeatable context evaluations and local diagnostics, so that retrieval quality and token cost can be tuned safely.',
+          priority: 'Should',
+          points: 5,
+          status: 'Backlog',
+          release: 'v0.3',
+          isNew: true,
+          ac: [
+            'Fixtures cover 10, 50, 100, and 500 turns',
+            'Tests measure isolation, recall, corrections, prompt tokens, and assembly latency',
+            'Diagnostics show selected categories and token totals without credentials or raw secret values',
+            '100-turn designated-fact recall reaches 95 percent'
+          ],
+          traces: ['Context plan: Release gates', 'FR-007', 'NFR-001']
+        },
+
+        {
+          id: 'US-1401',
+          epic: 'E14',
+          title: 'Configure MCP server links and authentication',
+          story:
+            'As an agent builder, I want to register MCP servers securely, so that agents can connect to remote HTTP or local stdio tools.',
+          priority: 'Must',
+          points: 8,
+          status: 'Ready',
+          release: 'v0.3',
+          isNew: true,
+          ac: [
+            'Support Streamable HTTP and stdio transports',
+            'Support none, bearer token, API-key header, and OAuth authentication',
+            'Credentials are encrypted in the vault and never returned to the renderer',
+            'Agents reference shared server IDs rather than duplicate credentials'
+          ],
+          traces: ['MCP design', 'SEC-03', 'SEC-04']
+        },
+        {
+          id: 'US-1402',
+          epic: 'E14',
+          title: 'Test MCP connections and discover tools',
+          story:
+            'As an agent builder, I want to test an MCP server and inspect its tools, so that I can verify access before assigning it to an agent.',
+          priority: 'Must',
+          points: 5,
+          status: 'Backlog',
+          release: 'v0.3',
+          isNew: true,
+          ac: [
+            'Test reports transport and authentication failures clearly',
+            'tools/list schemas are cached with server and expiry metadata',
+            'The UI lists tool names, descriptions, and input schemas',
+            'Discovery never records credential values in traces'
+          ],
+          traces: ['MCP tools/list', 'Context plan: Evidence']
+        },
+        {
+          id: 'US-1403',
+          epic: 'E14',
+          title: 'Execute MCP tools with approvals and context capture',
+          story:
+            'As a user, I want agents to call approved MCP tools, so that they can act while keeping side effects controlled and results available as scoped evidence.',
+          priority: 'Must',
+          points: 13,
+          status: 'Backlog',
+          release: 'v0.3',
+          isNew: true,
+          ac: [
+            'Provider tool calls are validated against discovered schemas',
+            'Draft and assist autonomy require approval before side effects',
+            'Tool results are stored as run-scoped evidence with size limits and expiry',
+            'The result returns to the model and renders in the transcript'
+          ],
+          traces: ['US-901', 'Context plan: MCP and tools']
+        }
       ];
 
       // ---------- State ----------
-      const LS_KEY = "acp-backlog-overrides-v1";
+      const LS_KEY = 'acp-backlog-overrides-v1';
       let overrides = {};
-      try { overrides = JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch (e) { overrides = {}; }
+      try {
+        overrides = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+      } catch (e) {
+        overrides = {};
+      }
 
       const epicName = (id) => (EPICS.find((e) => e.id === id) || {}).name || id;
       const statusOf = (s) => overrides[s.id] || s.status;
       const stories = () => DEFAULT_STORIES.map((s) => ({ ...s, status: statusOf(s) }));
 
-      function save() { localStorage.setItem(LS_KEY, JSON.stringify(overrides)); }
+      function save() {
+        localStorage.setItem(LS_KEY, JSON.stringify(overrides));
+      }
       function setStatus(id, status) {
         const def = DEFAULT_STORIES.find((s) => s.id === id);
         if (!def) return;
@@ -579,11 +1526,23 @@
       }
 
       const esc = (str) =>
-        String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        String(str).replace(
+          /[&<>"']/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+        );
 
       function badge(text, color, extraClass) {
-        return '<span class="badge ' + (extraClass || "") + '" style="color:' + color +
-          ';border-color:' + color + ';background:transparent"><span class="swatch"></span>' + esc(text) + "</span>";
+        return (
+          '<span class="badge ' +
+          (extraClass || '') +
+          '" style="color:' +
+          color +
+          ';border-color:' +
+          color +
+          ';background:transparent"><span class="swatch"></span>' +
+          esc(text) +
+          '</span>'
+        );
       }
 
       // ---------- KPIs ----------
@@ -591,70 +1550,123 @@
         const all = stories();
         const total = all.length;
         const totalPts = all.reduce((a, s) => a + s.points, 0);
-        const done = all.filter((s) => s.status === "Done");
+        const done = all.filter((s) => s.status === 'Done');
         const donePts = done.reduce((a, s) => a + s.points, 0);
-        const inFlight = all.filter((s) => s.status === "In Progress" || s.status === "In Review");
-        const backlog = all.filter((s) => s.status === "Backlog");
-        const v2 = all.filter((s) => s.release === "v0.2");
-        const v2done = v2.filter((s) => s.status === "Done").reduce((a, s) => a + s.points, 0);
+        const inFlight = all.filter((s) => s.status === 'In Progress' || s.status === 'In Review');
+        const backlog = all.filter((s) => s.status === 'Backlog');
+        const v2 = all.filter((s) => s.release === 'v0.2');
+        const v2done = v2.filter((s) => s.status === 'Done').reduce((a, s) => a + s.points, 0);
         const v2pts = v2.reduce((a, s) => a + s.points, 0);
         const pct = totalPts ? Math.round((donePts / totalPts) * 100) : 0;
         const v2pct = v2pts ? Math.round((v2done / v2pts) * 100) : 0;
 
         const cards = [
-          { label: "Delivery progress", value: pct + "<small>%</small>",
-            foot: donePts + " / " + totalPts + " story points done",
-            bar: '<div class="bar success" style="margin-top:10px"><span style="width:' + pct + '%"></span></div>' },
-          { label: "Stories shipped", value: done.length + '<small> / ' + total + "</small>",
-            foot: (total - done.length) + " remaining across " + EPICS.length + " epics" },
-          { label: "Active sprint (v0.2)", value: v2pct + "<small>%</small>",
-            foot: v2.length + " stories · " + v2done + "/" + v2pts + " pts",
-            bar: '<div class="bar" style="margin-top:10px"><span style="width:' + v2pct + '%"></span></div>' },
-          { label: "In flight now", value: String(inFlight.length),
-            foot: "In Progress or In Review" },
-          { label: "Backlog", value: String(backlog.length),
-            foot: backlog.reduce((a, s) => a + s.points, 0) + " pts not started" }
+          {
+            label: 'Delivery progress',
+            value: pct + '<small>%</small>',
+            foot: donePts + ' / ' + totalPts + ' story points done',
+            bar:
+              '<div class="bar success" style="margin-top:10px"><span style="width:' +
+              pct +
+              '%"></span></div>'
+          },
+          {
+            label: 'Stories shipped',
+            value: done.length + '<small> / ' + total + '</small>',
+            foot: total - done.length + ' remaining across ' + EPICS.length + ' epics'
+          },
+          {
+            label: 'Active sprint (v0.2)',
+            value: v2pct + '<small>%</small>',
+            foot: v2.length + ' stories · ' + v2done + '/' + v2pts + ' pts',
+            bar:
+              '<div class="bar" style="margin-top:10px"><span style="width:' +
+              v2pct +
+              '%"></span></div>'
+          },
+          {
+            label: 'In flight now',
+            value: String(inFlight.length),
+            foot: 'In Progress or In Review'
+          },
+          {
+            label: 'Backlog',
+            value: String(backlog.length),
+            foot: backlog.reduce((a, s) => a + s.points, 0) + ' pts not started'
+          }
         ];
-        document.getElementById("kpiGrid").innerHTML = cards
-          .map((c) => '<div class="kpi"><div class="label">' + c.label + '</div><div class="value">' +
-            c.value + '</div><div class="foot">' + c.foot + "</div>" + (c.bar || "") + "</div>")
-          .join("");
+        document.getElementById('kpiGrid').innerHTML = cards
+          .map(
+            (c) =>
+              '<div class="kpi"><div class="label">' +
+              c.label +
+              '</div><div class="value">' +
+              c.value +
+              '</div><div class="foot">' +
+              c.foot +
+              '</div>' +
+              (c.bar || '') +
+              '</div>'
+          )
+          .join('');
       }
 
       // ---------- Release + Epic progress ----------
       function progressCard(name, note, list, tag) {
         const pts = list.reduce((a, s) => a + s.points, 0);
-        const donePts = list.filter((s) => s.status === "Done").reduce((a, s) => a + s.points, 0);
+        const donePts = list.filter((s) => s.status === 'Done').reduce((a, s) => a + s.points, 0);
         const pct = pts ? Math.round((donePts / pts) * 100) : 0;
-        const done = list.filter((s) => s.status === "Done").length;
-        return '<div class="prog-card"><div class="top"><div class="name">' + esc(name) +
-          (note ? '<small>' + esc(note) + "</small>" : "") + '</div>' +
-          (tag ? '<span class="rel-tag">' + tag + "</span>" : '<span class="pct">' + pct + "%</span>") +
-          '</div><div class="bar' + (pct === 100 ? " success" : "") + '"><span style="width:' + pct +
-          '%"></span></div><div class="meta"><span>' + done + " / " + list.length + " stories</span><span>" +
-          donePts + " / " + pts + " pts</span></div></div>";
+        const done = list.filter((s) => s.status === 'Done').length;
+        return (
+          '<div class="prog-card"><div class="top"><div class="name">' +
+          esc(name) +
+          (note ? '<small>' + esc(note) + '</small>' : '') +
+          '</div>' +
+          (tag
+            ? '<span class="rel-tag">' + tag + '</span>'
+            : '<span class="pct">' + pct + '%</span>') +
+          '</div><div class="bar' +
+          (pct === 100 ? ' success' : '') +
+          '"><span style="width:' +
+          pct +
+          '%"></span></div><div class="meta"><span>' +
+          done +
+          ' / ' +
+          list.length +
+          ' stories</span><span>' +
+          donePts +
+          ' / ' +
+          pts +
+          ' pts</span></div></div>'
+        );
       }
 
       function renderReleases() {
         const all = stories();
-        document.getElementById("releaseGrid").innerHTML = RELEASES
-          .map((r) => progressCard(r.name, r.note, all.filter((s) => s.release === r.id)))
-          .join("");
+        document.getElementById('releaseGrid').innerHTML = RELEASES.map((r) =>
+          progressCard(
+            r.name,
+            r.note,
+            all.filter((s) => s.release === r.id)
+          )
+        ).join('');
       }
       function renderEpics() {
         const all = stories();
-        document.getElementById("epicGrid").innerHTML = EPICS
-          .map((e) => {
-            const list = all.filter((s) => s.epic === e.id);
-            if (!list.length) return "";
-            const hasNew = list.some((s) => s.isNew);
-            return progressCard(e.name + (hasNew ? "" : ""), e.id + " · " + list.length + " stories" + (hasNew ? " · has new features" : ""), list);
-          })
-          .join("");
+        document.getElementById('epicGrid').innerHTML = EPICS.map((e) => {
+          const list = all.filter((s) => s.epic === e.id);
+          if (!list.length) return '';
+          const hasNew = list.some((s) => s.isNew);
+          return progressCard(
+            e.name + (hasNew ? '' : ''),
+            e.id + ' · ' + list.length + ' stories' + (hasNew ? ' · has new features' : ''),
+            list
+          );
+        }).join('');
       }
 
       // ---------- Filters ----------
-      const F = { search: "", epic: "", status: "", release: "", priority: "" };
+      const F = { search: '', epic: '', status: '', release: '', priority: '' };
       function filtered() {
         return stories().filter((s) => {
           if (F.epic && s.epic !== F.epic) return false;
@@ -662,7 +1674,15 @@
           if (F.release && s.release !== F.release) return false;
           if (F.priority && s.priority !== F.priority) return false;
           if (F.search) {
-            const hay = (s.id + " " + s.title + " " + s.story + " " + epicName(s.epic)).toLowerCase();
+            const hay = (
+              s.id +
+              ' ' +
+              s.title +
+              ' ' +
+              s.story +
+              ' ' +
+              epicName(s.epic)
+            ).toLowerCase();
             if (!hay.includes(F.search.toLowerCase())) return false;
           }
           return true;
@@ -672,42 +1692,79 @@
       // ---------- Table ----------
       function renderTable() {
         const list = filtered();
-        const rows = list.map((s) => {
-          const statusSel = '<select class="status-sel" data-id="' + s.id + '" style="color:' +
-            STATUS_COLOR[s.status] + '">' +
-            STATUSES.map((st) => '<option' + (st === s.status ? " selected" : "") + ">" + st + "</option>").join("") +
-            "</select>";
-          const traces = s.traces.map((t) => '<span class="trace-chip">' + esc(t) + "</span>").join("");
-          const acs = s.ac.map((a) => "<li>" + esc(a) + "</li>").join("");
-          const main =
-            '<tr class="main" data-id="' + s.id + '">' +
-            '<td><span class="chev">▸</span></td>' +
-            '<td><span class="story-id">' + esc(s.id) + "</span></td>" +
-            '<td><div class="story-title">' + esc(s.title) + (s.isNew ? ' <span class="badge" style="color:var(--cp-accent);border-color:var(--cp-accent)">NEW</span>' : "") +
-            '</div><div class="story-line">' + esc(s.story) + "</div></td>" +
-            '<td>' + badge(epicName(s.epic), "var(--cp-text-muted)", "epic") + "</td>" +
-            "<td>" + badge(s.priority, PRIORITY_COLOR[s.priority]) + "</td>" +
-            '<td class="pts">' + s.points + "</td>" +
-            '<td><span class="rel-tag">' + esc(s.release) + "</span></td>" +
-            "<td>" + statusSel + "</td></tr>";
-          const detail =
-            '<tr class="detail hidden" data-detail="' + s.id + '"><td colspan="8">' +
-            '<div class="ac-wrap"><div><h5>Acceptance criteria</h5><ul>' + acs + "</ul></div>" +
-            "<div><h5>Traceability</h5>" + traces + "</div></div></td></tr>";
-          return main + detail;
-        }).join("");
-        document.getElementById("tbody").innerHTML = rows ||
+        const rows = list
+          .map((s) => {
+            const statusSel =
+              '<select class="status-sel" data-id="' +
+              s.id +
+              '" style="color:' +
+              STATUS_COLOR[s.status] +
+              '">' +
+              STATUSES.map(
+                (st) => '<option' + (st === s.status ? ' selected' : '') + '>' + st + '</option>'
+              ).join('') +
+              '</select>';
+            const traces = s.traces
+              .map((t) => '<span class="trace-chip">' + esc(t) + '</span>')
+              .join('');
+            const acs = s.ac.map((a) => '<li>' + esc(a) + '</li>').join('');
+            const main =
+              '<tr class="main" data-id="' +
+              s.id +
+              '">' +
+              '<td><span class="chev">▸</span></td>' +
+              '<td><span class="story-id">' +
+              esc(s.id) +
+              '</span></td>' +
+              '<td><div class="story-title">' +
+              esc(s.title) +
+              (s.isNew
+                ? ' <span class="badge" style="color:var(--cp-accent);border-color:var(--cp-accent)">NEW</span>'
+                : '') +
+              '</div><div class="story-line">' +
+              esc(s.story) +
+              '</div></td>' +
+              '<td>' +
+              badge(epicName(s.epic), 'var(--cp-text-muted)', 'epic') +
+              '</td>' +
+              '<td>' +
+              badge(s.priority, PRIORITY_COLOR[s.priority]) +
+              '</td>' +
+              '<td class="pts">' +
+              s.points +
+              '</td>' +
+              '<td><span class="rel-tag">' +
+              esc(s.release) +
+              '</span></td>' +
+              '<td>' +
+              statusSel +
+              '</td></tr>';
+            const detail =
+              '<tr class="detail hidden" data-detail="' +
+              s.id +
+              '"><td colspan="8">' +
+              '<div class="ac-wrap"><div><h5>Acceptance criteria</h5><ul>' +
+              acs +
+              '</ul></div>' +
+              '<div><h5>Traceability</h5>' +
+              traces +
+              '</div></div></td></tr>';
+            return main + detail;
+          })
+          .join('');
+        document.getElementById('tbody').innerHTML =
+          rows ||
           '<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--cp-text-soft)">No stories match the current filters.</td></tr>';
 
-        document.querySelectorAll("select.status-sel").forEach((sel) => {
-          sel.addEventListener("click", (e) => e.stopPropagation());
-          sel.addEventListener("change", (e) => setStatus(e.target.dataset.id, e.target.value));
+        document.querySelectorAll('select.status-sel').forEach((sel) => {
+          sel.addEventListener('click', (e) => e.stopPropagation());
+          sel.addEventListener('change', (e) => setStatus(e.target.dataset.id, e.target.value));
         });
-        document.querySelectorAll("tr.main").forEach((tr) => {
-          tr.addEventListener("click", () => {
+        document.querySelectorAll('tr.main').forEach((tr) => {
+          tr.addEventListener('click', () => {
             const d = document.querySelector('tr[data-detail="' + tr.dataset.id + '"]');
-            tr.classList.toggle("open");
-            if (d) d.classList.toggle("hidden");
+            tr.classList.toggle('open');
+            if (d) d.classList.toggle('hidden');
           });
         });
       }
@@ -715,37 +1772,68 @@
       // ---------- Board ----------
       function renderBoard() {
         const list = filtered();
-        const board = document.getElementById("board");
+        const board = document.getElementById('board');
         board.innerHTML = STATUSES.map((st) => {
           const items = list.filter((s) => s.status === st);
-          const cards = items.map((s) => {
-            const tags = badge(s.priority, PRIORITY_COLOR[s.priority]) +
-              badge(epicName(s.epic), "var(--cp-text-muted)", "epic") +
-              '<span class="badge epic">' + esc(s.release) + "</span>";
-            return '<div class="card' + (s.isNew ? " new" : "") + '" draggable="true" data-id="' + s.id +
-              '" style="border-left-color:' + STATUS_COLOR[st] + '">' +
-              '<div class="c-top"><span class="c-id">' + esc(s.id) + '</span><span class="c-pts">' + s.points +
-              ' pts</span></div><div class="c-title">' + esc(s.title) + '</div><div class="c-tags">' + tags +
-              "</div></div>";
-          }).join("");
-          return '<div class="col" data-status="' + st + '"><div class="col-head"><span style="color:' +
-            STATUS_COLOR[st] + '">● ' + st + '</span><span class="n">' + items.length + "</span></div>" +
-            cards + "</div>";
-        }).join("");
+          const cards = items
+            .map((s) => {
+              const tags =
+                badge(s.priority, PRIORITY_COLOR[s.priority]) +
+                badge(epicName(s.epic), 'var(--cp-text-muted)', 'epic') +
+                '<span class="badge epic">' +
+                esc(s.release) +
+                '</span>';
+              return (
+                '<div class="card' +
+                (s.isNew ? ' new' : '') +
+                '" draggable="true" data-id="' +
+                s.id +
+                '" style="border-left-color:' +
+                STATUS_COLOR[st] +
+                '">' +
+                '<div class="c-top"><span class="c-id">' +
+                esc(s.id) +
+                '</span><span class="c-pts">' +
+                s.points +
+                ' pts</span></div><div class="c-title">' +
+                esc(s.title) +
+                '</div><div class="c-tags">' +
+                tags +
+                '</div></div>'
+              );
+            })
+            .join('');
+          return (
+            '<div class="col" data-status="' +
+            st +
+            '"><div class="col-head"><span style="color:' +
+            STATUS_COLOR[st] +
+            '">● ' +
+            st +
+            '</span><span class="n">' +
+            items.length +
+            '</span></div>' +
+            cards +
+            '</div>'
+          );
+        }).join('');
 
-        board.querySelectorAll(".card").forEach((card) => {
-          card.addEventListener("dragstart", (e) => {
-            e.dataTransfer.setData("text/plain", card.dataset.id);
-            e.dataTransfer.effectAllowed = "move";
+        board.querySelectorAll('.card').forEach((card) => {
+          card.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', card.dataset.id);
+            e.dataTransfer.effectAllowed = 'move';
           });
         });
-        board.querySelectorAll(".col").forEach((col) => {
-          col.addEventListener("dragover", (e) => { e.preventDefault(); col.classList.add("drag-over"); });
-          col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
-          col.addEventListener("drop", (e) => {
+        board.querySelectorAll('.col').forEach((col) => {
+          col.addEventListener('dragover', (e) => {
             e.preventDefault();
-            col.classList.remove("drag-over");
-            const id = e.dataTransfer.getData("text/plain");
+            col.classList.add('drag-over');
+          });
+          col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+          col.addEventListener('drop', (e) => {
+            e.preventDefault();
+            col.classList.remove('drag-over');
+            const id = e.dataTransfer.getData('text/plain');
             if (id) setStatus(id, col.dataset.status);
           });
         });
@@ -753,68 +1841,139 @@
 
       function renderCount() {
         const n = filtered().length;
-        document.getElementById("countNote").textContent =
-          n + " of " + DEFAULT_STORIES.length + " stories shown";
+        document.getElementById('countNote').textContent =
+          n + ' of ' + DEFAULT_STORIES.length + ' stories shown';
       }
 
-      function renderViews() { renderTable(); renderBoard(); renderCount(); }
-      function renderAll() { renderKPIs(); renderReleases(); renderEpics(); renderViews(); }
+      function renderViews() {
+        renderTable();
+        renderBoard();
+        renderCount();
+      }
+      function renderAll() {
+        renderKPIs();
+        renderReleases();
+        renderEpics();
+        renderViews();
+      }
 
       // ---------- Legend & filter option population ----------
       function initStaticUI() {
-        document.getElementById("legend").innerHTML =
+        document.getElementById('legend').innerHTML =
           "<strong style='color:var(--cp-text)'>Status:</strong>" +
-          STATUSES.map((st) => '<span><span class="sw" style="background:' + STATUS_COLOR[st] + '"></span>' + st + "</span>").join("") +
+          STATUSES.map(
+            (st) =>
+              '<span><span class="sw" style="background:' +
+              STATUS_COLOR[st] +
+              '"></span>' +
+              st +
+              '</span>'
+          ).join('') +
           "<span style='margin-left:8px'><strong style='color:var(--cp-text)'>Priority:</strong></span>" +
-          Object.keys(PRIORITY_COLOR).map((p) => '<span><span class="sw" style="background:' + PRIORITY_COLOR[p] + '"></span>' + p + "</span>").join("");
+          Object.keys(PRIORITY_COLOR)
+            .map(
+              (p) =>
+                '<span><span class="sw" style="background:' +
+                PRIORITY_COLOR[p] +
+                '"></span>' +
+                p +
+                '</span>'
+            )
+            .join('');
 
-        const fEpic = document.getElementById("fEpic");
-        EPICS.forEach((e) => { const o = document.createElement("option"); o.value = e.id; o.textContent = e.name; fEpic.appendChild(o); });
-        const fStatus = document.getElementById("fStatus");
-        STATUSES.forEach((st) => { const o = document.createElement("option"); o.value = st; o.textContent = st; fStatus.appendChild(o); });
-        const fRelease = document.getElementById("fRelease");
-        RELEASES.forEach((r) => { const o = document.createElement("option"); o.value = r.id; o.textContent = r.id; fRelease.appendChild(o); });
+        const fEpic = document.getElementById('fEpic');
+        EPICS.forEach((e) => {
+          const o = document.createElement('option');
+          o.value = e.id;
+          o.textContent = e.name;
+          fEpic.appendChild(o);
+        });
+        const fStatus = document.getElementById('fStatus');
+        STATUSES.forEach((st) => {
+          const o = document.createElement('option');
+          o.value = st;
+          o.textContent = st;
+          fStatus.appendChild(o);
+        });
+        const fRelease = document.getElementById('fRelease');
+        RELEASES.forEach((r) => {
+          const o = document.createElement('option');
+          o.value = r.id;
+          o.textContent = r.id;
+          fRelease.appendChild(o);
+        });
       }
 
       // ---------- Events ----------
-      document.getElementById("search").addEventListener("input", (e) => { F.search = e.target.value; renderViews(); });
-      document.getElementById("fEpic").addEventListener("change", (e) => { F.epic = e.target.value; renderViews(); });
-      document.getElementById("fStatus").addEventListener("change", (e) => { F.status = e.target.value; renderViews(); });
-      document.getElementById("fRelease").addEventListener("change", (e) => { F.release = e.target.value; renderViews(); });
-      document.getElementById("fPriority").addEventListener("change", (e) => { F.priority = e.target.value; renderViews(); });
-
-      const boardView = document.getElementById("boardView");
-      const tableView = document.getElementById("tableView");
-      const vB = document.getElementById("viewBoard");
-      const vT = document.getElementById("viewTable");
-      vB.addEventListener("click", () => {
-        boardView.classList.remove("hidden"); tableView.classList.add("hidden");
-        vB.setAttribute("aria-pressed", "true"); vT.setAttribute("aria-pressed", "false");
+      document.getElementById('search').addEventListener('input', (e) => {
+        F.search = e.target.value;
+        renderViews();
       });
-      vT.addEventListener("click", () => {
-        tableView.classList.remove("hidden"); boardView.classList.add("hidden");
-        vT.setAttribute("aria-pressed", "true"); vB.setAttribute("aria-pressed", "false");
+      document.getElementById('fEpic').addEventListener('change', (e) => {
+        F.epic = e.target.value;
+        renderViews();
+      });
+      document.getElementById('fStatus').addEventListener('change', (e) => {
+        F.status = e.target.value;
+        renderViews();
+      });
+      document.getElementById('fRelease').addEventListener('change', (e) => {
+        F.release = e.target.value;
+        renderViews();
+      });
+      document.getElementById('fPriority').addEventListener('change', (e) => {
+        F.priority = e.target.value;
+        renderViews();
       });
 
-      document.getElementById("themeBtn").addEventListener("click", () => {
-        const cur = document.documentElement.getAttribute("data-theme");
-        document.documentElement.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+      const boardView = document.getElementById('boardView');
+      const tableView = document.getElementById('tableView');
+      const vB = document.getElementById('viewBoard');
+      const vT = document.getElementById('viewTable');
+      vB.addEventListener('click', () => {
+        boardView.classList.remove('hidden');
+        tableView.classList.add('hidden');
+        vB.setAttribute('aria-pressed', 'true');
+        vT.setAttribute('aria-pressed', 'false');
+      });
+      vT.addEventListener('click', () => {
+        tableView.classList.remove('hidden');
+        boardView.classList.add('hidden');
+        vT.setAttribute('aria-pressed', 'true');
+        vB.setAttribute('aria-pressed', 'false');
+      });
+
+      document.getElementById('themeBtn').addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme');
+        document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
         renderAll();
       });
-      document.getElementById("printBtn").addEventListener("click", () => window.print());
-      document.getElementById("resetBtn").addEventListener("click", () => {
-        if (confirm("Reset all status changes back to the baseline plan?")) {
-          overrides = {}; save(); renderAll();
+      document.getElementById('printBtn').addEventListener('click', () => window.print());
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        if (confirm('Reset all status changes back to the baseline plan?')) {
+          overrides = {};
+          save();
+          renderAll();
         }
       });
-      document.getElementById("exportBtn").addEventListener("click", () => {
-        const data = { product: "AI Agent Control Panel", exportedAt: new Date().toISOString(),
-          stories: stories().map((s) => ({ id: s.id, epic: epicName(s.epic), title: s.title,
-            priority: s.priority, points: s.points, release: s.release, status: s.status })) };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-        const a = document.createElement("a");
+      document.getElementById('exportBtn').addEventListener('click', () => {
+        const data = {
+          product: 'AI Agent Control Panel',
+          exportedAt: new Date().toISOString(),
+          stories: stories().map((s) => ({
+            id: s.id,
+            epic: epicName(s.epic),
+            title: s.title,
+            priority: s.priority,
+            points: s.points,
+            release: s.release,
+            status: s.status
+          }))
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = "acp-product-backlog.json";
+        a.download = 'acp-product-backlog.json';
         a.click();
         URL.revokeObjectURL(a.href);
       });

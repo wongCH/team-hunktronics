@@ -8,6 +8,7 @@ import {
 } from './openai-compatible';
 import { OllamaProvider } from './ollama';
 import { AnthropicProvider } from './anthropic';
+import { GitHubModelsProvider } from './github-models';
 import type { StreamCallbacks } from './types';
 
 /**
@@ -66,8 +67,19 @@ describe('provider registry', () => {
     expect(getProvider('ollama')).toBeInstanceOf(OllamaProvider);
     expect(getProvider('anthropic')).toBeInstanceOf(AnthropicProvider);
     expect(getProvider('openai')).toBeInstanceOf(OpenAICompatibleProvider);
-    expect(getProvider('github-models')).toBeInstanceOf(OpenAICompatibleProvider);
+    expect(getProvider('github-models')).toBeInstanceOf(GitHubModelsProvider);
+    expect(getProvider('lm-studio')).toBeInstanceOf(OpenAICompatibleProvider);
     expect(getProvider('openai-compatible')).toBeInstanceOf(OpenAICompatibleProvider);
+  });
+
+  it('uses the LM Studio local server without authorization', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ data: [] }) });
+
+    await getProvider('lm-studio').listModels({});
+
+    expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:1234/v1/models', {
+      headers: {}
+    });
   });
 
   it('throws for an unknown provider type', () => {

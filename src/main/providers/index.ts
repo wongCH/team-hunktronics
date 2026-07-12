@@ -10,6 +10,7 @@ const registry: Record<ProviderType, Provider> = {
   ollama: new OllamaProvider(),
   openai: new OpenAICompatibleProvider('openai', 'https://api.openai.com/v1'),
   'github-models': new GitHubModelsProvider(),
+  'lm-studio': new OpenAICompatibleProvider('lm-studio', 'http://127.0.0.1:1234/v1'),
   'openai-compatible': new OpenAICompatibleProvider('openai-compatible', 'https://openrouter.ai/api/v1'),
   anthropic: new AnthropicProvider(),
   copilot: new CopilotProvider()

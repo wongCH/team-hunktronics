@@ -5,6 +5,7 @@ export type ProviderType =
   | 'openai'
   | 'anthropic'
   | 'github-models'
+  | 'lm-studio'
   | 'openai-compatible'
   | 'copilot';
 
@@ -177,6 +178,15 @@ export const PROVIDER_META: Record<ProviderType, ProviderMeta> = {
     docsUrl: 'https://github.com/marketplace/models',
     supportsDeviceFlow: true,
     suggestedModels: ['openai/gpt-4o', 'openai/gpt-4o-mini', 'meta/Llama-3.3-70B-Instruct']
+  },
+  'lm-studio': {
+    type: 'lm-studio',
+    name: 'LM Studio (local)',
+    description: 'Use models loaded in the LM Studio local server.',
+    needsKey: false,
+    needsBaseUrl: true,
+    defaultBaseUrl: 'http://127.0.0.1:1234/v1',
+    docsUrl: 'https://lmstudio.ai/docs/developer/openai-compat'
   },
   'openai-compatible': {
     type: 'openai-compatible',

@@ -12,8 +12,9 @@ const ORDER: ProviderType[] = [
   'openai',
   'anthropic',
   'github-models',
-  'openai-compatible',
-  'copilot'
+  'copilot',
+  'lm-studio',
+  'openai-compatible'
 ];
 
 export function ConnectionsManager() {

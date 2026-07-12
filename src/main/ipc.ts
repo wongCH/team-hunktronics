@@ -24,6 +24,7 @@ const VALID_TYPES: ProviderType[] = [
   'openai',
   'anthropic',
   'github-models',
+  'lm-studio',
   'openai-compatible',
   'copilot'
 ];
