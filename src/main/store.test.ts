@@ -4,7 +4,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { Store } from './store';
 import { DEFAULT_GITHUB_CLIENT_ID } from '@shared/types';
-import type { ConnectionConfig, Conversation } from '@shared/types';
+import type { ApiTrace, ConnectionConfig, Conversation } from '@shared/types';
 
 /**
  * Backlog coverage: US-101 (manage connections), US-401 (conversation CRUD),
@@ -31,6 +31,35 @@ function convo(id: string, title = 'Chat ' + id): Conversation {
     messages: [],
     createdAt: 1,
     updatedAt: 1
+  };
+}
+
+function trace(id: string, content = 'ok'): ApiTrace {
+  return {
+    id,
+    streamId: 's-' + id,
+    providerType: 'openai',
+    connectionId: 'c1',
+    model: 'gpt-4o',
+    request: {
+      messages: [{ role: 'user', content: 'hello' }],
+      startedAt: 1
+    },
+    response: {
+      content,
+      chunks: 1,
+      doneAt: 2,
+      error: null,
+      cancelled: false
+    },
+    context: {
+      source: 'agent',
+      agentId: 'a1',
+      agentName: 'Agent 1'
+    },
+    status: 'done',
+    createdAt: 1,
+    updatedAt: 2
   };
 }
 
@@ -124,6 +153,29 @@ describe('Store — settings', () => {
       experimentalCopilot: true
     });
     expect(await new Store(dir).getSettings()).toMatchObject({ activeConnectionId: 'x' });
+  });
+});
+
+describe('Store — API traces', () => {
+  it('stores traces and keeps newest first', async () => {
+    await store.saveApiTrace(trace('a', 'first'));
+    await store.saveApiTrace(trace('b', 'second'));
+    const list = await store.listApiTraces();
+    expect(list.map((t) => t.id)).toEqual(['b', 'a']);
+  });
+
+  it('updates an existing trace without duplication', async () => {
+    await store.saveApiTrace(trace('a', 'first'));
+    await store.saveApiTrace(trace('a', 'updated response'));
+    const list = await store.listApiTraces();
+    expect(list).toHaveLength(1);
+    expect(list[0].response.content).toBe('updated response');
+  });
+
+  it('clears all traces', async () => {
+    await store.saveApiTrace(trace('a'));
+    await store.clearApiTraces();
+    expect(await store.listApiTraces()).toEqual([]);
   });
 });
 

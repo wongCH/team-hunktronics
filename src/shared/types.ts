@@ -42,6 +42,11 @@ export interface ChatRequest {
   model: string;
   messages: ChatMessage[];
   params?: ChatParams;
+  traceContext?: {
+    source: 'agent' | 'chat';
+    agentId?: string;
+    agentName?: string;
+  };
 }
 
 export interface TestResult {
@@ -56,6 +61,36 @@ export interface Conversation {
   connectionId: string | null;
   model: string | null;
   messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type ApiTraceStatus = 'streaming' | 'done' | 'error' | 'cancelled';
+
+export interface ApiTrace {
+  id: string;
+  streamId: string;
+  providerType: ProviderType;
+  connectionId: string;
+  model: string;
+  request: {
+    messages: ChatMessage[];
+    params?: ChatParams;
+    startedAt: number;
+  };
+  response: {
+    content: string;
+    chunks: number;
+    doneAt: number | null;
+    error: string | null;
+    cancelled: boolean;
+  };
+  context: {
+    source: 'agent' | 'chat';
+    agentId: string | null;
+    agentName: string | null;
+  };
+  status: ApiTraceStatus;
   createdAt: number;
   updatedAt: number;
 }

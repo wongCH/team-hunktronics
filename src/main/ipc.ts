@@ -2,6 +2,7 @@ import { ipcMain, shell, BrowserWindow } from 'electron';
 import { randomUUID } from 'crypto';
 import type {
   AgentConfig,
+  ApiTrace,
   AppSettings,
   ChatRequest,
   ConnectionConfig,
@@ -133,6 +134,10 @@ export function registerIpc({ getWindow, store, vault }: Deps): void {
     return provider.listModels(await buildContext(conn));
   });
 
+  // ---- API traces ----
+  ipcMain.handle(IPC.tracesList, () => store.listApiTraces());
+  ipcMain.handle(IPC.tracesClear, () => store.clearApiTraces());
+
   // ---- Chat (streaming) ----
   ipcMain.handle(IPC.chatSend, async (_e, req: ChatRequest): Promise<{ streamId: string }> => {
     const conn = await store.getConnection(req.connectionId);
@@ -150,12 +155,72 @@ export function registerIpc({ getWindow, store, vault }: Deps): void {
     const streamId = randomUUID();
     const controller = new AbortController();
     activeStreams.set(streamId, controller);
+    const startedAt = Date.now();
+    const traceBase: ApiTrace = {
+      id: randomUUID(),
+      streamId,
+      providerType: conn.providerType,
+      connectionId: conn.id,
+      model: req.model,
+      request: {
+        messages: req.messages,
+        params: req.params,
+        startedAt
+      },
+      response: {
+        content: '',
+        chunks: 0,
+        doneAt: null,
+        error: null,
+        cancelled: false
+      },
+      context: {
+        source: req.traceContext?.source ?? 'chat',
+        agentId: req.traceContext?.agentId ?? null,
+        agentName: req.traceContext?.agentName ?? null
+      },
+      status: 'streaming',
+      createdAt: startedAt,
+      updatedAt: startedAt
+    };
+    let trace = traceBase;
+    let traceWriteQueue = Promise.resolve();
+    const queueTrace = (next: ApiTrace): Promise<void> => {
+      trace = next;
+      traceWriteQueue = traceWriteQueue.then(async () => {
+        await store.saveApiTrace(next);
+        send(IPC.traceUpdate, { trace: next });
+      });
+      return traceWriteQueue;
+    };
+    await queueTrace(trace);
 
     // Run in the background; stream chunks over IPC events.
     void (async () => {
       try {
         await provider.streamChat(ctx, req.model, req.messages, req.params, controller.signal, {
-          onChunk: (delta) => send(IPC.chatChunk, { streamId, delta })
+          onChunk: (delta) => {
+            send(IPC.chatChunk, { streamId, delta });
+            void queueTrace({
+              ...trace,
+              response: {
+                ...trace.response,
+                content: trace.response.content + delta,
+                chunks: trace.response.chunks + 1
+              },
+              updatedAt: Date.now()
+            });
+          }
+        });
+        const doneAt = Date.now();
+        await queueTrace({
+          ...trace,
+          status: 'done',
+          response: {
+            ...trace.response,
+            doneAt
+          },
+          updatedAt: doneAt
         });
         send(IPC.chatDone, { streamId });
       } catch (err) {
@@ -163,6 +228,18 @@ export function registerIpc({ getWindow, store, vault }: Deps): void {
           (err as Error)?.name === 'AbortError'
             ? 'Generation stopped.'
             : (err as Error).message || 'Unknown error.';
+        const doneAt = Date.now();
+        await queueTrace({
+          ...trace,
+          status: (err as Error)?.name === 'AbortError' ? 'cancelled' : 'error',
+          response: {
+            ...trace.response,
+            doneAt,
+            error: message,
+            cancelled: (err as Error)?.name === 'AbortError'
+          },
+          updatedAt: doneAt
+        });
         send(IPC.chatError, { streamId, message });
       } finally {
         activeStreams.delete(streamId);

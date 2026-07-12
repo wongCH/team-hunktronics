@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { AppSettings, ConnectionConfig, Conversation } from '@shared/types';
+import type { ApiTrace, AppSettings, ConnectionConfig, Conversation } from '@shared/types';
 import type { Store } from './store';
 import type { Vault } from './vault';
 
@@ -36,6 +36,7 @@ const openExternalMock = shell.openExternal as unknown as ReturnType<typeof vi.f
 class FakeStore {
   connections: ConnectionConfig[] = [];
   conversations: Conversation[] = [];
+  traces: ApiTrace[] = [];
   settings: AppSettings = {
     theme: 'neon-blue',
     experimentalCopilot: false,
@@ -69,6 +70,19 @@ class FakeStore {
   async deleteConversation(id: string) {
     this.conversations = this.conversations.filter((c) => c.id !== id);
     return this.conversations;
+  }
+  async listApiTraces() {
+    return this.traces;
+  }
+  async saveApiTrace(trace: ApiTrace) {
+    const i = this.traces.findIndex((t) => t.id === trace.id);
+    if (i >= 0) this.traces[i] = trace;
+    else this.traces.unshift(trace);
+    return this.traces;
+  }
+  async clearApiTraces() {
+    this.traces = [];
+    return this.traces;
   }
   async getSettings() {
     return this.settings;
@@ -245,6 +259,31 @@ describe('chat (US-302 / FR-CHAT-04)', () => {
     expect(channels).toContain(IPC.chatDone);
     const chunk = send.mock.calls.find((c) => c[0] === IPC.chatChunk)?.[1];
     expect(chunk).toMatchObject({ streamId: res.streamId, delta: 'Hi' });
+    const updates = send.mock.calls.filter((c) => c[0] === IPC.traceUpdate);
+    expect(updates.length).toBeGreaterThanOrEqual(2);
+    const lastTrace = updates[updates.length - 1][1].trace as ApiTrace;
+    expect(lastTrace.status).toBe('done');
+    expect(lastTrace.response.content).toBe('Hi');
+  });
+
+  it('captures full response traces without truncation', async () => {
+    store.connections = [connection()];
+    const long = 'x'.repeat(2500);
+    getProviderMock.mockReturnValue({
+      listModels: vi.fn(),
+      streamChat: vi.fn(async (_ctx, _model, _msgs, _params, _signal, cb) => cb.onChunk(long))
+    });
+    await invoke(IPC.chatSend, {
+      connectionId: 'c1',
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: 'hi' }],
+      traceContext: { source: 'agent', agentId: 'a1', agentName: 'Worker' }
+    });
+    await tick();
+    const latest = store.traces[0];
+    expect(latest.response.content.length).toBe(2500);
+    expect(latest.response.content).toBe(long);
+    expect(latest.context).toMatchObject({ source: 'agent', agentId: 'a1', agentName: 'Worker' });
   });
 
   it('rejects when no model is selected', async () => {
@@ -264,6 +303,29 @@ describe('chat (US-302 / FR-CHAT-04)', () => {
 
   it('acknowledges a cancel request', async () => {
     expect(await invoke(IPC.chatCancel, 'any-id')).toEqual({ ok: true });
+  });
+});
+
+describe('api traces', () => {
+  it('lists and clears traces', async () => {
+    store.traces = [
+      {
+        id: 't1',
+        streamId: 's1',
+        providerType: 'openai',
+        connectionId: 'c1',
+        model: 'gpt-4o',
+        request: { messages: [], startedAt: 1 },
+        response: { content: 'ok', chunks: 1, doneAt: 2, error: null, cancelled: false },
+        context: { source: 'chat', agentId: null, agentName: null },
+        status: 'done',
+        createdAt: 1,
+        updatedAt: 2
+      }
+    ];
+    expect(await invoke(IPC.tracesList)).toHaveLength(1);
+    await invoke(IPC.tracesClear);
+    expect(await invoke(IPC.tracesList)).toHaveLength(0);
   });
 });
 

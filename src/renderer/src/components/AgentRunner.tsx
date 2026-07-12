@@ -3,7 +3,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import clsx from 'clsx';
-import type { AgentConfig, ChatMessage } from '@shared/types';
+import type { AgentConfig, ApiTrace, ChatMessage } from '@shared/types';
 import { AUTONOMY_LEVELS } from '@shared/types';
 import { api } from '@/lib/api';
 import { SendIcon, StopIcon } from './icons';
@@ -18,6 +18,7 @@ export function AgentRunner({ agent }: { agent: AgentConfig }) {
   const [text, setText] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [traces, setTraces] = useState<ApiTrace[]>([]);
   const streamRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -25,6 +26,16 @@ export function AgentRunner({ agent }: { agent: AgentConfig }) {
   const autonomy = AUTONOMY_LEVELS.find((a) => a.id === agent.autonomy);
 
   useEffect(() => {
+    let cancelled = false;
+    void api.traces.list().then((all) => {
+      if (cancelled) return;
+      setTraces(
+        all
+          .filter((t) => t.context.source === 'agent' && t.context.agentId === agent.id)
+          .sort((a, b) => b.updatedAt - a.updatedAt)
+      );
+    });
+
     const unsubs = [
       api.chat.onChunk(({ streamId, delta }) => {
         if (streamId !== streamRef.current) return;
@@ -48,16 +59,24 @@ export function AgentRunner({ agent }: { agent: AgentConfig }) {
           setStreaming(false);
           setError(message);
         }
+      }),
+      api.traces.onUpdate(({ trace }) => {
+        if (trace.context.source !== 'agent' || trace.context.agentId !== agent.id) return;
+        setTraces((list) => [trace, ...list.filter((item) => item.id !== trace.id)]);
       })
     ];
-    return () => unsubs.forEach((u) => u());
-  }, []);
+    return () => {
+      cancelled = true;
+      unsubs.forEach((u) => u());
+    };
+  }, [agent.id]);
 
   useEffect(() => {
     setMessages([]);
     setError(null);
     setStreaming(false);
     streamRef.current = null;
+    setTraces([]);
   }, [agent.id]);
 
   useEffect(() => {
@@ -80,7 +99,12 @@ export function AgentRunner({ agent }: { agent: AgentConfig }) {
       const { streamId } = await api.chat.send({
         connectionId: agent.connectionId!,
         model: agent.model!,
-        messages: outgoing
+        messages: outgoing,
+        traceContext: {
+          source: 'agent',
+          agentId: agent.id,
+          agentName: agent.name
+        }
       });
       streamRef.current = streamId;
     } catch (e) {
@@ -93,6 +117,11 @@ export function AgentRunner({ agent }: { agent: AgentConfig }) {
     if (streamRef.current) void api.chat.cancel(streamRef.current);
     streamRef.current = null;
     setStreaming(false);
+  };
+
+  const clearTraces = async () => {
+    await api.traces.clear();
+    setTraces([]);
   };
 
   return (
@@ -138,6 +167,61 @@ export function AgentRunner({ agent }: { agent: AgentConfig }) {
             <div ref={bottomRef} />
           </div>
         )}
+      </div>
+
+      <div className="border-t border-border px-5 py-3 bg-overlay/40">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs uppercase tracking-wide text-content-faint">LLM API Interaction Log</h3>
+            <button className="btn-outline !py-1 text-xs" onClick={() => void clearTraces()}>
+              Clear logs
+            </button>
+          </div>
+          {traces.length === 0 ? (
+            <div className="text-xs text-content-faint border border-border rounded-lg px-3 py-2">
+              No API interactions for this agent yet.
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {traces.map((trace) => (
+                <article key={trace.id} className="panel bg-surface p-3 space-y-2">
+                  <header className="flex flex-wrap items-center gap-2 text-[11px] text-content-muted">
+                    <span className="chip !py-0.5 border-neon/40 text-neon">{trace.status}</span>
+                    <span>{new Date(trace.createdAt).toLocaleString()}</span>
+                    <span>model: {trace.model}</span>
+                    <span>chunks: {trace.response.chunks}</span>
+                  </header>
+                  <section className="space-y-1">
+                    <h4 className="text-xs font-semibold text-content">Request</h4>
+                    <pre className="text-[11px] text-content-muted whitespace-pre-wrap break-words bg-black/20 border border-border rounded-md px-2 py-1.5">
+                      {JSON.stringify(
+                        {
+                          providerType: trace.providerType,
+                          connectionId: trace.connectionId,
+                          params: trace.request.params ?? null,
+                          messages: trace.request.messages
+                        },
+                        null,
+                        2
+                      )}
+                    </pre>
+                  </section>
+                  <section className="space-y-1">
+                    <h4 className="text-xs font-semibold text-content">Response</h4>
+                    <pre className="text-[11px] text-content-muted whitespace-pre-wrap break-words bg-black/20 border border-border rounded-md px-2 py-1.5">
+                      {trace.response.content}
+                    </pre>
+                    {trace.response.error && (
+                      <div className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/30 rounded-md px-2 py-1">
+                        {trace.response.error}
+                      </div>
+                    )}
+                  </section>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {error && (

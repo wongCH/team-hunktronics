@@ -54,6 +54,6 @@ export async function httpError(prefix: string, res: Response): Promise<Error> {
   } catch {
     /* ignore */
   }
-  detail = (detail || res.statusText || '').toString().slice(0, 300);
+  detail = (detail || res.statusText || '').toString();
   return new Error(`${prefix}: ${res.status} ${detail}`.trim());
 }

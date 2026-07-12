@@ -1,4 +1,5 @@
 // IPC channel names and streaming payload contracts shared by main + preload + renderer.
+import type { ApiTrace } from './types';
 
 export const IPC = {
   vaultStatus: 'vault:status',
@@ -15,6 +16,9 @@ export const IPC = {
   chatChunk: 'chat:chunk',
   chatDone: 'chat:done',
   chatError: 'chat:error',
+  tracesList: 'traces:list',
+  tracesClear: 'traces:clear',
+  traceUpdate: 'traces:update',
   conversationsList: 'conversations:list',
   conversationsSave: 'conversations:save',
   conversationsDelete: 'conversations:delete',
@@ -41,6 +45,10 @@ export interface ChatDonePayload {
 export interface ChatErrorPayload {
   streamId: string;
   message: string;
+}
+
+export interface TraceUpdatePayload {
+  trace: ApiTrace;
 }
 
 export interface DeviceCodePayload {

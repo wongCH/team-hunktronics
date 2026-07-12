@@ -5,9 +5,11 @@ import type {
   ChatDonePayload,
   ChatErrorPayload,
   DeviceCodePayload,
-  DeviceFlowResult
+  DeviceFlowResult,
+  TraceUpdatePayload
 } from '@shared/ipc';
 import type {
+  ApiTrace,
   AppSettings,
   ChatRequest,
   ConnectionConfig,
@@ -55,6 +57,11 @@ const api = {
     onChunk: (cb: (p: ChatChunkPayload) => void): Unsubscribe => subscribe(IPC.chatChunk, cb),
     onDone: (cb: (p: ChatDonePayload) => void): Unsubscribe => subscribe(IPC.chatDone, cb),
     onError: (cb: (p: ChatErrorPayload) => void): Unsubscribe => subscribe(IPC.chatError, cb)
+  },
+  traces: {
+    list: (): Promise<ApiTrace[]> => ipcRenderer.invoke(IPC.tracesList),
+    clear: (): Promise<ApiTrace[]> => ipcRenderer.invoke(IPC.tracesClear),
+    onUpdate: (cb: (p: TraceUpdatePayload) => void): Unsubscribe => subscribe(IPC.traceUpdate, cb)
   },
   conversations: {
     list: (): Promise<Conversation[]> => ipcRenderer.invoke(IPC.conversationsList),

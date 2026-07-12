@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import type { AgentConfig, AppSettings, ConnectionConfig, Conversation } from '@shared/types';
+import type { AgentConfig, ApiTrace, AppSettings, ConnectionConfig, Conversation } from '@shared/types';
 import { DEFAULT_GITHUB_CLIENT_ID } from '@shared/types';
 
 async function readJson<T>(file: string, fallback: T): Promise<T> {
@@ -29,12 +29,14 @@ export class Store {
   private readonly connectionsFile: string;
   private readonly conversationsFile: string;
   private readonly agentsFile: string;
+  private readonly tracesFile: string;
   private readonly settingsFile: string;
 
   constructor(dir: string) {
     this.connectionsFile = join(dir, 'connections.json');
     this.conversationsFile = join(dir, 'conversations.json');
     this.agentsFile = join(dir, 'agents.json');
+    this.tracesFile = join(dir, 'traces.json');
     this.settingsFile = join(dir, 'settings.json');
   }
 
@@ -77,6 +79,25 @@ export class Store {
   async deleteConversation(id: string): Promise<Conversation[]> {
     const list = (await this.listConversations()).filter((c) => c.id !== id);
     await writeJson(this.conversationsFile, list);
+    return list;
+  }
+
+  listApiTraces(): Promise<ApiTrace[]> {
+    return readJson<ApiTrace[]>(this.tracesFile, []);
+  }
+
+  async saveApiTrace(trace: ApiTrace): Promise<ApiTrace[]> {
+    const list = await this.listApiTraces();
+    const idx = list.findIndex((t) => t.id === trace.id);
+    if (idx >= 0) list[idx] = trace;
+    else list.unshift(trace);
+    await writeJson(this.tracesFile, list);
+    return list;
+  }
+
+  async clearApiTraces(): Promise<ApiTrace[]> {
+    const list: ApiTrace[] = [];
+    await writeJson(this.tracesFile, list);
     return list;
   }
 

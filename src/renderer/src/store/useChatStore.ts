@@ -163,7 +163,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }));
 
     try {
-      const { streamId } = await api.chat.send({ connectionId, model, messages: outgoing });
+      const { streamId } = await api.chat.send({
+        connectionId,
+        model,
+        messages: outgoing,
+        traceContext: { source: 'chat' }
+      });
       set({ isStreaming: true, streamId, streamConversationId: activeId });
     } catch (err) {
       set({ error: (err as Error).message, isStreaming: false });
