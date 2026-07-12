@@ -1,6 +1,7 @@
 import { ipcMain, shell, BrowserWindow } from 'electron';
 import { randomUUID } from 'crypto';
 import type {
+  AgentConfig,
   AppSettings,
   ChatRequest,
   ConnectionConfig,
@@ -181,6 +182,11 @@ export function registerIpc({ getWindow, store, vault }: Deps): void {
   ipcMain.handle(IPC.conversationsList, () => store.listConversations());
   ipcMain.handle(IPC.conversationsSave, (_e, conv: Conversation) => store.saveConversation(conv));
   ipcMain.handle(IPC.conversationsDelete, (_e, id: string) => store.deleteConversation(id));
+
+  // ---- Agents ----
+  ipcMain.handle(IPC.agentsList, () => store.listAgents());
+  ipcMain.handle(IPC.agentsSave, (_e, agent: AgentConfig) => store.saveAgent(agent));
+  ipcMain.handle(IPC.agentsDelete, (_e, id: string) => store.deleteAgent(id));
 
   // ---- Settings ----
   ipcMain.handle(IPC.settingsGet, () => store.getSettings());

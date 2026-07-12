@@ -1,6 +1,7 @@
 import type { ProviderType } from '@shared/types';
 import type { Provider } from './types';
 import { OpenAICompatibleProvider } from './openai-compatible';
+import { GitHubModelsProvider } from './github-models';
 import { AnthropicProvider } from './anthropic';
 import { OllamaProvider } from './ollama';
 import { CopilotProvider } from './copilot';
@@ -8,7 +9,7 @@ import { CopilotProvider } from './copilot';
 const registry: Record<ProviderType, Provider> = {
   ollama: new OllamaProvider(),
   openai: new OpenAICompatibleProvider('openai', 'https://api.openai.com/v1'),
-  'github-models': new OpenAICompatibleProvider('github-models', 'https://models.github.ai/inference'),
+  'github-models': new GitHubModelsProvider(),
   'openai-compatible': new OpenAICompatibleProvider('openai-compatible', 'https://openrouter.ai/api/v1'),
   anthropic: new AnthropicProvider(),
   copilot: new CopilotProvider()

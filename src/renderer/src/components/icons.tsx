@@ -116,3 +116,18 @@ export const EditIcon = (p: IconProps) => (
     <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
   </svg>
 );
+
+export const DashboardIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="7" height="9" rx="1.5" />
+    <rect x="14" y="3" width="7" height="5" rx="1.5" />
+    <rect x="14" y="12" width="7" height="9" rx="1.5" />
+    <rect x="3" y="16" width="7" height="5" rx="1.5" />
+  </svg>
+);
+
+export const ChatIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+  </svg>
+);

@@ -5,7 +5,9 @@ import { openaiChatStream, openaiListModels, type OpenAICompatOptions } from './
 
 const TOKEN_EXCHANGE_URL = 'https://api.github.com/copilot_internal/v2/token';
 const COPILOT_API_BASE = 'https://api.githubcopilot.com';
-const EDITOR_VERSION = 'AgentControlPanel/0.1.0';
+const EDITOR_VERSION = 'vscode/1.95.0';
+const PLUGIN_VERSION = 'copilot-chat/0.22.0';
+const USER_AGENT = 'GitHubCopilotChat/0.22.0';
 const INTEGRATION_ID = 'vscode-chat';
 
 interface CachedToken {
@@ -30,7 +32,9 @@ export class CopilotProvider implements Provider {
     const res = await fetch(TOKEN_EXCHANGE_URL, {
       headers: {
         authorization: `token ${githubToken}`,
-        'user-agent': EDITOR_VERSION,
+        'editor-version': EDITOR_VERSION,
+        'editor-plugin-version': PLUGIN_VERSION,
+        'user-agent': USER_AGENT,
         accept: 'application/json'
       }
     });
@@ -54,7 +58,10 @@ export class CopilotProvider implements Provider {
       headers: {
         authorization: `Bearer ${copilotToken}`,
         'editor-version': EDITOR_VERSION,
-        'copilot-integration-id': INTEGRATION_ID
+        'editor-plugin-version': PLUGIN_VERSION,
+        'copilot-integration-id': INTEGRATION_ID,
+        'openai-intent': 'conversation-panel',
+        'user-agent': USER_AGENT
       }
     };
   }

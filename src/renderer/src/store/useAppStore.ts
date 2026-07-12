@@ -9,7 +9,7 @@ import type {
 import { PROVIDER_META } from '@shared/types';
 import { api } from '@/lib/api';
 
-export type ModalKind = 'none' | 'connections' | 'settings';
+export type Page = 'dashboard' | 'agents' | 'chat' | 'settings';
 
 interface AppState {
   ready: boolean;
@@ -19,8 +19,7 @@ interface AppState {
   models: ModelInfo[];
   modelsLoading: boolean;
   modelsError: string | null;
-  modal: ModalKind;
-  editingConnectionId: string | null;
+  page: Page;
 
   loadAll: () => Promise<void>;
   refreshConnections: () => Promise<void>;
@@ -33,8 +32,7 @@ interface AppState {
   setActiveConnection: (id: string | null) => Promise<void>;
   setActiveModel: (model: string | null) => Promise<void>;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
-  openModal: (kind: ModalKind, editingConnectionId?: string | null) => void;
-  closeModal: () => void;
+  setPage: (page: Page) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -45,8 +43,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   models: [],
   modelsLoading: false,
   modelsError: null,
-  modal: 'none',
-  editingConnectionId: null,
+  page: 'dashboard',
 
   loadAll: async () => {
     const [vault, connections, settings] = await Promise.all([
@@ -131,6 +128,5 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ settings });
   },
 
-  openModal: (kind, editingConnectionId = null) => set({ modal: kind, editingConnectionId }),
-  closeModal: () => set({ modal: 'none', editingConnectionId: null })
+  setPage: (page) => set({ page })
 }));

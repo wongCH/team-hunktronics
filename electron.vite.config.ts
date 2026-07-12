@@ -12,7 +12,10 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        input: { index: resolve(__dirname, 'src/main/index.ts') }
+        input: {
+          index: resolve(__dirname, 'src/main/index.ts'),
+          'test-chat': resolve(__dirname, 'src/main/test-chat.ts')
+        }
       }
     }
   },

@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import type { AppSettings, ConnectionConfig, Conversation } from '@shared/types';
+import type { AgentConfig, AppSettings, ConnectionConfig, Conversation } from '@shared/types';
 import { DEFAULT_GITHUB_CLIENT_ID } from '@shared/types';
 
 async function readJson<T>(file: string, fallback: T): Promise<T> {
@@ -28,11 +28,13 @@ const DEFAULT_SETTINGS: AppSettings = {
 export class Store {
   private readonly connectionsFile: string;
   private readonly conversationsFile: string;
+  private readonly agentsFile: string;
   private readonly settingsFile: string;
 
   constructor(dir: string) {
     this.connectionsFile = join(dir, 'connections.json');
     this.conversationsFile = join(dir, 'conversations.json');
+    this.agentsFile = join(dir, 'agents.json');
     this.settingsFile = join(dir, 'settings.json');
   }
 
@@ -75,6 +77,25 @@ export class Store {
   async deleteConversation(id: string): Promise<Conversation[]> {
     const list = (await this.listConversations()).filter((c) => c.id !== id);
     await writeJson(this.conversationsFile, list);
+    return list;
+  }
+
+  listAgents(): Promise<AgentConfig[]> {
+    return readJson<AgentConfig[]>(this.agentsFile, []);
+  }
+
+  async saveAgent(agent: AgentConfig): Promise<AgentConfig[]> {
+    const list = await this.listAgents();
+    const idx = list.findIndex((a) => a.id === agent.id);
+    if (idx >= 0) list[idx] = agent;
+    else list.push(agent);
+    await writeJson(this.agentsFile, list);
+    return list;
+  }
+
+  async deleteAgent(id: string): Promise<AgentConfig[]> {
+    const list = (await this.listAgents()).filter((a) => a.id !== id);
+    await writeJson(this.agentsFile, list);
     return list;
   }
 

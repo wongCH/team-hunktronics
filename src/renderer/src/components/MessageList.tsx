@@ -46,7 +46,7 @@ function Bubble({ message, streaming }: { message: ChatMessage; streaming: boole
 }
 
 function Welcome() {
-  const openModal = useAppStore((s) => s.openModal);
+  const setPage = useAppStore((s) => s.setPage);
   const hasConnections = useAppStore((s) => s.connections.length > 0);
   return (
     <div className="h-full flex flex-col items-center justify-center text-center px-6">
@@ -59,7 +59,7 @@ function Welcome() {
         with your OS keychain and never leave this machine.
       </p>
       {!hasConnections && (
-        <button className="btn-primary" onClick={() => openModal('connections')}>
+        <button className="btn-primary" onClick={() => setPage('settings')}>
           Connect your first backend
         </button>
       )}

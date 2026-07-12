@@ -14,9 +14,15 @@ export async function openaiListModels(opts: OpenAICompatOptions): Promise<Model
   if (!res.ok) throw await httpError('Failed to list models', res);
   const json = (await res.json()) as { data?: Array<{ id: string }> };
   const data = Array.isArray(json.data) ? json.data : [];
-  return data
-    .map((m) => ({ id: m.id }))
-    .sort((a, b) => a.id.localeCompare(b.id));
+  const seen = new Set<string>();
+  const out: ModelInfo[] = [];
+  for (const m of data) {
+    if (m?.id && !seen.has(m.id)) {
+      seen.add(m.id);
+      out.push({ id: m.id });
+    }
+  }
+  return out.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 /** Shared streaming chat for OpenAI-compatible `/chat/completions` endpoints. */

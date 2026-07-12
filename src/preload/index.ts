@@ -14,7 +14,8 @@ import type {
   Conversation,
   ModelInfo,
   TestResult,
-  VaultStatus
+  VaultStatus,
+  AgentConfig
 } from '@shared/types';
 
 type Unsubscribe = () => void;
@@ -60,6 +61,11 @@ const api = {
     save: (conv: Conversation): Promise<Conversation[]> =>
       ipcRenderer.invoke(IPC.conversationsSave, conv),
     delete: (id: string): Promise<Conversation[]> => ipcRenderer.invoke(IPC.conversationsDelete, id)
+  },
+  agents: {
+    list: (): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsList),
+    save: (agent: AgentConfig): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsSave, agent),
+    delete: (id: string): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsDelete, id)
   },
   settings: {
     get: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.settingsGet),

@@ -168,3 +168,118 @@ export const PROVIDER_META: Record<ProviderType, ProviderMeta> = {
 };
 
 export const DEFAULT_GITHUB_CLIENT_ID = 'Iv1.b507a08c87ecfe98';
+
+// ---------------------------------------------------------------------------
+// Agents
+// ---------------------------------------------------------------------------
+
+/** How much autonomy an agent has when it wants to take an action. */
+export type AgentAutonomy = 'draft' | 'assist' | 'autonomous';
+
+/** An orchestrator only delegates; a worker does the actual work. */
+export type AgentRole = 'orchestrator' | 'worker';
+
+export interface AgentConfig {
+  id: string;
+  name: string;
+  /** Job title shown on the team canvas, e.g. "Chief of Staff" or "Inbox Agent". */
+  title: string;
+  role: AgentRole;
+  /** Which LLM connection powers this agent. */
+  connectionId: string | null;
+  model: string | null;
+  /** soul.md — persona / operating instructions used as the system prompt. */
+  soul: string;
+  /** Tool ids the agent is allowed to use. */
+  tools: string[];
+  /** Ordered skill ids the agent runs as a chain. */
+  skills: string[];
+  autonomy: AgentAutonomy;
+  /** For orchestrators: worker agent ids it may delegate to. */
+  delegatesTo: string[];
+  /** Soft-delete flag — archived agents show in the "Removed" list. */
+  archived?: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AutonomyMeta {
+  id: AgentAutonomy;
+  name: string;
+  description: string;
+}
+
+export const AUTONOMY_LEVELS: AutonomyMeta[] = [
+  {
+    id: 'draft',
+    name: 'Draft',
+    description: 'The agent only creates it — you review and send it yourself.'
+  },
+  {
+    id: 'assist',
+    name: 'Assist',
+    description: 'Prepares the action and asks you to approve — on approval, it sends.'
+  },
+  {
+    id: 'autonomous',
+    name: 'Autonomous',
+    description: 'Performs and sends the action directly, without asking first.'
+  }
+];
+
+export interface ToolMeta {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export const TOOL_CATALOG: ToolMeta[] = [
+  { id: 'email', name: 'Email', description: 'Compose and send emails' },
+  { id: 'calendar', name: 'Calendar', description: 'Create and send calendar invites' },
+  { id: 'web-search', name: 'Web search', description: 'Search the web for information' },
+  { id: 'web-fetch', name: 'Web fetch', description: 'Fetch and read a web page' },
+  { id: 'files', name: 'Files', description: 'Read and write local files' },
+  { id: 'http', name: 'HTTP request', description: 'Call external HTTP APIs' },
+  { id: 'code', name: 'Code run', description: 'Execute code in a sandbox' },
+  { id: 'mcp', name: 'MCP server', description: 'Connect to an MCP server to add multiple tools' }
+];
+
+export interface SkillMeta {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export const SKILL_CATALOG: SkillMeta[] = [
+  { id: 'plan', name: 'Plan', description: 'Break a goal into ordered steps' },
+  { id: 'research', name: 'Research', description: 'Gather and synthesize information' },
+  { id: 'summarize', name: 'Summarize', description: 'Condense long content' },
+  { id: 'extract', name: 'Extract', description: 'Pull structured data from text' },
+  { id: 'classify', name: 'Classify', description: 'Label or route the input' },
+  { id: 'write', name: 'Write', description: 'Draft prose or documents' },
+  { id: 'review', name: 'Review', description: 'Critique and improve output' }
+];
+
+export const DEFAULT_ORCHESTRATOR_SOUL = `# Chief of Staff
+
+You are the orchestration agent (the team lead). You do not perform tasks
+yourself — you break the user's goal into steps and delegate each to the most
+suitable teammate.
+
+## Operating rules
+- Decompose the request into clear, ordered sub-tasks.
+- For each sub-task, choose one teammate and hand off a precise instruction.
+- Collect results, resolve conflicts, and synthesize a final answer.
+- Never take direct actions (email, calendar, etc.); delegate them to a teammate.
+`;
+
+export const DEFAULT_WORKER_SOUL = `# Agent
+
+You are a focused agent. You complete the single task delegated to you and
+report back a concise, structured result.
+
+## Behaviour
+- Stay within your assigned tools and skills.
+- Respect your autonomy level for any action that has side effects.
+- Ask for missing information instead of guessing.
+`;

@@ -1,18 +1,16 @@
 import { useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { useChatStore } from '@/store/useChatStore';
-import { Sidebar } from '@/components/Sidebar';
-import { TopBar } from '@/components/TopBar';
-import { ChatView } from '@/components/ChatView';
-import { Modal } from '@/components/Modal';
-import { ConnectionsManager } from '@/components/ConnectionsManager';
-import { SettingsModal } from '@/components/SettingsModal';
+import { NavRail } from '@/components/NavRail';
+import { DashboardPage } from '@/pages/DashboardPage';
+import { AgentsPage } from '@/pages/AgentsPage';
+import { ChatPage } from '@/pages/ChatPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 
 export default function App() {
   const ready = useAppStore((s) => s.ready);
   const loadAll = useAppStore((s) => s.loadAll);
-  const modal = useAppStore((s) => s.modal);
-  const closeModal = useAppStore((s) => s.closeModal);
+  const page = useAppStore((s) => s.page);
   const initChat = useChatStore((s) => s.init);
 
   useEffect(() => {
@@ -30,22 +28,13 @@ export default function App() {
 
   return (
     <div className="h-screen flex overflow-hidden">
-      <Sidebar />
+      <NavRail />
       <main className="flex-1 flex flex-col min-w-0">
-        <TopBar />
-        <ChatView />
+        {page === 'dashboard' && <DashboardPage />}
+        {page === 'agents' && <AgentsPage />}
+        {page === 'chat' && <ChatPage />}
+        {page === 'settings' && <SettingsPage />}
       </main>
-
-      {modal === 'connections' && (
-        <Modal title="Connections" wide onClose={closeModal}>
-          <ConnectionsManager />
-        </Modal>
-      )}
-      {modal === 'settings' && (
-        <Modal title="Settings" onClose={closeModal}>
-          <SettingsModal />
-        </Modal>
-      )}
     </div>
   );
 }
