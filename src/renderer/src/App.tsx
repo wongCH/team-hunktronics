@@ -5,6 +5,7 @@ import { NavRail } from '@/components/NavRail';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { AgentsPage } from '@/pages/AgentsPage';
 import { ChatPage } from '@/pages/ChatPage';
+import { DataExplorerPage } from '@/pages/DataExplorerPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
         {page === 'dashboard' && <DashboardPage />}
         {page === 'agents' && <AgentsPage />}
         {page === 'chat' && <ChatPage />}
+        {page === 'data' && <DataExplorerPage />}
         {page === 'settings' && <SettingsPage />}
       </main>
     </div>

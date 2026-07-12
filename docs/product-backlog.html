@@ -274,6 +274,84 @@
       .priority-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+      .action-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .action-group {
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .action-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--cp-border);
+        background: var(--cp-surface-soft);
+      }
+      .action-head h3 {
+        margin: 0;
+        font-size: 0.92rem;
+      }
+      .action-head p {
+        margin: 3px 0 0;
+        color: var(--cp-text-muted);
+        font-size: 0.78rem;
+      }
+      .action-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .action-item {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: start;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--cp-border);
+      }
+      .action-item:last-child {
+        border-bottom: 0;
+      }
+      .action-order {
+        width: 24px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--cp-accent-soft);
+        color: var(--cp-accent);
+        font-size: 0.72rem;
+        font-weight: 800;
+      }
+      .action-title {
+        font-size: 0.84rem;
+        font-weight: 650;
+      }
+      .action-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 8px;
+        margin-top: 3px;
+        color: var(--cp-text-soft);
+        font-size: 0.72rem;
+      }
+      .action-gate {
+        margin-top: 5px;
+        color: var(--cp-text-muted);
+        font-size: 0.75rem;
+      }
+      .action-empty {
+        padding: 18px 16px;
+        color: var(--cp-text-muted);
+        font-size: 0.82rem;
+      }
       .prog-card {
         background: var(--cp-surface);
         border: 1px solid var(--cp-border);
@@ -482,6 +560,9 @@
       }
       @media (max-width: 720px) {
         .priority-grid {
+          grid-template-columns: 1fr;
+        }
+        .action-grid {
           grid-template-columns: 1fr;
         }
         tr.detail .ac-wrap {
@@ -695,51 +776,12 @@
       <div class="kpi-grid" id="kpiGrid"></div>
 
       <section class="block">
-        <h2>Pending execution order</h2>
-        <p class="hint">
-          The shortest dependency path to durable context and executable MCP tools.
+        <h2>What needs to be done</h2>
+        <p class="hint" id="actionSummary">
+          Ordered from the active-release critical path through later and deferred work. Completed
+          stories disappear automatically when their status changes.
         </p>
-        <div class="prog-grid priority-grid">
-          <article class="prog-card">
-            <div class="top">
-              <span class="name">1. SQLite foundation<small>US-1201, US-1202</small></span
-              ><span class="rel-tag">Now</span>
-            </div>
-            <p class="hint">
-              Add migrations, import JSON safely, and normalize messages, runs, and context
-              snapshots.
-            </p>
-          </article>
-          <article class="prog-card">
-            <div class="top">
-              <span class="name">2. Context assembly<small>US-1301, US-1302</small></span
-              ><span class="rel-tag">Next</span>
-            </div>
-            <p class="hint">
-              Move prompt authority into the main process and enforce model-aware token budgets.
-            </p>
-          </article>
-          <article class="prog-card">
-            <div class="top">
-              <span class="name">3. Memory lifecycle<small>US-1303, US-1304, US-1305</small></span
-              ><span class="rel-tag">Then</span>
-            </div>
-            <p class="hint">
-              Add checkpoint summaries, provenance-backed memory, diagnostics, and long-thread
-              evaluation.
-            </p>
-          </article>
-          <article class="prog-card">
-            <div class="top">
-              <span class="name">4. MCP execution<small>US-1401, US-1402, US-1403</small></span
-              ><span class="rel-tag">After context</span>
-            </div>
-            <p class="hint">
-              Configure authenticated servers, discover tools, and execute calls through
-              approval-aware agent runs.
-            </p>
-          </article>
-        </div>
+        <div class="action-grid" id="actionGrid"></div>
       </section>
 
       <!-- Release progress -->
@@ -1344,6 +1386,26 @@
           ],
           traces: ['Context plan: Core database records', 'FR-001', 'NFR-002']
         },
+        {
+          id: 'US-1203',
+          epic: 'E12',
+          title: 'Explore local application data with a read-only GUI',
+          story:
+            'As a developer, I want to search and inspect local application records, so that I can diagnose state without opening persistence files manually.',
+          priority: 'Should',
+          points: 5,
+          status: 'Done',
+          release: 'v0.2',
+          isNew: true,
+          ac: [
+            'Navigation includes a dedicated Data screen',
+            'Connections, conversations, agents, API traces, and settings are searchable',
+            'Result limits, counts, refresh, tabular rows, and full JSON inspection are available',
+            'The encrypted vault is excluded and the query API is read-only',
+            'The data-source contract can move from JSON to SQLite without replacing the renderer screen'
+          ],
+          traces: ['LocalDataQuery', 'localData:query', 'DataExplorerPage.tsx']
+        },
 
         {
           id: 'US-1301',
@@ -1513,6 +1575,74 @@
       const statusOf = (s) => overrides[s.id] || s.status;
       const stories = () => DEFAULT_STORIES.map((s) => ({ ...s, status: statusOf(s) }));
 
+      const ACTION_GROUPS = [
+        {
+          name: 'Critical path: context foundation',
+          note: 'Complete in order for v0.2',
+          tag: 'Now',
+          ids: ['US-1201', 'US-1202', 'US-1301', 'US-1302'],
+          gates: {
+            'US-1201': 'Gate: migrations and JSON import pass without data loss',
+            'US-1202': 'Depends on US-1201 · Gate: messages, runs, and snapshots survive restart',
+            'US-1301':
+              'Depends on US-1202 · Gate: chat and agents share one main-process assembler',
+            'US-1302': 'Depends on US-1301 · Gate: every request stays within its model budget'
+          }
+        },
+        {
+          name: 'Parallel v0.2 delivery',
+          note: 'Can proceed without blocking context work',
+          tag: 'Parallel',
+          ids: ['US-404', 'US-601', 'US-1001', 'US-403', 'US-701'],
+          gates: {
+            'US-404': 'Finish review and verify Markdown and JSON exports',
+            'US-601': 'Finish persistence and preset application flow',
+            'US-1001': 'Complete signing, notarization, and clean-install verification',
+            'US-403': 'Prefer SQLite full-text search after US-1201',
+            'US-701': 'Validate both themes across all application screens'
+          }
+        },
+        {
+          name: 'Memory, tools, and MCP',
+          note: 'Start after the v0.2 context foundation',
+          tag: 'v0.3',
+          ids: [
+            'US-1303',
+            'US-1304',
+            'US-1305',
+            'US-1401',
+            'US-1402',
+            'US-901',
+            'US-1403',
+            'US-1102',
+            'US-801',
+            'US-1002'
+          ],
+          gates: {
+            'US-1303': 'Depends on US-1302 · Preserve raw messages and source ranges',
+            'US-1304': 'Depends on US-1303 · Corrections supersede stale facts with provenance',
+            'US-1305': 'Validate isolation, recall, corrections, token use, and latency',
+            'US-1401': 'Store MCP credentials only in the encrypted vault',
+            'US-1402': 'Depends on US-1401 · Test transport, auth, and tools/list',
+            'US-901': 'Add provider-neutral tool-call schemas and transcript states',
+            'US-1403': 'Depends on US-1402 and US-901 · Enforce approvals before side effects',
+            'US-1102': 'Run typecheck, tests, and builds on every pull request',
+            'US-801': 'Add image persistence and provider capability checks',
+            'US-1002': 'Depends on signed releases from US-1001'
+          }
+        },
+        {
+          name: 'Deferred platform reach',
+          note: 'Not committed to a release',
+          tag: 'Later',
+          ids: ['US-1003', 'US-1004'],
+          gates: {
+            'US-1003': 'Package and smoke-test Windows 11 with DPAPI secrets',
+            'US-1004': 'Package and smoke-test AppImage and deb with Secret Service'
+          }
+        }
+      ];
+
       function save() {
         localStorage.setItem(LS_KEY, JSON.stringify(overrides));
       }
@@ -1609,6 +1739,66 @@
               '</div>'
           )
           .join('');
+      }
+
+      function renderActions() {
+        const all = stories();
+        const byId = new Map(all.map((story) => [story.id, story]));
+        const pending = all.filter((story) => story.status !== 'Done');
+        const pendingPoints = pending.reduce((total, story) => total + story.points, 0);
+        document.getElementById('actionSummary').textContent =
+          pending.length +
+          ' stories and ' +
+          pendingPoints +
+          ' points remain. Ordered by dependency and release commitment; completed stories disappear automatically.';
+
+        document.getElementById('actionGrid').innerHTML = ACTION_GROUPS.map((group) => {
+          const items = group.ids
+            .map((id) => byId.get(id))
+            .filter((story) => story && story.status !== 'Done');
+          const points = items.reduce((total, story) => total + story.points, 0);
+          const body = items.length
+            ? '<ol class="action-list">' +
+              items
+                .map(
+                  (story, index) =>
+                    '<li class="action-item"><span class="action-order">' +
+                    (index + 1) +
+                    '</span><div><div class="action-title"><span class="story-id">' +
+                    esc(story.id) +
+                    '</span> · ' +
+                    esc(story.title) +
+                    '</div><div class="action-meta"><span>' +
+                    esc(story.status) +
+                    '</span><span>' +
+                    esc(story.priority) +
+                    '</span><span>' +
+                    esc(story.release) +
+                    '</span></div><div class="action-gate">' +
+                    esc(group.gates[story.id] || story.ac[0]) +
+                    '</div></div><span class="c-pts">' +
+                    story.points +
+                    ' pts</span></li>'
+                )
+                .join('') +
+              '</ol>'
+            : '<div class="action-empty">All work in this group is complete.</div>';
+          return (
+            '<article class="action-group"><header class="action-head"><div><h3>' +
+            esc(group.name) +
+            '</h3><p>' +
+            esc(group.note) +
+            '</p></div><span class="rel-tag">' +
+            esc(group.tag) +
+            ' · ' +
+            items.length +
+            ' · ' +
+            points +
+            ' pts</span></header>' +
+            body +
+            '</article>'
+          );
+        }).join('');
       }
 
       // ---------- Release + Epic progress ----------
@@ -1852,6 +2042,7 @@
       }
       function renderAll() {
         renderKPIs();
+        renderActions();
         renderReleases();
         renderEpics();
         renderViews();

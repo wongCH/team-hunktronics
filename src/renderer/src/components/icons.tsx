@@ -131,3 +131,11 @@ export const ChatIcon = (p: IconProps) => (
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
   </svg>
 );
+
+export const DatabaseIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <ellipse cx="12" cy="5" rx="8" ry="3" />
+    <path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5" />
+    <path d="M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7" />
+  </svg>
+);

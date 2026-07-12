@@ -25,6 +25,7 @@ export const IPC = {
   agentsList: 'agents:list',
   agentsSave: 'agents:save',
   agentsDelete: 'agents:delete',
+  localDataQuery: 'localData:query',
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',
   githubStartDeviceFlow: 'github:startDeviceFlow',

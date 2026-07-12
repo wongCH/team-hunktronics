@@ -14,6 +14,8 @@ import type {
   ChatRequest,
   ConnectionConfig,
   Conversation,
+  LocalDataQuery,
+  LocalDataResult,
   ModelInfo,
   TestResult,
   VaultStatus,
@@ -73,6 +75,10 @@ const api = {
     list: (): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsList),
     save: (agent: AgentConfig): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsSave, agent),
     delete: (id: string): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsDelete, id)
+  },
+  localData: {
+    query: (query: LocalDataQuery): Promise<LocalDataResult> =>
+      ipcRenderer.invoke(IPC.localDataQuery, query)
   },
   settings: {
     get: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.settingsGet),

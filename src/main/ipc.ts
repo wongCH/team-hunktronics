@@ -7,6 +7,8 @@ import type {
   ChatRequest,
   ConnectionConfig,
   Conversation,
+  LocalDataQuery,
+  LocalDataResult,
   ModelInfo,
   ProviderType,
   TestResult
@@ -45,8 +47,7 @@ export function registerIpc({ getWindow, store, vault }: Deps): void {
 
   async function buildContext(conn: ConnectionConfig): Promise<ProviderContext> {
     const meta = PROVIDER_META[conn.providerType];
-    const apiKey =
-      meta.needsKey || meta.supportsDeviceFlow ? await vault.getSecret(conn.id) : null;
+    const apiKey = meta.needsKey || meta.supportsDeviceFlow ? await vault.getSecret(conn.id) : null;
     return { baseUrl: conn.baseUrl, apiKey };
   }
 
@@ -265,6 +266,11 @@ export function registerIpc({ getWindow, store, vault }: Deps): void {
   ipcMain.handle(IPC.agentsList, () => store.listAgents());
   ipcMain.handle(IPC.agentsSave, (_e, agent: AgentConfig) => store.saveAgent(agent));
   ipcMain.handle(IPC.agentsDelete, (_e, id: string) => store.deleteAgent(id));
+
+  // ---- Local data explorer (read-only; vault is deliberately excluded) ----
+  ipcMain.handle(IPC.localDataQuery, (_e, query: LocalDataQuery): Promise<LocalDataResult> =>
+    store.queryLocalData(query)
+  );
 
   // ---- Settings ----
   ipcMain.handle(IPC.settingsGet, () => store.getSettings());

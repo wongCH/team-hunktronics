@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { ApiTrace, AppSettings, ConnectionConfig, Conversation } from '@shared/types';
+import type {
+  ApiTrace,
+  AppSettings,
+  ConnectionConfig,
+  Conversation,
+  LocalDataQuery
+} from '@shared/types';
 import type { Store } from './store';
 import type { Vault } from './vault';
 
@@ -83,6 +89,18 @@ class FakeStore {
   async clearApiTraces() {
     this.traces = [];
     return this.traces;
+  }
+  async queryLocalData(query: LocalDataQuery) {
+    const rows = query.collection === 'connections' ? this.connections : [];
+    return {
+      collection: query.collection,
+      rows,
+      total: rows.length,
+      matched: rows.length,
+      returned: rows.length,
+      truncated: false,
+      source: 'json' as const
+    };
   }
   async getSettings() {
     return this.settings;
@@ -183,6 +201,20 @@ describe('connections (US-101)', () => {
     await invoke(IPC.connectionsRemove, 'c1');
     expect(vault.secrets.has('c1')).toBe(false);
     expect(store.connections).toHaveLength(0);
+  });
+});
+
+describe('local data explorer', () => {
+  it('queries an allow-listed Store collection through IPC', async () => {
+    store.connections = [connection()];
+
+    const result = (await invoke(IPC.localDataQuery, {
+      collection: 'connections',
+      limit: 25
+    })) as { rows: ConnectionConfig[]; source: string };
+
+    expect(result.source).toBe('json');
+    expect(result.rows).toEqual(store.connections);
   });
 });
 

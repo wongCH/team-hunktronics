@@ -1,6 +1,15 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import type { AgentConfig, ApiTrace, AppSettings, ConnectionConfig, Conversation } from '@shared/types';
+import type {
+  AgentConfig,
+  ApiTrace,
+  AppSettings,
+  ConnectionConfig,
+  Conversation,
+  LocalDataCollection,
+  LocalDataQuery,
+  LocalDataResult
+} from '@shared/types';
 import { DEFAULT_GITHUB_CLIENT_ID } from '@shared/types';
 
 async function readJson<T>(file: string, fallback: T): Promise<T> {
@@ -129,5 +138,35 @@ export class Store {
     const next = { ...(await this.getSettings()), ...patch };
     await writeJson(this.settingsFile, next);
     return next;
+  }
+
+  async queryLocalData(query: LocalDataQuery): Promise<LocalDataResult> {
+    const readers: Record<LocalDataCollection, () => Promise<unknown[]>> = {
+      connections: () => this.listConnections(),
+      conversations: () => this.listConversations(),
+      agents: () => this.listAgents(),
+      traces: () => this.listApiTraces(),
+      settings: async () => [await this.getSettings()]
+    };
+    const read = readers[query.collection];
+    if (!read) throw new Error('Invalid local data collection.');
+
+    const rows = (await read()) as Record<string, unknown>[];
+    const search = query.search?.trim().toLocaleLowerCase() ?? '';
+    const matchedRows = search
+      ? rows.filter((row) => JSON.stringify(row).toLocaleLowerCase().includes(search))
+      : rows;
+    const limit = Math.max(1, Math.min(Math.trunc(query.limit ?? 100), 500));
+    const resultRows = matchedRows.slice(0, limit);
+
+    return {
+      collection: query.collection,
+      rows: resultRows,
+      total: rows.length,
+      matched: matchedRows.length,
+      returned: resultRows.length,
+      truncated: resultRows.length < matchedRows.length,
+      source: 'json'
+    };
   }
 }

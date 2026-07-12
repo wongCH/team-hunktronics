@@ -187,3 +187,31 @@ describe('Store — reliability (NFR-REL-02)', () => {
     expect(await store.getSettings()).toMatchObject({ theme: 'neon-blue' });
   });
 });
+
+describe('Store — local data explorer', () => {
+  it('searches an allow-listed collection and reports result counts', async () => {
+    await store.upsertConnection(conn('a', 'Local Ollama'));
+    await store.upsertConnection(conn('b', 'Cloud OpenAI'));
+
+    const result = await store.queryLocalData({
+      collection: 'connections',
+      search: 'ollama',
+      limit: 10
+    });
+
+    expect(result).toMatchObject({ total: 2, matched: 1, returned: 1, truncated: false });
+    expect(result.rows[0]).toMatchObject({ id: 'a', label: 'Local Ollama' });
+  });
+
+  it('caps row limits and rejects collections outside the allow-list', async () => {
+    await store.saveConversation(convo('a'));
+    await store.saveConversation(convo('b'));
+
+    const result = await store.queryLocalData({ collection: 'conversations', limit: 1 });
+    expect(result).toMatchObject({ total: 2, matched: 2, returned: 1, truncated: true });
+
+    await expect(store.queryLocalData({ collection: 'vault' as never })).rejects.toThrow(
+      /invalid local data collection/i
+    );
+  });
+});

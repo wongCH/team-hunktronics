@@ -9,7 +9,7 @@ import type {
 import { PROVIDER_META } from '@shared/types';
 import { api } from '@/lib/api';
 
-export type Page = 'dashboard' | 'agents' | 'chat' | 'settings';
+export type Page = 'dashboard' | 'agents' | 'chat' | 'data' | 'settings';
 
 interface AppState {
   ready: boolean;
@@ -97,7 +97,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ models, modelsLoading: false });
     } catch (err) {
       const conn = get().connections.find((c) => c.id === id);
-      const suggested = conn ? PROVIDER_META[conn.providerType].suggestedModels ?? [] : [];
+      const suggested = conn ? (PROVIDER_META[conn.providerType].suggestedModels ?? []) : [];
       set({
         models: suggested.map((m) => ({ id: m })),
         modelsLoading: false,

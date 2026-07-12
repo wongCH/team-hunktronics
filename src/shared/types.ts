@@ -110,6 +110,25 @@ export interface VaultStatus {
   backend: string;
 }
 
+export type LocalDataCollection =
+  'connections' | 'conversations' | 'agents' | 'traces' | 'settings';
+
+export interface LocalDataQuery {
+  collection: LocalDataCollection;
+  search?: string;
+  limit?: number;
+}
+
+export interface LocalDataResult {
+  collection: LocalDataCollection;
+  rows: Record<string, unknown>[];
+  total: number;
+  matched: number;
+  returned: number;
+  truncated: boolean;
+  source: 'json';
+}
+
 /** Static, per-provider metadata that drives the connection editor UI. */
 export interface ProviderMeta {
   type: ProviderType;
@@ -160,11 +179,7 @@ export const PROVIDER_META: Record<ProviderType, ProviderMeta> = {
     keyLabel: 'API key',
     keyPlaceholder: 'sk-ant-...',
     docsUrl: 'https://console.anthropic.com/settings/keys',
-    suggestedModels: [
-      'claude-3-5-sonnet-latest',
-      'claude-3-5-haiku-latest',
-      'claude-3-opus-latest'
-    ]
+    suggestedModels: ['claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest', 'claude-3-opus-latest']
   },
   'github-models': {
     type: 'github-models',
@@ -191,7 +206,8 @@ export const PROVIDER_META: Record<ProviderType, ProviderMeta> = {
   'openai-compatible': {
     type: 'openai-compatible',
     name: 'OpenAI-compatible endpoint',
-    description: 'Any server that speaks the OpenAI Chat Completions API (LM Studio, OpenRouter, vLLM, …).',
+    description:
+      'Any server that speaks the OpenAI Chat Completions API (LM Studio, OpenRouter, vLLM, …).',
     needsKey: true,
     needsBaseUrl: true,
     defaultBaseUrl: 'https://openrouter.ai/api/v1',
