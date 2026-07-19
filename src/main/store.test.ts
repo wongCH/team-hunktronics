@@ -4,7 +4,14 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { Store } from './store';
 import { DEFAULT_GITHUB_CLIENT_ID } from '@shared/types';
-import type { AgentSchedule, AgentTask, ApiTrace, ConnectionConfig, Conversation } from '@shared/types';
+import type {
+  AgentSchedule,
+  AgentTask,
+  ApiTrace,
+  ConnectionConfig,
+  Conversation,
+  SkillDefinition
+} from '@shared/types';
 
 /**
  * Backlog coverage: US-101 (manage connections), US-401 (conversation CRUD),
@@ -104,6 +111,18 @@ function schedule(id: string): AgentSchedule {
   };
 }
 
+function skill(id: string, name = `Skill ${id}`): SkillDefinition {
+  return {
+    id,
+    name,
+    description: 'A reusable skill',
+    instructions: '# Skill\n\nFollow these instructions.',
+    sourceFile: `${id}.md`,
+    createdAt: 1,
+    updatedAt: 1
+  };
+}
+
 let dir: string;
 let store: Store;
 
@@ -181,6 +200,7 @@ describe('Store — settings', () => {
       experimentalCopilot: false,
       activeConnectionId: null,
       activeModel: null,
+      humanIdentity: '',
       githubClientId: DEFAULT_GITHUB_CLIENT_ID
     });
   });
@@ -237,6 +257,18 @@ describe('Store — schedules', () => {
     expect(await new Store(dir).getSchedule('a')).toMatchObject({ name: 'Schedule a' });
     await store.deleteSchedule('a');
     expect(await store.listSchedules()).toEqual([]);
+  });
+});
+
+describe('Store — skills', () => {
+  it('creates, updates, reloads, and deletes uploaded skills', async () => {
+    await store.saveSkill(skill('a'));
+    await store.saveSkill(skill('a', 'Updated'));
+    expect(await new Store(dir).listSkills()).toEqual([
+      expect.objectContaining({ id: 'a', name: 'Updated' })
+    ]);
+    await store.deleteSkill('a');
+    expect(await store.listSkills()).toEqual([]);
   });
 });
 

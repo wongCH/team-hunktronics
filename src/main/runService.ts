@@ -25,8 +25,13 @@ export interface RunServiceDeps {
   saveConversation: (conversation: Conversation) => Promise<unknown>;
   getAgent: (id: string) => Promise<AgentConfig | undefined>;
   getConnection: (id: string) => Promise<ConnectionConfig | undefined>;
-  getDefaultTarget: () => Promise<{ connectionId: string | null; model: string | null }>;
+  getDefaultTarget: () => Promise<{
+    connectionId: string | null;
+    model: string | null;
+    humanIdentity?: string;
+  }>;
   getMemory: (agentId?: string) => Promise<{ teamMemory: string; agentMemory: string }>;
+  getSkills: (skillIds: string[]) => Promise<Array<{ name: string; instructions: string }>>;
   execute: (execution: RunExecution) => Promise<void>;
   onEvent: (event: RunEvent) => void;
   createId?: () => string;
@@ -102,8 +107,11 @@ export class RunService {
     this.emit({ type: 'state', run });
 
     const memory = await this.deps.getMemory(agent?.id);
+    const skills = await this.deps.getSkills(agent?.skills ?? []);
     const outbound = assembleContext({
       identity: agent?.soul,
+      humanIdentity: defaultTarget.humanIdentity,
+      skills,
       teamMemory: memory.teamMemory,
       agentMemory: memory.agentMemory,
       history: conversation.messages,

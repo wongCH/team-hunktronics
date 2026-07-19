@@ -65,6 +65,7 @@ describe('RunService', () => {
       getConnection: async () => connection(),
       getDefaultTarget: async () => ({ connectionId: null, model: null }),
       getMemory: async () => ({ teamMemory: '', agentMemory: '' }),
+      getSkills: async () => [{ name: 'Research', instructions: 'Cite primary sources.' }],
       execute: async (value) => {
         execution = value;
         value.onChunk('Verified response');
@@ -97,6 +98,10 @@ describe('RunService', () => {
     });
     expect(execution?.messages).toEqual<ChatMessage[]>([
       { role: 'system', content: 'Stay focused on verified evidence.' },
+      {
+        role: 'system',
+        content: '## Assigned Skills\n### Research\nCite primary sources.'
+      },
       { role: 'user', content: 'Earlier question' },
       { role: 'assistant', content: 'Earlier answer' },
       { role: 'user', content: 'New question' }
@@ -122,6 +127,7 @@ describe('RunService', () => {
       getConnection: async () => connection(),
       getDefaultTarget: async () => ({ connectionId: null, model: null }),
       getMemory: async () => ({ teamMemory: '', agentMemory: '' }),
+      getSkills: async () => [],
       execute: ({ signal }) =>
         new Promise((_resolve, reject) => {
           signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
@@ -151,6 +157,7 @@ describe('RunService', () => {
       getConnection: async () => undefined,
       getDefaultTarget: async () => ({ connectionId: null, model: null }),
       getMemory: async () => ({ teamMemory: '', agentMemory: '' }),
+      getSkills: async () => [],
       execute,
       onEvent: () => undefined
     });
@@ -173,6 +180,7 @@ describe('RunService', () => {
       getConnection: async () => connection(),
       getDefaultTarget: async () => ({ connectionId: null, model: null }),
       getMemory: async () => ({ teamMemory: '', agentMemory: '' }),
+      getSkills: async () => [],
       execute: async ({ onChunk }) => onChunk('Done'),
       onEvent: () => undefined,
       createId: vi.fn().mockReturnValueOnce('run-idempotent').mockReturnValueOnce('stream-idempotent')

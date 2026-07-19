@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import clsx from 'clsx';
+import type { SkillDefinition } from '@shared/types';
 import { useAppStore } from '@/store/useAppStore';
 import { api } from '@/lib/api';
 import { ConnectionsManager } from '@/components/ConnectionsManager';
+import { PlusIcon, TrashIcon } from '@/components/icons';
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -27,6 +29,13 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 export function SettingsPage() {
   const { settings, vault, updateSettings } = useAppStore();
   const [clientId, setClientId] = useState(settings?.githubClientId ?? '');
+  const [humanIdentity, setHumanIdentity] = useState(settings?.humanIdentity ?? '');
+  const [skills, setSkills] = useState<SkillDefinition[]>([]);
+  const [skillError, setSkillError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void api.skills.list().then(setSkills).catch((error: Error) => setSkillError(error.message));
+  }, []);
 
   if (!settings) return null;
 
@@ -45,6 +54,73 @@ export function SettingsPage() {
             <div className="panel bg-surface p-4">
               <ConnectionsManager />
             </div>
+          </section>
+
+          <section>
+            <h2 className="text-sm font-semibold mb-3">Human identity</h2>
+            <div className="panel bg-surface p-4 space-y-3">
+              <textarea
+                className="field min-h-36"
+                value={humanIdentity}
+                onChange={(e) => setHumanIdentity(e.target.value)}
+                placeholder="Your name, role, preferences, goals, communication style, and context every agent should know."
+              />
+              <div className="flex items-center gap-3">
+                <p className="text-[11px] text-content-faint flex-1">
+                  Included as shared context for every agent run. Keep secrets out of this profile.
+                </p>
+                <button
+                  className="btn-primary"
+                  onClick={() => void updateSettings({ humanIdentity })}
+                  disabled={humanIdentity.trim() === settings.humanIdentity}
+                >
+                  Save identity
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1">
+                <h2 className="text-sm font-semibold">Skills library</h2>
+                <p className="text-[11px] text-content-faint mt-0.5">
+                  Import Markdown instructions, then assign them in the agent editor.
+                </p>
+              </div>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setSkillError(null);
+                  void api.skills.import().then(setSkills).catch((error: Error) => setSkillError(error.message));
+                }}
+              >
+                <PlusIcon className="w-4 h-4" /> Import skill
+              </button>
+            </div>
+            <div className="panel bg-surface overflow-hidden">
+              {skills.map((skill) => (
+                <div key={skill.id} className="px-4 py-3 border-b border-border last:border-0 flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{skill.name}</div>
+                    <div className="text-[11px] text-content-faint truncate">
+                      {skill.description} · {skill.sourceFile}
+                    </div>
+                  </div>
+                  <button
+                    className="btn-danger !p-2"
+                    title={`Delete ${skill.name}`}
+                    onClick={() => void api.skills.delete(skill.id).then(setSkills)}
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              {skills.length === 0 && (
+                <p className="px-4 py-5 text-xs text-content-faint">No uploaded skills yet.</p>
+              )}
+            </div>
+            {skillError && <p className="mt-2 text-xs text-red-300">{skillError}</p>}
           </section>
 
           <section>

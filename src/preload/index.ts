@@ -30,6 +30,7 @@ import type {
   RunView,
   PipelineExecution,
   RunArtifact,
+  SkillDefinition,
   ToolAction,
   ToolActionRequest,
   StartRunCommand,
@@ -101,6 +102,11 @@ const api = {
     list: (): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsList),
     save: (agent: AgentConfig): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsSave, agent),
     delete: (id: string): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsDelete, id)
+  },
+  skills: {
+    list: (): Promise<SkillDefinition[]> => ipcRenderer.invoke(IPC.skillsList),
+    import: (): Promise<SkillDefinition[]> => ipcRenderer.invoke(IPC.skillsImport),
+    delete: (id: string): Promise<SkillDefinition[]> => ipcRenderer.invoke(IPC.skillsDelete, id)
   },
   memory: {
     list: (): Promise<MemoryDocument[]> => ipcRenderer.invoke(IPC.memoryList),

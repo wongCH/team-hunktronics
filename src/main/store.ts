@@ -12,6 +12,7 @@ import type {
   Conversation,
   PipelineExecution,
   RunArtifact,
+  SkillDefinition,
   ToolAction,
   LocalDataCollection,
   LocalDataQuery,
@@ -84,6 +85,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   experimentalCopilot: false,
   activeConnectionId: null,
   activeModel: null,
+  humanIdentity: '',
   githubClientId: DEFAULT_GITHUB_CLIENT_ID
 };
 
@@ -99,6 +101,7 @@ export class Store {
   private readonly artifactsFile: string;
   private readonly toolActionsFile: string;
   private readonly approvalsFile: string;
+  private readonly skillsFile: string;
   private readonly tracesFile: string;
   private readonly settingsFile: string;
 
@@ -113,6 +116,7 @@ export class Store {
     this.artifactsFile = join(dir, 'artifacts.json');
     this.toolActionsFile = join(dir, 'tool-actions.json');
     this.approvalsFile = join(dir, 'approvals.json');
+    this.skillsFile = join(dir, 'skills.json');
     this.tracesFile = join(dir, 'traces.json');
     this.settingsFile = join(dir, 'settings.json');
   }
@@ -348,6 +352,25 @@ export class Store {
     return list;
   }
 
+  listSkills(): Promise<SkillDefinition[]> {
+    return readJson<SkillDefinition[]>(this.skillsFile, []);
+  }
+
+  async saveSkill(skill: SkillDefinition): Promise<SkillDefinition[]> {
+    const list = await this.listSkills();
+    const index = list.findIndex((item) => item.id === skill.id);
+    if (index >= 0) list[index] = skill;
+    else list.unshift(skill);
+    await writeJson(this.skillsFile, list);
+    return list;
+  }
+
+  async deleteSkill(id: string): Promise<SkillDefinition[]> {
+    const list = (await this.listSkills()).filter((skill) => skill.id !== id);
+    await writeJson(this.skillsFile, list);
+    return list;
+  }
+
   async getSettings(): Promise<AppSettings> {
     const partial = await readJson<Partial<AppSettings>>(this.settingsFile, {});
     return { ...DEFAULT_SETTINGS, ...partial };
@@ -371,6 +394,7 @@ export class Store {
       artifacts: () => this.listArtifacts(),
       'tool-actions': () => this.listToolActions(),
       approvals: () => this.listApprovals(),
+      skills: () => this.listSkills(),
       traces: () => this.listApiTraces(),
       settings: async () => [await this.getSettings()]
     };

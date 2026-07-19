@@ -17,6 +17,19 @@ estimated_reading_time: 18
 Complete. The requested pages and the relevant team-hunktronics implementation
 surfaces were reviewed on 2026-07-19.
 
+## Agent Handoff
+
+All planning state, implementation status, decisions, unresolved questions, and
+handoff notes must be managed through files under `.copilot-tracking`. Chat
+summaries are not authoritative state. Each agent must read the relevant
+tracking files before acting and update them before handing work to another
+agent.
+
+The current workflow agent is Task Planner. After Task Planner records that
+planning is complete, the user will switch to Task Implementor. Task Implementor
+must resume from the `.copilot-tracking` files and keep implementation progress
+and handoff state there.
+
 ## Research Questions
 
 * What concrete agent-team patterns do the pages prescribe?

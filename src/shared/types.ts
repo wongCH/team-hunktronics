@@ -324,6 +324,7 @@ export interface AppSettings {
   experimentalCopilot: boolean;
   activeConnectionId: string | null;
   activeModel: string | null;
+  humanIdentity: string;
   /** OAuth client id used for GitHub device-flow login (advanced/experimental). */
   githubClientId: string;
 }
@@ -344,6 +345,7 @@ export type LocalDataCollection =
   | 'artifacts'
   | 'tool-actions'
   | 'approvals'
+  | 'skills'
   | 'traces'
   | 'settings';
 
@@ -545,6 +547,13 @@ export interface SkillMeta {
   id: string;
   name: string;
   description: string;
+}
+
+export interface SkillDefinition extends SkillMeta {
+  instructions: string;
+  sourceFile: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export const SKILL_CATALOG: SkillMeta[] = [

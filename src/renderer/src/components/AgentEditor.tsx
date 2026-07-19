@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
-import type { AgentConfig, AgentRole, ModelInfo } from '@shared/types';
+import type { AgentConfig, AgentRole, ModelInfo, SkillMeta } from '@shared/types';
 import { AUTONOMY_LEVELS, SKILL_CATALOG, TOOL_CATALOG } from '@shared/types';
 import { useAppStore } from '@/store/useAppStore';
 import { useAgentStore } from '@/store/useAgentStore';
@@ -28,6 +28,7 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
   const [dirty, setDirty] = useState(false);
   const [tab, setTab] = useState<'configure' | 'test'>('configure');
   const [models, setModels] = useState<ModelInfo[]>([]);
+  const [uploadedSkills, setUploadedSkills] = useState<SkillMeta[]>([]);
 
   useEffect(() => {
     setDraft(agent);
@@ -49,6 +50,10 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
       cancelled = true;
     };
   }, [draft.connectionId]);
+
+  useEffect(() => {
+    void api.skills.list().then(setUploadedSkills);
+  }, [agent.id]);
 
   const set = (patch: Partial<AgentConfig>) => {
     setDraft((d) => ({ ...d, ...patch }));
@@ -73,7 +78,11 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
     () => agents.filter((candidate) => candidate.reportsTo === draft.id),
     [agents, draft.id]
   );
-  const availableSkills = SKILL_CATALOG.filter((s) => !draft.skills.includes(s.id));
+  const skillCatalog = [
+    ...SKILL_CATALOG,
+    ...uploadedSkills.filter((skill) => !SKILL_CATALOG.some((item) => item.id === skill.id))
+  ];
+  const availableSkills = skillCatalog.filter((s) => !draft.skills.includes(s.id));
 
   const toggleTool = (id: string) =>
     set({ tools: draft.tools.includes(id) ? draft.tools.filter((t) => t !== id) : [...draft.tools, id] });
@@ -235,11 +244,11 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
               </div>
             </Section>
 
-            <Section title="Skill chain" hint="Ordered skills the agent runs in sequence.">
+            <Section title="Skill chain" hint="Ordered built-in and uploaded instructions added to every run.">
               {draft.skills.length > 0 && (
                 <div className="space-y-1.5 mb-2">
                   {draft.skills.map((sid, idx) => {
-                    const meta = SKILL_CATALOG.find((s) => s.id === sid);
+                    const meta = skillCatalog.find((s) => s.id === sid);
                     return (
                       <div
                         key={sid}

@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>team-hunktronics · 6 Minimalist Theme Mockups</title>
+    <style>
+      /* ============================================================
+         RESEARCH SUMMARY — current dark/minimalist design directions
+         Each mockup is a live mini-preview of the real app shell
+         (nav rail → conversation list → chat → composer) so palettes
+         can be compared in context rather than as swatches.
+         Palettes overridable per-card via CSS custom properties.
+         ============================================================ */
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      :root {
+        --page-bg: #060709;
+        --page-fg: #e6e9ef;
+        --page-muted: #7d8797;
+        --page-line: #191c22;
+        font-family: 'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif;
+      }
+      html, body { background: var(--page-bg); color: var(--page-fg); }
+      body {
+        padding: 40px clamp(16px, 5vw, 72px) 96px;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: inherit; }
+
+      header.page {
+        max-width: 1320px;
+        margin: 0 auto 44px;
+      }
+      .kicker {
+        font-size: 11px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--page-muted);
+        margin-bottom: 14px;
+      }
+      h1 {
+        font-size: clamp(26px, 4vw, 40px);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+      h1 .accent { color: #38bdf8; }
+      .lede {
+        margin-top: 14px;
+        max-width: 720px;
+        color: var(--page-muted);
+        font-size: 15px;
+        line-height: 1.65;
+      }
+      .legend {
+        margin-top: 22px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .legend span {
+        font-size: 11.5px;
+        color: var(--page-muted);
+        border: 1px solid var(--page-line);
+        border-radius: 999px;
+        padding: 5px 11px;
+      }
+
+      /* ---- grid of theme cards ---- */
+      .grid {
+        max-width: 1320px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 26px;
+      }
+      .card {
+        border: 1px solid var(--page-line);
+        border-radius: 18px;
+        overflow: hidden;
+        background: #0a0c10;
+        transition: transform 0.18s ease, border-color 0.18s ease;
+      }
+      .card:hover { transform: translateY(-3px); border-color: #2a2f38; }
+      .card-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px 14px;
+      }
+      .card-head .name { font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; }
+      .card-head .num {
+        font-size: 11px;
+        color: var(--page-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .card-desc {
+        padding: 0 18px 14px;
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--page-muted);
+      }
+      .swatches { display: flex; gap: 6px; padding: 0 18px 16px; }
+      .swatches i {
+        width: 22px; height: 22px; border-radius: 6px; display: block;
+        border: 1px solid rgba(255,255,255,0.06);
+      }
+
+      /* ============================================================
+         APP PREVIEW — themable via custom props on .app
+         --bg, --panel, --elev, --line, --fg, --muted, --faint,
+         --accent, --accent-weak, --accent-fg, --bubble-user,
+         --bubble-ai, --radius, --glow
+         ============================================================ */
+      .app {
+        margin: 0 14px 16px;
+        border-radius: var(--radius, 12px);
+        overflow: hidden;
+        border: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: 54px 116px 1fr;
+        height: 268px;
+        background: var(--bg);
+        color: var(--fg);
+        font-size: 11px;
+      }
+
+      /* nav rail */
+      .rail {
+        background: var(--elev);
+        border-right: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px 0;
+        gap: 6px;
+      }
+      .logo {
+        color: var(--accent);
+        font-size: 15px;
+        margin-bottom: 6px;
+        filter: drop-shadow(0 0 6px var(--glow, transparent));
+      }
+      .rail-btn {
+        width: 38px; height: 34px;
+        border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--faint);
+        border: 1px solid transparent;
+      }
+      .rail-btn svg { width: 15px; height: 15px; }
+      .rail-btn.active {
+        color: var(--accent-fg);
+        background: var(--accent-weak);
+        border-color: var(--accent-line, transparent);
+      }
+      .rail .dot { margin-top: auto; width: 6px; height: 6px; border-radius: 999px; background: #34d399; }
+
+      /* workspace navigation */
+      .list {
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        padding: 12px 9px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .list .title { color: var(--muted); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 2px; }
+      .conv {
+        border-radius: 8px;
+        padding: 7px 8px;
+        line-height: 1.3;
+        color: var(--muted);
+        border: 1px solid transparent;
+      }
+      .conv b { color: var(--fg); font-weight: 500; font-size: 10.5px; display: block; }
+      .conv span { font-size: 9px; color: var(--faint); }
+      .conv.active { background: var(--accent-weak); border-color: var(--accent-line, transparent); }
+      .conv.active b { color: var(--accent-fg); }
+
+      /* overview pane */
+      .chat { display: flex; flex-direction: column; background: var(--bg); }
+      .chat-head {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--line);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .chat-head .av {
+        width: 20px; height: 20px; border-radius: 6px;
+        background: var(--accent-weak); color: var(--accent-fg);
+        display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600;
+      }
+      .chat-head .h { font-weight: 600; font-size: 11px; }
+      .chat-head .s { font-size: 9px; color: var(--faint); }
+      .stream { flex: 1; padding: 10px 12px; overflow: hidden; }
+      .overview-title { margin-bottom: 8px; }
+      .overview-title b { display: block; font-size: 12px; }
+      .overview-title span { color: var(--faint); font-size: 8.5px; }
+      .mini-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 7px; }
+      .mini-metric, .mini-panel { border: 1px solid var(--line); background: var(--panel); }
+      .mini-metric { padding: 6px; border-radius: 7px; }
+      .mini-metric span { display: block; color: var(--faint); font-size: 7px; white-space: nowrap; }
+      .mini-metric b { display: block; margin-top: 3px; color: var(--fg); font-size: 11px; }
+      .mini-dashboard { display: grid; grid-template-columns: 1.3fr 1fr; gap: 6px; }
+      .mini-panel { overflow: hidden; border-radius: 7px; }
+      .mini-panel h3 { padding: 6px 7px; border-bottom: 1px solid var(--line); font-size: 8px; }
+      .agent-row, .run-row {
+        display: grid; align-items: center; gap: 5px; padding: 5px 7px;
+        border-bottom: 1px solid var(--line); font-size: 7.5px;
+      }
+      .agent-row { grid-template-columns: 1fr auto; }
+      .agent-row:last-child, .run-row:last-child { border-bottom: 0; }
+      .agent-row span, .run-row span { color: var(--faint); }
+      .agent-row i {
+        display: inline-block; width: 4px; height: 4px; margin-right: 4px;
+        border-radius: 50%; background: var(--accent);
+      }
+      .run-row { grid-template-columns: 1fr; gap: 2px; }
+      .run-row b { font-weight: 500; }
+      .run-meta { display: flex; justify-content: space-between; }
+
+      footer.page {
+        max-width: 1320px;
+        margin: 56px auto 0;
+        color: var(--page-muted);
+        font-size: 12.5px;
+        line-height: 1.7;
+        border-top: 1px solid var(--page-line);
+        padding-top: 24px;
+      }
+      footer.page b { color: var(--page-fg); font-weight: 600; }
+
+      /* =========================== THEME TOKENS =========================== */
+      /* 1 · Graphite Amber — neutral slate, warm amber accent */
+      .t-graphite {
+        --bg:#111315; --panel:#181b1e; --elev:#141618; --line:#262a2e; --fg:#e7e9ea; --muted:#8b9196; --faint:#5c6268;
+        --accent:#f5a623; --accent-weak:rgba(245,166,35,0.14); --accent-fg:#ffc65c; --accent-line:rgba(245,166,35,0.3);
+        --bubble-user:rgba(245,166,35,0.16); --bubble-ai:#181b1e; --radius:12px; --accent-btn-fg:#1a1200;
+      }
+      /* 2 · Indigo Nebula — indigo accent over a violet gradient */
+      .t-indigo {
+        --bg:#0b0d1a; --panel:#14172a; --elev:#0f1222; --line:#242a45; --fg:#e8eaf6; --muted:#9aa0c4; --faint:#646a92;
+        --accent:#818cf8; --accent-weak:rgba(129,140,248,0.15); --accent-fg:#a5b0ff; --accent-line:rgba(129,140,248,0.32);
+        --bubble-user:rgba(129,140,248,0.18); --bubble-ai:#14172a; --radius:14px; --glow:rgba(129,140,248,0.45); --accent-btn-fg:#0a0c1a;
+      }
+      .t-indigo .app {
+        background:
+          radial-gradient(130% 90% at 10% 0%, rgba(99,102,241,0.22), transparent 55%),
+          radial-gradient(130% 90% at 95% 100%, rgba(168,85,247,0.20), transparent 55%),
+          #0b0d1a;
+      }
+      /* 3 · Neon Green Grid — vivid green over a deep emerald gradient */
+      .t-ngreen {
+        --bg:#050a07; --panel:#0a140d; --elev:#071009; --line:#16281b; --fg:#e6f5ea; --muted:#84a891; --faint:#4f6a58;
+        --accent:#00ff9c; --accent-weak:rgba(0,255,156,0.14); --accent-fg:#6effc4; --accent-line:rgba(0,255,156,0.34);
+        --bubble-user:rgba(0,255,156,0.16); --bubble-ai:#0a140d; --radius:12px; --glow:rgba(0,255,156,0.5); --accent-btn-fg:#00160c;
+      }
+      .t-ngreen .app {
+        background:
+          radial-gradient(130% 90% at 12% 0%, rgba(0,255,156,0.16), transparent 55%),
+          radial-gradient(130% 90% at 92% 100%, rgba(16,185,129,0.18), transparent 55%),
+          #050a07;
+      }
+      /* 4 · Graphite Blue — deep graphite with a crisp cyan-blue accent */
+      .t-graphite-blue {
+        --bg:#080b11; --panel:#0d131c; --elev:#0a0f17; --line:#1c2a3a; --fg:#e6edf6; --muted:#8ea3bd; --faint:#60758d;
+        --accent:#38bdf8; --accent-weak:rgba(56,189,248,0.14); --accent-fg:#a7e5fc; --accent-line:rgba(56,189,248,0.32);
+        --bubble-user:rgba(56,189,248,0.16); --bubble-ai:#0d131c; --radius:12px; --glow:rgba(56,189,248,0.4); --accent-btn-fg:#080b11;
+      }
+      /* 5 · Linear Indigo Light — clean white layers with focused indigo */
+      .t-linear-light {
+        --bg:#ffffff; --panel:#ffffff; --elev:#f7f7fb; --line:#e3e4ee; --fg:#1b1c2e; --muted:#5b5d7a; --faint:#707390;
+        --accent:#4f46e5; --accent-weak:rgba(79,70,229,0.1); --accent-fg:#4338ca; --accent-line:rgba(79,70,229,0.24);
+        --bubble-user:rgba(79,70,229,0.12); --bubble-ai:#f3f4f9; --radius:12px; --accent-btn-fg:#ffffff;
+      }
+      /* 6 · Graphite Light — cool graphite surfaces with restrained blue */
+      .t-graphite-light {
+        --bg:#f5f8fb; --panel:#ffffff; --elev:#edf2f7; --line:#d6e0ea; --fg:#182332; --muted:#526579; --faint:#657b92;
+        --accent:#0369a1; --accent-weak:rgba(3,105,161,0.1); --accent-fg:#075985; --accent-line:rgba(3,105,161,0.24);
+        --bubble-user:rgba(3,105,161,0.12); --bubble-ai:#e8eef5; --radius:12px; --accent-btn-fg:#ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="page">
+      <div class="kicker">team-hunktronics · UI theme exploration</div>
+      <h1>6 <span class="accent">minimal</span> theme mockups</h1>
+      <p class="lede">
+        Each card renders a live mini-preview of the real app shell — nav rail, conversation
+        list, chat stream and composer — so you can judge every palette in context, not as flat
+        swatches. The collection covers dark and light design systems with reduced chroma,
+        one confident accent, generous negative space, hairline borders and soft focus glows.
+      </p>
+      <div class="legend">
+        <span>True-black bases</span>
+        <span>Neon glow</span>
+        <span>Single-accent signal</span>
+        <span>Hairline 1px borders</span>
+        <span>Layered neutral greys</span>
+        <span>Gradient depth</span>
+      </div>
+    </header>
+
+    <main class="grid">
+      <!-- ============ 1 · GRAPHITE AMBER ============ -->
+      <section class="card">
+        <div class="card-head"><span class="name">Graphite Amber</span><span class="num">01 · neutral warm</span></div>
+        <p class="card-desc">Truly neutral slate greys (no blue cast) with a warm amber accent. Feels like premium hardware UI; the warm signal reads well for actions and highlights.</p>
+        <div class="app t-graphite"></div>
+        <div class="swatches"><i style="background:#111315"></i><i style="background:#181b1e"></i><i style="background:#262a2e"></i><i style="background:#f5a623"></i><i style="background:#ffc65c"></i></div>
+      </section>
+
+      <!-- ============ 2 · INDIGO NEBULA ============ -->
+      <section class="card">
+        <div class="card-head"><span class="name">Indigo Nebula</span><span class="num">02 · gradient dark</span></div>
+        <p class="card-desc">A soft indigo accent floating over a violet nebula gradient. Deep, premium and modern — the gradient adds quiet depth without breaking the minimalist calm.</p>
+        <div class="app t-indigo"></div>
+        <div class="swatches"><i style="background:#0b0d1a"></i><i style="background:#14172a"></i><i style="background:#242a45"></i><i style="background:#818cf8"></i><i style="background:#a855f7"></i></div>
+      </section>
+
+      <!-- ============ 3 · NEON GREEN GRID ============ -->
+      <section class="card">
+        <div class="card-head"><span class="name">Neon Green Grid</span><span class="num">03 · gradient dark</span></div>
+        <p class="card-desc">Vivid signal-green over a deep emerald gradient. High-energy and terminal-like — the glowing accent reads as “live” and active against the near-black canvas.</p>
+        <div class="app t-ngreen"></div>
+        <div class="swatches"><i style="background:#050a07"></i><i style="background:#0a140d"></i><i style="background:#16281b"></i><i style="background:#00ff9c"></i><i style="background:#10b981"></i></div>
+      </section>
+
+      <!-- ============ 4 · GRAPHITE BLUE ============ -->
+      <section class="card">
+        <div class="card-head"><span class="name">Graphite Blue</span><span class="num">04 · focused dark</span></div>
+        <p class="card-desc">Deep graphite layers with a crisp cyan-blue accent. Keeps the dark, technical character while making primary actions and active states immediately clear.</p>
+        <div class="app t-graphite-blue"></div>
+        <div class="swatches"><i style="background:#080b11"></i><i style="background:#0d131c"></i><i style="background:#1c2a3a"></i><i style="background:#38bdf8"></i><i style="background:#a7e5fc"></i></div>
+      </section>
+
+      <!-- ============ 5 · LINEAR INDIGO LIGHT ============ -->
+      <section class="card">
+        <div class="card-head"><span class="name">Linear Indigo Light</span><span class="num">05 · productivity light</span></div>
+        <p class="card-desc">Clean white layers, quiet violet-grey separation and a focused indigo accent. Preserves the Linear-inspired productivity feel for bright environments.</p>
+        <div class="app t-linear-light"></div>
+        <div class="swatches"><i style="background:#ffffff"></i><i style="background:#f7f7fb"></i><i style="background:#e3e4ee"></i><i style="background:#4f46e5"></i><i style="background:#4338ca"></i></div>
+      </section>
+
+      <!-- ============ 6 · GRAPHITE LIGHT ============ -->
+      <section class="card">
+        <div class="card-head"><span class="name">Graphite Light</span><span class="num">06 · neutral light</span></div>
+        <p class="card-desc">Cool graphite-tinted surfaces with a restrained blue accent. The layered neutrals reduce glare while keeping tables, navigation and controls highly legible.</p>
+        <div class="app t-graphite-light"></div>
+        <div class="swatches"><i style="background:#f5f8fb"></i><i style="background:#ffffff"></i><i style="background:#d6e0ea"></i><i style="background:#0369a1"></i><i style="background:#075985"></i></div>
+      </section>
+    </main>
+
+    <footer class="page">
+      <b>Recommendation.</b> Use <b>04 Graphite Blue</b> for a focused technical dark theme,
+      <b>05 Linear Indigo Light</b> for a clean productivity theme, or <b>06 Graphite Light</b>
+      for the calmest bright workspace. The original five remain available for warmer, neon and
+      gradient directions.
+    </footer>
+
+    <script>
+      /* Inject the response.html Overview sample into every theme preview. */
+      const shell = `
+        <div class="rail">
+          <div class="logo">◈</div>
+          <div class="rail-btn active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+          <div class="rail-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M9 14h.01M15 14h.01"/></svg></div>
+          <div class="rail-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.5A8 8 0 1 1 21 12z"/></svg></div>
+          <div class="rail-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></div>
+          <div class="rail-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></div>
+          <div class="dot"></div>
+        </div>
+        <div class="list">
+          <div class="title">Workspace</div>
+          <div class="conv active"><b>Overview</b><span>Workspace health</span></div>
+          <div class="conv"><b>Agents</b><span>12 active</span></div>
+          <div class="conv"><b>Tasks</b><span>28 open</span></div>
+          <div class="conv"><b>Memory</b><span>Local files</span></div>
+          <div class="title">Operations</div>
+          <div class="conv"><b>Pipelines</b><span>Runs &amp; schedules</span></div>
+        </div>
+        <div class="chat">
+          <div class="chat-head">
+            <div class="av">A</div>
+            <div><div class="h">Agent Control Panel</div><div class="s">Local workspace · CH</div></div>
+          </div>
+          <div class="stream">
+            <div class="overview-title"><b>Good morning, Chuin</b><span>Your agent workspace is healthy and ready to run.</span></div>
+            <div class="mini-metrics">
+              <div class="mini-metric"><span>Active agents</span><b>12</b></div>
+              <div class="mini-metric"><span>Open tasks</span><b>28</b></div>
+              <div class="mini-metric"><span>Success rate</span><b>98.4%</b></div>
+              <div class="mini-metric"><span>Tokens today</span><b>1.2m</b></div>
+            </div>
+            <div class="mini-dashboard">
+              <section class="mini-panel">
+                <h3>Run activity</h3>
+                <div class="agent-row"><b><i></i>Atlas Research</b><span>Running · 18</span></div>
+                <div class="agent-row"><b><i></i>Review Bot</b><span>Waiting · 12</span></div>
+                <div class="agent-row"><b><i></i>Ops Planner</b><span>Running · 9</span></div>
+              </section>
+              <section class="mini-panel">
+                <h3>Recent runs</h3>
+                <div class="run-row"><b>Review pull request #184</b><span class="run-meta"><span>Review Bot</span><span>Running</span></span></div>
+                <div class="run-row"><b>Summarize feedback</b><span class="run-meta"><span>Atlas Research</span><span>Complete</span></span></div>
+                <div class="run-row"><b>Prepare weekly release</b><span class="run-meta"><span>Ops Planner</span><span>Waiting</span></span></div>
+              </section>
+            </div>
+          </div>
+        </div>`;
+      document.querySelectorAll('.app').forEach((el) => (el.innerHTML = shell));
+    </script>
+  </body>
+</html>

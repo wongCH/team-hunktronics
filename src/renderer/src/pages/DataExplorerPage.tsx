@@ -8,6 +8,7 @@ const COLLECTIONS: Array<{ id: LocalDataCollection; label: string }> = [
   { id: 'connections', label: 'Connections' },
   { id: 'conversations', label: 'Conversations' },
   { id: 'agents', label: 'Agents' },
+  { id: 'skills', label: 'Skills' },
   { id: 'tasks', label: 'Tasks' },
   { id: 'schedules', label: 'Schedules' },
   { id: 'pipelines', label: 'Pipelines' },

@@ -1,5 +1,7 @@
-import { ipcMain, shell, BrowserWindow } from 'electron';
+import { ipcMain, shell, BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'crypto';
+import { promises as fs } from 'fs';
+import { basename, extname } from 'path';
 import type {
   AgentConfig,
   AgentPipeline,
@@ -15,11 +17,12 @@ import type {
   MemoryWriteCommand,
   ModelInfo,
   ProviderType,
+  SkillDefinition,
   StartRunCommand,
   ToolActionRequest,
   TestResult
 } from '@shared/types';
-import { PROVIDER_META } from '@shared/types';
+import { PROVIDER_META, SKILL_CATALOG } from '@shared/types';
 import { IPC } from '@shared/ipc';
 import type { DeviceFlowResult } from '@shared/ipc';
 import type { Store } from './store';
@@ -47,6 +50,30 @@ interface Deps {
   store: Store;
   vault: Vault;
   memory: MemoryService;
+}
+
+function parseSkill(content: string, sourceFile: string): Pick<SkillDefinition, 'id' | 'name' | 'description'> {
+  const frontmatter = content.match(/^---\s*\n([\s\S]*?)\n---/);
+  const fields = Object.fromEntries(
+    (frontmatter?.[1] ?? '')
+      .split(/\r?\n/)
+      .map((line) => line.match(/^([\w-]+):\s*["']?(.*?)["']?\s*$/))
+      .filter((match): match is RegExpMatchArray => Boolean(match))
+      .map((match) => [match[1], match[2]])
+  );
+  const fallbackName = basename(sourceFile, extname(sourceFile));
+  const name = fields.name || content.match(/^#\s+(.+)$/m)?.[1]?.trim() || fallbackName;
+  const id = (fields.id || fields.name || fallbackName)
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 100);
+  if (!id || !name.trim()) throw new Error('Skill must have a valid name.');
+  return {
+    id,
+    name: name.trim().slice(0, 160),
+    description: (fields.description || `Imported from ${sourceFile}`).trim().slice(0, 500)
+  };
 }
 
 export interface IpcRuntime {
@@ -175,9 +202,24 @@ export function registerIpc({ getWindow, store, vault, memory }: Deps): IpcRunti
     getConnection: (id) => store.getConnection(id),
     getDefaultTarget: async () => {
       const settings = await store.getSettings();
-      return { connectionId: settings.activeConnectionId, model: settings.activeModel };
+      return {
+        connectionId: settings.activeConnectionId,
+        model: settings.activeModel,
+        humanIdentity: settings.humanIdentity
+      };
     },
     getMemory: (agentId) => memory.getBaseline(agentId),
+    getSkills: async (skillIds) => {
+      const skills = await store.listSkills();
+      return skillIds
+        .map((id) => {
+          const uploaded = skills.find((skill) => skill.id === id);
+          if (uploaded) return uploaded;
+          const builtIn = SKILL_CATALOG.find((skill) => skill.id === id);
+          return builtIn ? { name: builtIn.name, instructions: builtIn.description } : null;
+        })
+        .filter((skill): skill is { name: string; instructions: string } => Boolean(skill));
+    },
     execute: async ({ run, connection, model, messages, signal, onChunk }) => {
       if (connection.providerType === 'copilot') {
         const settings = await store.getSettings();
@@ -596,6 +638,47 @@ export function registerIpc({ getWindow, store, vault, memory }: Deps): IpcRunti
   ipcMain.handle(IPC.agentsSave, (_e, input: unknown) => store.saveAgent(validateAgent(input)));
   ipcMain.handle(IPC.agentsDelete, (_e, id: string) => store.deleteAgent(id));
 
+  // ---- Skills library ----
+  ipcMain.handle(IPC.skillsList, () => store.listSkills());
+  ipcMain.handle(IPC.skillsImport, async () => {
+    const options: OpenDialogOptions = {
+      title: 'Import skill Markdown',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }]
+    };
+    const window = getWindow();
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options);
+    if (result.canceled) return store.listSkills();
+    for (const filePath of result.filePaths) {
+      const stat = await fs.stat(filePath);
+      if (stat.size > 100_000) throw new Error(`${basename(filePath)} exceeds the 100 KB skill limit.`);
+      if (!['.md', '.markdown'].includes(extname(filePath).toLocaleLowerCase())) {
+        throw new Error('Skills must be Markdown files.');
+      }
+      const instructions = await fs.readFile(filePath, 'utf8');
+      const parsed = parseSkill(instructions, basename(filePath));
+      const existing = (await store.listSkills()).find((skill) => skill.id === parsed.id);
+      const now = Date.now();
+      await store.saveSkill({
+        ...parsed,
+        instructions,
+        sourceFile: basename(filePath),
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now
+      });
+    }
+    return store.listSkills();
+  });
+  ipcMain.handle(IPC.skillsDelete, async (_e, id: string) => {
+    const agents = await store.listAgents();
+    for (const agent of agents.filter((item) => item.skills.includes(id))) {
+      await store.saveAgent({ ...agent, skills: agent.skills.filter((skill) => skill !== id) });
+    }
+    return store.deleteSkill(id);
+  });
+
   // ---- Managed memory ----
   ipcMain.handle(IPC.memoryList, () => memory.list());
   ipcMain.handle(IPC.memoryWrite, (_e, command: MemoryWriteCommand) => memory.write(command));
@@ -676,7 +759,13 @@ export function registerIpc({ getWindow, store, vault, memory }: Deps): IpcRunti
 
   // ---- Settings ----
   ipcMain.handle(IPC.settingsGet, () => store.getSettings());
-  ipcMain.handle(IPC.settingsSet, (_e, patch: Partial<AppSettings>) => store.setSettings(patch));
+  ipcMain.handle(IPC.settingsSet, (_e, patch: Partial<AppSettings>) => {
+    if (patch.humanIdentity !== undefined) {
+      if (typeof patch.humanIdentity !== 'string') throw new Error('Invalid human identity.');
+      patch = { ...patch, humanIdentity: patch.humanIdentity.trim().slice(0, 20_000) };
+    }
+    return store.setSettings(patch);
+  });
 
   // ---- GitHub device flow ----
   ipcMain.handle(

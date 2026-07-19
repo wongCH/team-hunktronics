@@ -1,10 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { promises as fs } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import type {
   ApiTrace,
   AppSettings,
   ConnectionConfig,
   Conversation,
-  LocalDataQuery
+  LocalDataQuery,
+  SkillDefinition
 } from '@shared/types';
 import type { Store } from './store';
 import type { Vault } from './vault';
@@ -25,12 +29,13 @@ const { handlers } = vi.hoisted(() => ({
 vi.mock('electron', () => ({
   ipcMain: { handle: (ch: string, fn: (...a: unknown[]) => unknown) => handlers.set(ch, fn) },
   shell: { openExternal: vi.fn() },
+  dialog: { showOpenDialog: vi.fn() },
   BrowserWindow: class {}
 }));
 vi.mock('./providers', () => ({ getProvider: vi.fn() }));
 vi.mock('./github/deviceFlow', () => ({ startDeviceFlow: vi.fn() }));
 
-import { shell } from 'electron';
+import { dialog, shell } from 'electron';
 import { getProvider } from './providers';
 import { startDeviceFlow } from './github/deviceFlow';
 import { registerIpc } from './ipc';
@@ -39,16 +44,19 @@ import { IPC } from '@shared/ipc';
 const getProviderMock = getProvider as unknown as ReturnType<typeof vi.fn>;
 const startDeviceFlowMock = startDeviceFlow as unknown as ReturnType<typeof vi.fn>;
 const openExternalMock = shell.openExternal as unknown as ReturnType<typeof vi.fn>;
+const showOpenDialogMock = dialog.showOpenDialog as unknown as ReturnType<typeof vi.fn>;
 
 class FakeStore {
   connections: ConnectionConfig[] = [];
   conversations: Conversation[] = [];
   traces: ApiTrace[] = [];
+  skills: SkillDefinition[] = [];
   settings: AppSettings = {
     theme: 'neon-blue',
     experimentalCopilot: false,
     activeConnectionId: null,
     activeModel: null,
+    humanIdentity: '',
     githubClientId: 'Iv1.default'
   };
   async listConnections() {
@@ -90,6 +98,17 @@ class FakeStore {
   async clearApiTraces() {
     this.traces = [];
     return this.traces;
+  }
+  async listSkills() {
+    return this.skills;
+  }
+  async saveSkill(skill: SkillDefinition) {
+    this.skills = [skill, ...this.skills.filter((item) => item.id !== skill.id)];
+    return this.skills;
+  }
+  async deleteSkill(id: string) {
+    this.skills = this.skills.filter((skill) => skill.id !== id);
+    return this.skills;
   }
   async queryLocalData(query: LocalDataQuery) {
     const rows = query.collection === 'connections' ? this.connections : [];
@@ -178,6 +197,7 @@ beforeEach(() => {
   send = vi.fn();
   getProviderMock.mockReset();
   startDeviceFlowMock.mockReset();
+  showOpenDialogMock.mockReset();
   registerIpc({
     getWindow: () => ({ webContents: { send } }) as never,
     store: store as unknown as Store,
@@ -232,6 +252,28 @@ describe('local data explorer', () => {
 
     expect(result.source).toBe('json');
     expect(result.rows).toEqual(store.connections);
+  });
+});
+
+describe('skills library', () => {
+  it('imports Markdown frontmatter and persists its instructions', async () => {
+    const dir = await fs.mkdtemp(join(tmpdir(), 'acp-skill-'));
+    const file = join(dir, 'review.md');
+    await fs.writeFile(
+      file,
+      '---\nname: Evidence Review\ndescription: Check claims against evidence\n---\n\n# Instructions\n\nCite primary sources.'
+    );
+    showOpenDialogMock.mockResolvedValue({ canceled: false, filePaths: [file] });
+
+    const skills = (await invoke(IPC.skillsImport)) as SkillDefinition[];
+    expect(skills[0]).toMatchObject({
+      id: 'evidence-review',
+      name: 'Evidence Review',
+      description: 'Check claims against evidence',
+      sourceFile: 'review.md'
+    });
+    expect(skills[0].instructions).toContain('Cite primary sources.');
+    await fs.rm(dir, { recursive: true, force: true });
   });
 });
 
