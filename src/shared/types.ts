@@ -65,6 +65,9 @@ export interface RunView {
   idempotencyKey: string;
   conversationId: string;
   agentId: string | null;
+  parentRunId?: string | null;
+  rootRunId?: string;
+  depth?: number;
   connectionId: string;
   model: string;
   status: RunStatus;
@@ -268,6 +271,7 @@ export interface TestResult {
 export interface Conversation {
   id: string;
   title: string;
+  agentId?: string | null;
   connectionId: string | null;
   model: string | null;
   messages: ChatMessage[];
@@ -492,9 +496,31 @@ export type AgentAutonomy = 'draft' | 'assist' | 'autonomous';
 /** Team tier controls hierarchy and delegation policy. */
 export type AgentRole = 'orchestrator' | 'team-lead' | 'specialist';
 
+export const AGENT_ICONS = [
+  { value: '🤖', label: 'Robot' },
+  { value: '🧠', label: 'Brain' },
+  { value: '🧭', label: 'Compass' },
+  { value: '🔍', label: 'Research' },
+  { value: '💻', label: 'Developer' },
+  { value: '🛡️', label: 'Security' },
+  { value: '⚙️', label: 'Operations' },
+  { value: '📊', label: 'Analytics' },
+  { value: '💡', label: 'Ideas' },
+  { value: '✍️', label: 'Writer' }
+] as const;
+
+export type AgentIcon = (typeof AGENT_ICONS)[number]['value'];
+
+export const DEFAULT_AGENT_ICONS: Record<AgentRole, AgentIcon> = {
+  orchestrator: '🧠',
+  'team-lead': '🧭',
+  specialist: '🤖'
+};
+
 export interface AgentConfig {
   id: string;
   name: string;
+  icon?: AgentIcon;
   /** Job title shown on the team canvas, e.g. "Chief of Staff" or "Inbox Agent". */
   title: string;
   role: AgentRole;

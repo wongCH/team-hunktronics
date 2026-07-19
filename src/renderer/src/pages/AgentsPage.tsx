@@ -1,21 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
-import type { AgentConfig, AgentRole } from '@shared/types';
+import type { AgentConfig, AgentRole, RunView } from '@shared/types';
 import { useAgentStore } from '@/store/useAgentStore';
 import { useAppStore } from '@/store/useAppStore';
+import { api } from '@/lib/api';
+import { getWorkingAgentIds, mergeRunActivity } from '@/lib/runActivity';
 import { AgentEditor } from '@/components/AgentEditor';
 import { CreateAgentModal } from '@/components/CreateAgentModal';
+import { AgentLibraryModal } from '@/components/AgentLibraryModal';
 import { TeamMap } from '@/components/TeamMap';
+import { getAgentIcon } from '@/components/AgentIconPicker';
 import { LlmWikiSetup } from '@/components/LlmWikiSetup';
-import { PlusIcon } from '@/components/icons';
+import { LibraryIcon, PlusIcon } from '@/components/icons';
 
 function AgentRow({
   agent,
   active,
+  working,
   onClick
 }: {
   agent: AgentConfig;
   active: boolean;
+  working: boolean;
   onClick: () => void;
 }) {
   const connections = useAppStore((s) => s.connections);
@@ -40,7 +46,7 @@ function AgentRow({
               : 'bg-white/5 text-content-muted'
         )}
       >
-        {agent.role === 'orchestrator' ? '◆' : agent.role === 'team-lead' ? '◇' : '◈'}
+        {getAgentIcon(agent.icon, agent.role)}
       </span>
       <div className="min-w-0 flex-1">
         <div className="text-sm truncate">{agent.name}</div>
@@ -48,6 +54,19 @@ function AgentRow({
           {conn ? conn.label : 'No model'} · {agent.autonomy}
         </div>
       </div>
+      <span className="relative flex h-2.5 w-2.5 shrink-0">
+        {working && (
+          <>
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon opacity-60" />
+            <span
+              className="relative inline-flex h-2.5 w-2.5 rounded-full bg-neon"
+              role="status"
+              aria-label={`${agent.name} is working`}
+              title="Working"
+            />
+          </>
+        )}
+      </span>
     </button>
   );
 }
@@ -55,14 +74,32 @@ function AgentRow({
 export function AgentsPage() {
   const { agents, selectedId, init, select } = useAgentStore();
   const [creating, setCreating] = useState<AgentRole | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [view, setView] = useState<'map' | 'configure'>('map');
   const [wikiOnboarding, setWikiOnboarding] = useState(false);
+  const [runActivity, setRunActivity] = useState<ReadonlyMap<string, RunView>>(() => new Map());
 
   useEffect(() => {
     void init();
   }, [init]);
 
+  useEffect(() => {
+    let mounted = true;
+    const update = (runs: readonly RunView[]) => {
+      if (mounted) setRunActivity((current) => mergeRunActivity(current, runs));
+    };
+    const unsubscribe = api.runs.onEvent((event) => {
+      if (event.type === 'state') update([event.run]);
+    });
+    void api.runs.listActive().then(update);
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
   const selected = agents.find((a) => a.id === selectedId) ?? null;
+  const workingAgentIds = useMemo(() => getWorkingAgentIds(runActivity), [runActivity]);
   const orchestrators = agents.filter((a) => a.role === 'orchestrator');
   const leads = agents.filter((a) => a.role === 'team-lead');
   const specialists = agents.filter((a) => a.role === 'specialist');
@@ -74,14 +111,19 @@ export function AgentsPage() {
         <div className="app-drag h-11 shrink-0" />
         <div className="px-3 pb-2 flex gap-2 app-no-drag">
           {hasRoot ? (
-            <>
-              <button className="btn-primary flex-1" onClick={() => setCreating('specialist')}>
-                <PlusIcon className="w-4 h-4" /> Sub-agent
+            <div className="w-full space-y-2">
+              <button className="btn-primary w-full justify-center" onClick={() => setLibraryOpen(true)}>
+                <LibraryIcon className="w-4 h-4" /> Agent library
               </button>
-              <button className="btn-outline flex-1" onClick={() => setCreating('team-lead')}>
-                <PlusIcon className="w-4 h-4" /> Team lead
-              </button>
-            </>
+              <div className="flex gap-2">
+                <button className="btn-outline flex-1" onClick={() => setCreating('specialist')}>
+                  <PlusIcon className="w-4 h-4" /> Custom
+                </button>
+                <button className="btn-outline flex-1" onClick={() => setCreating('team-lead')}>
+                  <PlusIcon className="w-4 h-4" /> Team lead
+                </button>
+              </div>
+            </div>
           ) : (
             <button className="btn-primary flex-1" onClick={() => setCreating('orchestrator')}>
               <PlusIcon className="w-4 h-4" /> Create team
@@ -105,6 +147,7 @@ export function AgentsPage() {
                     key={a.id}
                     agent={a}
                     active={a.id === selectedId}
+                    working={workingAgentIds.has(a.id)}
                     onClick={() => select(a.id)}
                   />
                 ))}
@@ -122,6 +165,7 @@ export function AgentsPage() {
                     key={a.id}
                     agent={a}
                     active={a.id === selectedId}
+                    working={workingAgentIds.has(a.id)}
                     onClick={() => select(a.id)}
                   />
                 ))}
@@ -139,6 +183,7 @@ export function AgentsPage() {
                     key={a.id}
                     agent={a}
                     active={a.id === selectedId}
+                    working={workingAgentIds.has(a.id)}
                     onClick={() => select(a.id)}
                   />
                 ))}
@@ -174,6 +219,7 @@ export function AgentsPage() {
           <TeamMap
             agents={agents.filter((agent) => !agent.archived)}
             selectedId={selectedId}
+            workingAgentIds={workingAgentIds}
             onSelect={select}
             onConfigure={(id) => {
               select(id);
@@ -217,6 +263,17 @@ export function AgentsPage() {
             select(id);
             setView('configure');
             setWikiOnboarding(true);
+          }}
+        />
+      )}
+
+      {libraryOpen && (
+        <AgentLibraryModal
+          onClose={() => setLibraryOpen(false)}
+          onAdded={(id) => {
+            setLibraryOpen(false);
+            select(id);
+            setView('configure');
           }}
         />
       )}

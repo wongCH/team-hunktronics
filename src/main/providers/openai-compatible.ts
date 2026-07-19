@@ -8,6 +8,8 @@ export interface OpenAICompatOptions {
   headers: Record<string, string>;
 }
 
+const responsesOnlyModels = new Set<string>();
+
 /** Shared model listing for OpenAI-compatible `/models` endpoints. */
 export async function openaiListModels(opts: OpenAICompatOptions): Promise<ModelInfo[]> {
   const res = await fetch(`${opts.baseUrl}/models`, { headers: opts.headers });
@@ -25,7 +27,46 @@ export async function openaiListModels(opts: OpenAICompatOptions): Promise<Model
   return out.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** Shared streaming chat for OpenAI-compatible `/chat/completions` endpoints. */
+/** Streaming for models exposed only through OpenAI's `/responses` endpoint. */
+export async function openaiResponsesStream(
+  opts: OpenAICompatOptions,
+  model: string,
+  messages: ChatMessage[],
+  params: ChatParams | undefined,
+  signal: AbortSignal,
+  cb: StreamCallbacks
+): Promise<void> {
+  const body: Record<string, unknown> = {
+    model,
+    input: messages,
+    stream: true
+  };
+  if (params?.temperature !== undefined) body.temperature = params.temperature;
+  if (params?.maxTokens !== undefined) body.max_output_tokens = params.maxTokens;
+
+  const res = await fetch(`${opts.baseUrl}/responses`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...opts.headers },
+    body: JSON.stringify(body),
+    signal
+  });
+  if (!res.ok) throw await httpError('Responses request failed', res);
+
+  for await (const data of streamSSE(res.body)) {
+    if (data === '[DONE]') break;
+    let parsed: { type?: string; delta?: string };
+    try {
+      parsed = JSON.parse(data);
+    } catch {
+      continue;
+    }
+    if (parsed.type === 'response.output_text.delta' && parsed.delta) {
+      cb.onChunk(parsed.delta);
+    }
+  }
+}
+
+/** Shared streaming chat with a guarded fallback for Responses-only models. */
 export async function openaiChatStream(
   opts: OpenAICompatOptions,
   model: string,
@@ -34,6 +75,11 @@ export async function openaiChatStream(
   signal: AbortSignal,
   cb: StreamCallbacks
 ): Promise<void> {
+  const capabilityKey = `${opts.baseUrl}\u0000${model}`;
+  if (responsesOnlyModels.has(capabilityKey)) {
+    return openaiResponsesStream(opts, model, messages, params, signal, cb);
+  }
+
   const body: Record<string, unknown> = {
     model,
     messages,
@@ -48,7 +94,17 @@ export async function openaiChatStream(
     body: JSON.stringify(body),
     signal
   });
-  if (!res.ok) throw await httpError('Chat request failed', res);
+  if (!res.ok) {
+    const error = await httpError('Chat request failed', res);
+    if (
+      res.status === 400 &&
+      /not accessible via the \/chat\/completions endpoint/i.test(error.message)
+    ) {
+      responsesOnlyModels.add(capabilityKey);
+      return openaiResponsesStream(opts, model, messages, params, signal, cb);
+    }
+    throw error;
+  }
 
   for await (const data of streamSSE(res.body)) {
     if (data === '[DONE]') break;

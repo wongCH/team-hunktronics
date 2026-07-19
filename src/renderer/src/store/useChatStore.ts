@@ -2,12 +2,14 @@ import { create } from 'zustand';
 import type { ChatMessage, Conversation } from '@shared/types';
 import { api } from '@/lib/api';
 import { useAppStore } from './useAppStore';
+import { useAgentStore } from './useAgentStore';
 
 function makeConversation(): Conversation {
   const now = Date.now();
   return {
     id: crypto.randomUUID(),
     title: 'New chat',
+    agentId: null,
     connectionId: null,
     model: null,
     messages: [],
@@ -19,6 +21,7 @@ function makeConversation(): Conversation {
 interface ChatState {
   conversations: Conversation[];
   activeId: string | null;
+  selectedAgentId: string | null;
   isStreaming: boolean;
   streamId: string | null;
   runId: string | null;
@@ -29,7 +32,9 @@ interface ChatState {
 
   init: () => Promise<void>;
   newConversation: () => Promise<void>;
+  openAgentConversation: (agentId: string) => Promise<void>;
   selectConversation: (id: string) => void;
+  selectAgent: (id: string | null) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
   stop: () => void;
@@ -46,6 +51,7 @@ function patchConversation(
 export const useChatStore = create<ChatState>((set, get) => ({
   conversations: [],
   activeId: null,
+  selectedAgentId: null,
   isStreaming: false,
   streamId: null,
   runId: null,
@@ -60,6 +66,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({
       conversations,
       activeId: conversations[0]?.id ?? null,
+      selectedAgentId: conversations[0]?.agentId ?? null,
       initialized: true
     });
 
@@ -104,17 +111,84 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   newConversation: async () => {
     const conv = makeConversation();
-    set((s) => ({ conversations: [conv, ...s.conversations], activeId: conv.id, error: null }));
+    set((s) => ({
+      conversations: [conv, ...s.conversations],
+      activeId: conv.id,
+      selectedAgentId: null,
+      error: null
+    }));
     await api.conversations.save(conv);
   },
 
-  selectConversation: (id) => set({ activeId: id, error: null }),
+  openAgentConversation: async (agentId) => {
+    const existing = get().conversations.find(
+      (conversation) => conversation.agentId === agentId
+    );
+    if (existing) {
+      set({ activeId: existing.id, selectedAgentId: agentId, error: null });
+      return;
+    }
+    const agent = useAgentStore
+      .getState()
+      .agents.find((candidate) => candidate.id === agentId && !candidate.archived);
+    if (!agent) {
+      set({ error: 'The selected agent is no longer available.' });
+      return;
+    }
+    const conversation: Conversation = {
+      ...makeConversation(),
+      title: agent.name,
+      agentId: agent.id,
+      connectionId: agent.connectionId,
+      model: agent.model
+    };
+    set((state) => ({
+      conversations: [conversation, ...state.conversations],
+      activeId: conversation.id,
+      selectedAgentId: agent.id,
+      error: null
+    }));
+    await api.conversations.save(conversation);
+  },
+
+  selectConversation: (id) => {
+    const conversation = get().conversations.find((item) => item.id === id);
+    set({ activeId: id, selectedAgentId: conversation?.agentId ?? null, error: null });
+  },
+
+  selectAgent: async (id) => {
+    let activeId = get().activeId;
+    if (!activeId) {
+      const conversation = { ...makeConversation(), agentId: id };
+      set((state) => ({
+        conversations: [conversation, ...state.conversations],
+        activeId: conversation.id,
+        selectedAgentId: id,
+        error: null
+      }));
+      await api.conversations.save(conversation);
+      return;
+    }
+    const conversation = get().conversations.find((item) => item.id === activeId);
+    if (!conversation) return;
+    const updated = { ...conversation, agentId: id, updatedAt: Date.now() };
+    set((state) => ({
+      conversations: patchConversation(state.conversations, activeId!, () => updated),
+      selectedAgentId: id,
+      error: null
+    }));
+    await api.conversations.save(updated);
+  },
 
   deleteConversation: async (id) => {
     const conversations = await api.conversations.delete(id);
     set((s) => ({
       conversations,
-      activeId: s.activeId === id ? (conversations[0]?.id ?? null) : s.activeId
+      activeId: s.activeId === id ? (conversations[0]?.id ?? null) : s.activeId,
+      selectedAgentId:
+        s.activeId === id
+          ? (conversations[0]?.agentId ?? null)
+          : s.selectedAgentId
     }));
   },
 
@@ -123,10 +197,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!content || get().isStreaming) return;
 
     const app = useAppStore.getState();
-    const connectionId = app.settings?.activeConnectionId ?? null;
-    const model = app.settings?.activeModel ?? null;
+    const selectedAgentId = get().selectedAgentId;
+    const selectedAgent = selectedAgentId
+      ? useAgentStore.getState().agents.find((agent) => agent.id === selectedAgentId && !agent.archived)
+      : undefined;
+    if (selectedAgentId && !selectedAgent) {
+      set({ error: 'The selected agent is no longer available.' });
+      return;
+    }
+    const connectionId = selectedAgent
+      ? selectedAgent.connectionId
+      : (app.settings?.activeConnectionId ?? null);
+    const model = selectedAgent ? selectedAgent.model : (app.settings?.activeModel ?? null);
     if (!connectionId || !model) {
-      set({ error: 'Select a connection and model first.' });
+      set({
+        error: selectedAgent
+          ? `Configure a connection and model for ${selectedAgent.name} first.`
+          : 'Select a connection and model first.'
+      });
       return;
     }
 
@@ -145,7 +233,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       error: null,
       conversations: patchConversation(s.conversations, activeId!, (c) => ({
         ...c,
-        title: c.messages.length === 0 ? content.slice(0, 48) : c.title,
+        title: c.messages.length === 0 && !c.agentId ? content.slice(0, 48) : c.title,
+        agentId: selectedAgent?.id ?? null,
         connectionId,
         model,
         messages: [...current.messages, userMsg, { role: 'assistant', content: '' }],
@@ -163,6 +252,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const run = await api.runs.start({
         conversationId: activeId,
         userContent: content,
+        agentId: selectedAgent?.id,
         idempotencyKey
       });
       if (get().pendingRunKey === idempotencyKey) {

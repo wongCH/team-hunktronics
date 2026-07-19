@@ -22,7 +22,7 @@ import type {
   ToolActionRequest,
   TestResult
 } from '@shared/types';
-import { PROVIDER_META, SKILL_CATALOG } from '@shared/types';
+import { AGENT_ICONS, PROVIDER_META, SKILL_CATALOG } from '@shared/types';
 import { IPC } from '@shared/ipc';
 import type { DeviceFlowResult } from '@shared/ipc';
 import type { Store } from './store';
@@ -201,6 +201,7 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
     getConversation: (id) => store.getConversation(id),
     saveConversation: (conversation) => store.saveConversation(conversation),
     getAgent: (id) => store.getAgent(id),
+    listAgents: () => store.listAgents(),
     getConnection: (id) => store.getConnection(id),
     getDefaultTarget: async () => {
       const settings = await store.getSettings();
@@ -382,6 +383,7 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
     return {
       id,
       name,
+      icon: AGENT_ICONS.some((option) => option.value === value.icon) ? value.icon : undefined,
       title,
       role: value.role,
       reportsTo: reportsTo || null,
@@ -629,6 +631,7 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
   // ---- Trusted runs (main-owned prompt assembly and persistence) ----
   ipcMain.handle(IPC.runsStart, (_e, input: unknown) => runService.start(validateRunCommand(input)));
   ipcMain.handle(IPC.runsCancel, (_e, runId: string) => ({ ok: runService.cancel(runId) }));
+  ipcMain.handle(IPC.runsListActive, () => runService.listActive());
 
   // ---- Conversations ----
   ipcMain.handle(IPC.conversationsList, () => store.listConversations());

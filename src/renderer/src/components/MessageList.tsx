@@ -6,9 +6,11 @@ import clsx from 'clsx';
 import type { ChatMessage } from '@shared/types';
 import { useChatStore } from '@/store/useChatStore';
 import { useAppStore } from '@/store/useAppStore';
+import { useAgentStore } from '@/store/useAgentStore';
+import { getAgentIcon } from './AgentIconPicker';
 import { BotIcon, UserIcon } from './icons';
 
-function Bubble({ message, streaming }: { message: ChatMessage; streaming: boolean }) {
+function Bubble({ message, streaming, agentIcon }: { message: ChatMessage; streaming: boolean; agentIcon?: string }) {
   const isUser = message.role === 'user';
   return (
     <div className={clsx('flex gap-3', isUser ? 'flex-row-reverse' : 'flex-row')}>
@@ -20,7 +22,13 @@ function Bubble({ message, streaming }: { message: ChatMessage; streaming: boole
             : 'bg-neon/10 border-neon/40 text-neon shadow-neon-sm'
         )}
       >
-        {isUser ? <UserIcon className="w-4 h-4" /> : <BotIcon className="w-4 h-4" />}
+        {isUser ? (
+          <UserIcon className="w-4 h-4" />
+        ) : agentIcon ? (
+          <span>{agentIcon}</span>
+        ) : (
+          <BotIcon className="w-4 h-4" />
+        )}
       </div>
       <div
         className={clsx(
@@ -48,15 +56,24 @@ function Bubble({ message, streaming }: { message: ChatMessage; streaming: boole
 function Welcome() {
   const setPage = useAppStore((s) => s.setPage);
   const hasConnections = useAppStore((s) => s.connections.length > 0);
+  const selectedAgentId = useChatStore((state) => state.selectedAgentId);
+  const selectedAgent = useAgentStore((state) =>
+    state.agents.find((agent) => agent.id === selectedAgentId && !agent.archived)
+  );
   return (
     <div className="h-full flex flex-col items-center justify-center text-center px-6">
       <div className="w-16 h-16 rounded-2xl bg-neon/10 border border-neon/40 shadow-neon flex items-center justify-center mb-5">
-        <span className="text-neon neon-text text-2xl">◈</span>
+        <span className="text-neon neon-text text-2xl">
+          {selectedAgent ? getAgentIcon(selectedAgent.icon, selectedAgent.role) : '◈'}
+        </span>
       </div>
-      <h1 className="text-xl font-semibold mb-2">Agent Control Panel</h1>
+      <h1 className="text-xl font-semibold mb-2">
+        {selectedAgent ? selectedAgent.name : 'Agent Control Panel'}
+      </h1>
       <p className="text-content-muted max-w-md text-sm mb-6">
-        Chat across local and cloud LLM backends from one neon cockpit. Your API keys are encrypted
-        with your OS keychain and never leave this machine.
+        {selectedAgent
+          ? `Start a direct conversation with your ${selectedAgent.title}.`
+          : 'Chat across local and cloud LLM backends from one place. Your API keys are encrypted with your OS keychain and never leave this machine.'}
       </p>
       {!hasConnections && (
         <button className="btn-primary" onClick={() => setPage('settings')}>
@@ -70,6 +87,9 @@ function Welcome() {
 export function MessageList() {
   const { conversations, activeId, isStreaming, streamConversationId } = useChatStore();
   const conv = conversations.find((c) => c.id === activeId);
+  const agent = useAgentStore((state) =>
+    state.agents.find((candidate) => candidate.id === conv?.agentId && !candidate.archived)
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,7 +105,14 @@ export function MessageList() {
           const isLast = i === conv.messages.length - 1;
           const streaming =
             isStreaming && streamConversationId === conv.id && isLast && m.role === 'assistant';
-          return <Bubble key={i} message={m} streaming={streaming} />;
+          return (
+            <Bubble
+              key={i}
+              message={m}
+              streaming={streaming}
+              agentIcon={agent ? getAgentIcon(agent.icon, agent.role) : undefined}
+            />
+          );
         })}
         <div ref={bottomRef} />
       </div>

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import type { AgentRole } from '@shared/types';
+import type { AgentIcon, AgentRole } from '@shared/types';
+import { DEFAULT_AGENT_ICONS } from '@shared/types';
 import { useAppStore } from '@/store/useAppStore';
 import { useAgentStore } from '@/store/useAgentStore';
 import { api } from '@/lib/api';
 import { Modal } from './Modal';
+import { AgentIconPicker } from './AgentIconPicker';
 
 /** One-shot LLM call that accumulates the streamed reply into a string. */
 function generateText(connectionId: string, model: string, prompt: string): Promise<string> {
@@ -70,6 +72,7 @@ export function CreateAgentModal({
     hasRoot ? (initialRole === 'orchestrator' ? 'specialist' : initialRole) : 'orchestrator'
   );
   const [managerId, setManagerId] = useState('');
+  const [icon, setIcon] = useState<AgentIcon>(DEFAULT_AGENT_ICONS[type]);
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [description, setDescription] = useState('');
@@ -113,6 +116,7 @@ export function CreateAgentModal({
       }
       const agent = await createAgent({
         role: type,
+        icon,
         name: name.trim(),
         title: role.trim() || undefined,
         soul,
@@ -188,6 +192,11 @@ export function CreateAgentModal({
             </p>
           </div>
         )}
+
+        <div>
+          <label className="label">Icon</label>
+          <AgentIconPicker value={icon} onChange={setIcon} />
+        </div>
 
         <div>
           <label className="label">Name</label>

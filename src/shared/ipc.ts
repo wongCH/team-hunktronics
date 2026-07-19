@@ -18,6 +18,7 @@ export const IPC = {
   chatError: 'chat:error',
   runsStart: 'runs:start',
   runsCancel: 'runs:cancel',
+  runsListActive: 'runs:listActive',
   runEvent: 'runs:event',
   tracesList: 'traces:list',
   tracesClear: 'traces:clear',

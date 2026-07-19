@@ -12,6 +12,7 @@ import {
 } from '@xyflow/react';
 import clsx from 'clsx';
 import type { AgentConfig } from '@shared/types';
+import { getAgentIcon } from './AgentIconPicker';
 
 const NODE_WIDTH = 224;
 const NODE_HEIGHT = 92;
@@ -19,6 +20,7 @@ const NODE_HEIGHT = 92;
 interface AgentNodeData extends Record<string, unknown> {
   agent: AgentConfig;
   selected: boolean;
+  working: boolean;
 }
 
 function roleLabel(role: AgentConfig['role']): string {
@@ -27,14 +29,29 @@ function roleLabel(role: AgentConfig['role']): string {
 }
 
 function AgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
-  const { agent, selected } = data;
+  const { agent, selected, working } = data;
   return (
     <div
       className={clsx(
-        'w-[224px] h-[92px] rounded-lg border bg-surface px-3 py-2.5 shadow-lg transition-colors',
-        selected ? 'border-neon shadow-neon-sm' : 'border-border hover:border-borderStrong'
+        'relative w-[224px] h-[92px] rounded-lg border bg-surface px-3 py-2.5 shadow-lg transition-colors',
+        working
+          ? 'border-neon shadow-neon'
+          : selected
+            ? 'border-neon shadow-neon-sm'
+            : 'border-border hover:border-borderStrong'
       )}
     >
+      {working && (
+        <span
+          className="absolute right-2.5 top-2.5 flex h-2.5 w-2.5"
+          role="status"
+          aria-label={`${agent.name} is working`}
+          title="Working"
+        >
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon opacity-60" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-neon" />
+        </span>
+      )}
       <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-content-faint !border-0" />
       <div className="flex items-center gap-3 h-full">
         <div
@@ -47,7 +64,7 @@ function AgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
                 : 'bg-white/5 text-content-muted border-border'
           )}
         >
-          {agent.role === 'orchestrator' ? '◆' : agent.role === 'team-lead' ? '◇' : '◈'}
+          {getAgentIcon(agent.icon, agent.role)}
         </div>
         <div className="min-w-0">
           <div className="font-semibold text-sm truncate">{agent.name}</div>
@@ -62,7 +79,11 @@ function AgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
 
 const nodeTypes = { agent: AgentNode };
 
-function layoutTeam(agents: AgentConfig[], selectedId: string | null): { nodes: Node<AgentNodeData>[]; edges: Edge[] } {
+function layoutTeam(
+  agents: AgentConfig[],
+  selectedId: string | null,
+  workingAgentIds: ReadonlySet<string>
+): { nodes: Node<AgentNodeData>[]; edges: Edge[] } {
   const graph = new dagre.graphlib.Graph();
   graph.setDefaultEdgeLabel(() => ({}));
   graph.setGraph({ rankdir: 'TB', ranksep: 72, nodesep: 40, marginx: 32, marginy: 32 });
@@ -80,7 +101,7 @@ function layoutTeam(agents: AgentConfig[], selectedId: string | null): { nodes: 
       id: agent.id,
       type: 'agent',
       position: { x: position.x - NODE_WIDTH / 2, y: position.y - NODE_HEIGHT / 2 },
-      data: { agent, selected: agent.id === selectedId },
+      data: { agent, selected: agent.id === selectedId, working: workingAgentIds.has(agent.id) },
       draggable: false
     };
   });
@@ -91,10 +112,22 @@ function layoutTeam(agents: AgentConfig[], selectedId: string | null): { nodes: 
       source: agent.reportsTo!,
       target: agent.id,
       type: 'smoothstep',
-      animated: agent.id === selectedId || agent.reportsTo === selectedId,
+      animated: workingAgentIds.has(agent.id) || workingAgentIds.has(agent.reportsTo!),
       style: {
-        stroke: agent.id === selectedId || agent.reportsTo === selectedId ? 'var(--color-neon)' : 'var(--color-borderStrong)',
-        strokeWidth: agent.id === selectedId || agent.reportsTo === selectedId ? 2 : 1
+        stroke:
+          workingAgentIds.has(agent.id) ||
+          workingAgentIds.has(agent.reportsTo!) ||
+          agent.id === selectedId ||
+          agent.reportsTo === selectedId
+            ? 'var(--color-neon)'
+            : 'var(--color-borderStrong)',
+        strokeWidth:
+          workingAgentIds.has(agent.id) ||
+          workingAgentIds.has(agent.reportsTo!) ||
+          agent.id === selectedId ||
+          agent.reportsTo === selectedId
+            ? 2
+            : 1
       }
     }));
   return { nodes, edges };
@@ -103,15 +136,20 @@ function layoutTeam(agents: AgentConfig[], selectedId: string | null): { nodes: 
 export function TeamMap({
   agents,
   selectedId,
+  workingAgentIds,
   onSelect,
   onConfigure
 }: {
   agents: AgentConfig[];
   selectedId: string | null;
+  workingAgentIds: ReadonlySet<string>;
   onSelect: (id: string) => void;
   onConfigure: (id: string) => void;
 }) {
-  const { nodes, edges } = useMemo(() => layoutTeam(agents, selectedId), [agents, selectedId]);
+  const { nodes, edges } = useMemo(
+    () => layoutTeam(agents, selectedId, workingAgentIds),
+    [agents, selectedId, workingAgentIds]
+  );
   const selected = agents.find((agent) => agent.id === selectedId) ?? null;
   const manager = selected?.reportsTo ? agents.find((agent) => agent.id === selected.reportsTo) : null;
   const reports = selected ? agents.filter((agent) => agent.reportsTo === selected.id) : [];
@@ -143,7 +181,7 @@ export function TeamMap({
       {selected && (
         <aside className="w-72 shrink-0 border-l border-border bg-overlay/40 p-5 overflow-y-auto">
           <div className="w-12 h-12 rounded-lg bg-neon/10 border border-neon/30 text-neon grid place-items-center text-xl mb-4">
-            {selected.role === 'orchestrator' ? '◆' : selected.role === 'team-lead' ? '◇' : '◈'}
+            {getAgentIcon(selected.icon, selected.role)}
           </div>
           <h2 className="text-lg font-semibold">{selected.name}</h2>
           <p className="text-sm text-content-muted">{selected.title}</p>

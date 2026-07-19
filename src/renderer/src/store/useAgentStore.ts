@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import type { AgentConfig, AgentRole } from '@shared/types';
-import { DEFAULT_ORCHESTRATOR_SOUL, DEFAULT_WORKER_SOUL } from '@shared/types';
+import type { AgentConfig, AgentIcon, AgentRole } from '@shared/types';
+import { DEFAULT_AGENT_ICONS, DEFAULT_ORCHESTRATOR_SOUL, DEFAULT_WORKER_SOUL } from '@shared/types';
 import { api } from '@/lib/api';
 
 interface CreateAgentInput {
   role: AgentRole;
+  icon?: AgentIcon;
   name?: string;
   title?: string;
   soul?: string;
@@ -36,11 +37,12 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   select: (id) => set({ selectedId: id }),
 
-  createAgent: async ({ role, name, title, soul, reportsTo }) => {
+  createAgent: async ({ role, icon, name, title, soul, reportsTo }) => {
     const now = Date.now();
     const root = get().agents.find((agent) => agent.role === 'orchestrator' && !agent.archived);
     const agent: AgentConfig = {
       id: crypto.randomUUID(),
+      icon: icon ?? DEFAULT_AGENT_ICONS[role],
       name:
         name?.trim() ||
         (role === 'orchestrator' ? 'Orchestrator' : role === 'team-lead' ? 'Team lead' : 'Specialist'),

@@ -4,6 +4,7 @@ import { getProvider } from './index';
 import {
   openaiListModels,
   openaiChatStream,
+  openaiResponsesStream,
   OpenAICompatibleProvider
 } from './openai-compatible';
 import { OllamaProvider } from './ollama';
@@ -156,6 +157,94 @@ describe('OpenAI-compatible — streaming chat (US-301)', () => {
     expect(url).toBe('https://api.test/v1/chat/completions');
     const sent = JSON.parse(init.body);
     expect(sent).toMatchObject({ model: 'gpt-4o', stream: true, temperature: 0.2, max_tokens: 256 });
+  });
+
+  it('streams Responses API output text deltas', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      body: sseBody([
+        JSON.stringify({ type: 'response.output_text.delta', delta: 'Hello ' }),
+        JSON.stringify({ type: 'response.output_text.delta', delta: 'there' }),
+        JSON.stringify({ type: 'response.completed' })
+      ])
+    });
+    const cb = collector();
+
+    await openaiResponsesStream(
+      { baseUrl: 'https://responses.test/v1', headers: {} },
+      'gpt-5.6-sol',
+      [{ role: 'user', content: 'hi' }],
+      { maxTokens: 128 },
+      new AbortController().signal,
+      cb
+    );
+
+    expect(cb.text()).toBe('Hello there');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://responses.test/v1/responses');
+    expect(JSON.parse(init.body)).toMatchObject({
+      model: 'gpt-5.6-sol',
+      input: [{ role: 'user', content: 'hi' }],
+      stream: true,
+      max_output_tokens: 128
+    });
+  });
+
+  it('falls back once and remembers Responses-only models', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        text: async () =>
+          JSON.stringify({
+            error: {
+              message: 'model "gpt-5.6-sol" is not accessible via the /chat/completions endpoint'
+            }
+          })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        body: sseBody([
+          JSON.stringify({ type: 'response.output_text.delta', delta: 'First' }),
+          JSON.stringify({ type: 'response.completed' })
+        ])
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        body: sseBody([
+          JSON.stringify({ type: 'response.output_text.delta', delta: 'Second' }),
+          JSON.stringify({ type: 'response.completed' })
+        ])
+      });
+    const opts = { baseUrl: 'https://fallback.test/v1', headers: {} };
+    const first = collector();
+    const second = collector();
+
+    await openaiChatStream(
+      opts,
+      'gpt-5.6-sol',
+      [{ role: 'user', content: 'hi' }],
+      undefined,
+      new AbortController().signal,
+      first
+    );
+    await openaiChatStream(
+      opts,
+      'gpt-5.6-sol',
+      [{ role: 'user', content: 'again' }],
+      undefined,
+      new AbortController().signal,
+      second
+    );
+
+    expect(first.text()).toBe('First');
+    expect(second.text()).toBe('Second');
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      'https://fallback.test/v1/chat/completions',
+      'https://fallback.test/v1/responses',
+      'https://fallback.test/v1/responses'
+    ]);
   });
 });
 

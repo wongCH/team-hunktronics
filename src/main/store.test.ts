@@ -184,6 +184,15 @@ describe('Store — conversations (US-401 / US-402)', () => {
     expect(list[0].title).toBe('v2');
   });
 
+  it('preserves concurrent conversation upserts', async () => {
+    await Promise.all(
+      Array.from({ length: 6 }, (_, index) => store.saveConversation(convo(`parallel-${index}`)))
+    );
+    expect((await store.listConversations()).map((item) => item.id).sort()).toEqual(
+      Array.from({ length: 6 }, (_, index) => `parallel-${index}`)
+    );
+  });
+
   it('deletes a conversation by id', async () => {
     await store.saveConversation(convo('a'));
     await store.saveConversation(convo('b'));
@@ -259,6 +268,15 @@ describe('Store — API traces', () => {
     const list = await store.listApiTraces();
     expect(list).toHaveLength(1);
     expect(list[0].response.preview).toBe('updated response');
+  });
+
+  it('preserves traces from concurrent runs', async () => {
+    await Promise.all(
+      Array.from({ length: 4 }, (_, index) => store.saveApiTrace(trace(`parallel-${index}`)))
+    );
+    expect((await store.listApiTraces()).map((item) => item.id).sort()).toEqual(
+      Array.from({ length: 4 }, (_, index) => `parallel-${index}`)
+    );
   });
 
   it('clears all traces', async () => {

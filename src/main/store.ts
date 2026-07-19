@@ -80,6 +80,22 @@ async function writeJson(file: string, data: unknown): Promise<void> {
   }
 }
 
+async function updateJson<T>(file: string, fallback: T, update: (current: T) => T): Promise<T> {
+  const previous = writeQueues.get(file) ?? Promise.resolve();
+  let result!: T;
+  const current = previous.then(async () => {
+    result = update(await readJson(file, fallback));
+    await writeJsonNow(file, result);
+  });
+  writeQueues.set(file, current);
+  try {
+    await current;
+    return result;
+  } finally {
+    if (writeQueues.get(file) === current) writeQueues.delete(file);
+  }
+}
+
 const DEFAULT_SETTINGS: AppSettings = {
   theme: DEFAULT_APP_THEME,
   experimentalCopilot: false,
@@ -153,18 +169,19 @@ export class Store {
   }
 
   async saveConversation(conv: Conversation): Promise<Conversation[]> {
-    const list = await this.listConversations();
-    const idx = list.findIndex((c) => c.id === conv.id);
-    if (idx >= 0) list[idx] = conv;
-    else list.unshift(conv);
-    await writeJson(this.conversationsFile, list);
-    return list;
+    return updateJson<Conversation[]>(this.conversationsFile, [], (current) => {
+      const list = [...current];
+      const idx = list.findIndex((c) => c.id === conv.id);
+      if (idx >= 0) list[idx] = conv;
+      else list.unshift(conv);
+      return list;
+    });
   }
 
   async deleteConversation(id: string): Promise<Conversation[]> {
-    const list = (await this.listConversations()).filter((c) => c.id !== id);
-    await writeJson(this.conversationsFile, list);
-    return list;
+    return updateJson<Conversation[]>(this.conversationsFile, [], (current) =>
+      current.filter((conversation) => conversation.id !== id)
+    );
   }
 
   listApiTraces(): Promise<ApiTrace[]> {
@@ -172,28 +189,27 @@ export class Store {
   }
 
   async saveApiTrace(trace: ApiTrace): Promise<ApiTrace[]> {
-    const list = await this.listApiTraces();
-    const idx = list.findIndex((t) => t.id === trace.id);
-    if (idx >= 0) list[idx] = trace;
-    else list.unshift(trace);
-    await writeJson(this.tracesFile, list);
-    return list;
+    return updateJson<ApiTrace[]>(this.tracesFile, [], (current) => {
+      const list = [...current];
+      const idx = list.findIndex((item) => item.id === trace.id);
+      if (idx >= 0) list[idx] = trace;
+      else list.unshift(trace);
+      return list;
+    });
   }
 
   async clearApiTraces(): Promise<ApiTrace[]> {
-    const list: ApiTrace[] = [];
-    await writeJson(this.tracesFile, list);
-    return list;
+    return updateJson<ApiTrace[]>(this.tracesFile, [], () => []);
   }
 
   async clearApiTracesScope(scope: { agentId?: string; runId?: string }): Promise<ApiTrace[]> {
-    const list = (await this.listApiTraces()).filter((trace) => {
-      if (scope.agentId && trace.context.agentId === scope.agentId) return false;
-      if (scope.runId && (trace.id === scope.runId || trace.streamId === scope.runId)) return false;
-      return true;
-    });
-    await writeJson(this.tracesFile, list);
-    return list;
+    return updateJson<ApiTrace[]>(this.tracesFile, [], (current) =>
+      current.filter((trace) => {
+        if (scope.agentId && trace.context.agentId === scope.agentId) return false;
+        if (scope.runId && (trace.id === scope.runId || trace.streamId === scope.runId)) return false;
+        return true;
+      })
+    );
   }
 
   listAgents(): Promise<AgentConfig[]> {

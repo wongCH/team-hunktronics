@@ -83,6 +83,7 @@ const api = {
       ipcRenderer.invoke(IPC.runsStart, command),
     cancel: (runId: string): Promise<{ ok: boolean }> =>
       ipcRenderer.invoke(IPC.runsCancel, runId),
+    listActive: (): Promise<RunView[]> => ipcRenderer.invoke(IPC.runsListActive),
     onEvent: (cb: (event: RunEventPayload) => void): Unsubscribe =>
       subscribe(IPC.runEvent, cb)
   },

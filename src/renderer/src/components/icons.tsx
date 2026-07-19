@@ -61,6 +61,13 @@ export const BotIcon = (p: IconProps) => (
   </svg>
 );
 
+export const LibraryIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z" />
+    <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5v-16Z" />
+  </svg>
+);
+
 export const UserIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M20 21a8 8 0 1 0-16 0" />

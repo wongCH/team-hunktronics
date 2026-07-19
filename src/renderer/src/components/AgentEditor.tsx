@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useAgentStore } from '@/store/useAgentStore';
 import { api } from '@/lib/api';
 import { AgentRunner } from './AgentRunner';
+import { AgentIconPicker, getAgentIcon } from './AgentIconPicker';
 import { CheckIcon, TrashIcon, XIcon } from './icons';
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
@@ -198,6 +199,13 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
       ) : (
         <div className="flex-1 overflow-y-auto px-5 py-5">
           <div className="max-w-2xl mx-auto space-y-7">
+            <Section title="Icon" hint="Shown throughout the team dashboard.">
+              <AgentIconPicker
+                value={getAgentIcon(draft.icon, draft.role)}
+                onChange={(icon) => set({ icon })}
+              />
+            </Section>
+
             {draft.role === 'orchestrator' && (
               <div className="rounded-lg border border-neon/30 bg-neon/5 px-3 py-2 text-xs text-content-muted">
                 ◆ This is the single team root. It routes work, owns team memory, and synthesizes results.

@@ -54,12 +54,14 @@ describe('useAgentStore', () => {
 
     const created = await useAgentStore.getState().createAgent({
       role: 'specialist',
+      icon: '🔍',
       name: 'Researcher',
       reportsTo: lead.id
     });
 
     expect(created).toMatchObject({
       name: 'Researcher',
+      icon: '🔍',
       role: 'specialist',
       reportsTo: lead.id
     });

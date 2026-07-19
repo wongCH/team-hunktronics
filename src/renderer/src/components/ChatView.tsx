@@ -1,5 +1,6 @@
 import { useAppStore } from '@/store/useAppStore';
 import { useChatStore } from '@/store/useChatStore';
+import { useAgentStore } from '@/store/useAgentStore';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 
@@ -8,8 +9,15 @@ export function ChatView() {
   const connections = useAppStore((s) => s.connections);
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
+  const selectedAgentId = useChatStore((s) => s.selectedAgentId);
+  const agents = useAgentStore((s) => s.agents);
+  const selectedAgent = agents.find(
+    (agent) => agent.id === selectedAgentId && !agent.archived
+  );
 
-  const activeConn = connections.find((c) => c.id === settings?.activeConnectionId);
+  const activeConn = connections.find(
+    (c) => c.id === (selectedAgent?.connectionId ?? settings?.activeConnectionId)
+  );
   const needsCopilotOptIn =
     activeConn?.providerType === 'copilot' && !settings?.experimentalCopilot;
 
