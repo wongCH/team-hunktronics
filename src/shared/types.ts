@@ -50,6 +50,225 @@ export interface ChatRequest {
   };
 }
 
+export type RunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+
+export interface StartRunCommand {
+  conversationId: string;
+  userContent: string;
+  agentId?: string;
+  idempotencyKey: string;
+}
+
+export interface RunView {
+  id: string;
+  streamId: string;
+  idempotencyKey: string;
+  conversationId: string;
+  agentId: string | null;
+  connectionId: string;
+  model: string;
+  status: RunStatus;
+  error: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface RunEvent {
+  type: 'state' | 'chunk';
+  run: RunView;
+  delta?: string;
+}
+
+export type MemoryScope = 'team' | 'agent';
+export type MemoryKind = 'baseline' | 'evergreen' | 'daily' | 'archive';
+export type MemorySeverity = 'critical' | 'warning' | 'info';
+
+export interface MemoryDocument {
+  id: string;
+  scope: MemoryScope;
+  agentId: string | null;
+  name: string;
+  kind: MemoryKind;
+  content: string;
+  revision: string;
+  lineCount: number;
+  sizeBytes: number;
+  updatedAt: number;
+}
+
+export interface MemoryWriteCommand {
+  scope: MemoryScope;
+  agentId?: string;
+  name: string;
+  content: string;
+  expectedRevision?: string;
+}
+
+export interface MemorySearchResult {
+  document: MemoryDocument;
+  score: number;
+  excerpt: string;
+}
+
+export interface MemoryHealthFinding {
+  code: string;
+  severity: MemorySeverity;
+  message: string;
+  documentId?: string;
+}
+
+export interface MemoryHealth {
+  score: number;
+  totalBytes: number;
+  documentCount: number;
+  findings: MemoryHealthFinding[];
+}
+
+export interface MemoryCompressionProposal {
+  id: string;
+  agentId: string;
+  baselineRevision: string;
+  proposedContent: string;
+  sourceDocumentIds: string[];
+  warnings: string[];
+  createdAt: number;
+}
+
+export type TaskStatus = 'backlog' | 'in-progress' | 'review' | 'done';
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface AgentTask {
+  id: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  agentId: string | null;
+  conversationId: string | null;
+  currentRunId: string | null;
+  lastError: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type ScheduleRunStatus = 'idle' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+
+export interface AgentSchedule {
+  id: string;
+  name: string;
+  agentId: string;
+  prompt: string;
+  cron: string;
+  timeZone: string;
+  enabled: boolean;
+  maxAttempts: number;
+  nextRunAt: number;
+  lastRunAt: number | null;
+  lastRunStatus: ScheduleRunStatus;
+  lastError: string | null;
+  conversationId: string | null;
+  currentRunId: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PipelineStage {
+  id: string;
+  name: string;
+  agentId: string;
+  instructions: string;
+  expectedOutput: string;
+}
+
+export interface AgentPipeline {
+  id: string;
+  name: string;
+  ownerAgentId: string;
+  stages: PipelineStage[];
+  enabled: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type PipelineExecutionStatus =
+  | 'queued'
+  | 'running'
+  | 'review'
+  | 'failed'
+  | 'cancelled';
+
+export interface PipelineExecution {
+  id: string;
+  pipelineId: string;
+  goal: string;
+  status: PipelineExecutionStatus;
+  currentStageIndex: number;
+  currentRunId: string | null;
+  artifactIds: string[];
+  error: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type ArtifactKind = 'brief' | 'output';
+
+export interface RunArtifact {
+  id: string;
+  executionId: string;
+  stageId: string;
+  runId: string | null;
+  agentId: string;
+  kind: ArtifactKind;
+  version: number;
+  content: string;
+  createdAt: number;
+}
+
+export type ToolSideEffect = 'none' | 'local-write' | 'external';
+export type ToolActionStatus =
+  | 'denied'
+  | 'awaiting-approval'
+  | 'approved'
+  | 'executing'
+  | 'succeeded'
+  | 'failed';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired';
+
+export interface ToolActionRequest {
+  agentId: string;
+  toolId: string;
+  arguments: Record<string, unknown>;
+  sideEffect: ToolSideEffect;
+  runId?: string;
+}
+
+export interface ToolAction {
+  id: string;
+  runId: string | null;
+  agentId: string;
+  toolId: string;
+  argumentsDigest: string;
+  sanitizedArguments: Record<string, unknown>;
+  sideEffect: ToolSideEffect;
+  status: ToolActionStatus;
+  approvalId: string | null;
+  error: string | null;
+  resultSummary: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Approval {
+  id: string;
+  actionId: string;
+  agentId: string;
+  status: ApprovalStatus;
+  reason: string;
+  expiresAt: number;
+  decidedAt: number | null;
+  createdAt: number;
+}
+
 export interface TestResult {
   ok: boolean;
   message: string;
@@ -75,12 +294,16 @@ export interface ApiTrace {
   connectionId: string;
   model: string;
   request: {
-    messages: ChatMessage[];
+    messageCount: number;
+    characterCount: number;
+    hasSystemContext: boolean;
     params?: ChatParams;
     startedAt: number;
   };
   response: {
-    content: string;
+    preview: string;
+    characterCount: number;
+    truncated: boolean;
     chunks: number;
     doneAt: number | null;
     error: string | null;
@@ -111,7 +334,18 @@ export interface VaultStatus {
 }
 
 export type LocalDataCollection =
-  'connections' | 'conversations' | 'agents' | 'traces' | 'settings';
+  | 'connections'
+  | 'conversations'
+  | 'agents'
+  | 'tasks'
+  | 'schedules'
+  | 'pipelines'
+  | 'pipeline-executions'
+  | 'artifacts'
+  | 'tool-actions'
+  | 'approvals'
+  | 'traces'
+  | 'settings';
 
 export interface LocalDataQuery {
   collection: LocalDataCollection;
@@ -237,8 +471,8 @@ export const DEFAULT_GITHUB_CLIENT_ID = 'Iv1.b507a08c87ecfe98';
 /** How much autonomy an agent has when it wants to take an action. */
 export type AgentAutonomy = 'draft' | 'assist' | 'autonomous';
 
-/** An orchestrator only delegates; a worker does the actual work. */
-export type AgentRole = 'orchestrator' | 'worker';
+/** Team tier controls hierarchy and delegation policy. */
+export type AgentRole = 'orchestrator' | 'team-lead' | 'specialist';
 
 export interface AgentConfig {
   id: string;
@@ -246,6 +480,8 @@ export interface AgentConfig {
   /** Job title shown on the team canvas, e.g. "Chief of Staff" or "Inbox Agent". */
   title: string;
   role: AgentRole;
+  /** Canonical manager edge. Null is reserved for the root orchestrator. */
+  reportsTo: string | null;
   /** Which LLM connection powers this agent. */
   connectionId: string | null;
   model: string | null;
@@ -256,7 +492,7 @@ export interface AgentConfig {
   /** Ordered skill ids the agent runs as a chain. */
   skills: string[];
   autonomy: AgentAutonomy;
-  /** For orchestrators: worker agent ids it may delegate to. */
+  /** Derived direct-report ids retained for renderer compatibility. */
   delegatesTo: string[];
   /** Soft-delete flag — archived agents show in the "Removed" list. */
   archived?: boolean;

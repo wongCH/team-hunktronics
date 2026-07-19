@@ -1,11 +1,14 @@
 import clsx from 'clsx';
 import { useAppStore, type Page } from '@/store/useAppStore';
-import { DashboardIcon, BotIcon, ChatIcon, DatabaseIcon, SettingsIcon } from './icons';
+import { ActivityIcon, DashboardIcon, BotIcon, ChatIcon, DatabaseIcon, MemoryIcon, SettingsIcon, TasksIcon } from './icons';
 
 const ITEMS: { id: Page; label: string; Icon: typeof BotIcon }[] = [
   { id: 'dashboard', label: 'Dashboard', Icon: DashboardIcon },
   { id: 'agents', label: 'Agents', Icon: BotIcon },
+  { id: 'tasks', label: 'Tasks', Icon: TasksIcon },
   { id: 'chat', label: 'Chat', Icon: ChatIcon },
+  { id: 'memory', label: 'Memory', Icon: MemoryIcon },
+  { id: 'operations', label: 'Ops', Icon: ActivityIcon },
   { id: 'data', label: 'Data', Icon: DatabaseIcon },
   { id: 'settings', label: 'Settings', Icon: SettingsIcon }
 ];

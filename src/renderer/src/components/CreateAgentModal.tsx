@@ -47,7 +47,9 @@ function buildSoul(name: string, role: string, description: string, type: AgentR
     description ||
     (type === 'orchestrator'
       ? 'Delegates tasks to teammates and synthesizes their results.'
-      : 'Completes the tasks delegated to it.');
+      : type === 'team-lead'
+        ? 'Owns a domain pipeline and coordinates its specialists end to end.'
+        : 'Completes one focused job and reports a structured result.');
   return `${heading}\n\n${body}\n\n## Guardrails\n- Respect your autonomy level for any action that has side effects.\n- Ask for missing information instead of guessing.\n`;
 }
 
@@ -125,7 +127,7 @@ export function CreateAgentModal({
     >
       <div className="space-y-4">
         <div className="flex gap-2">
-          {(['worker', 'orchestrator'] as const).map((t) => (
+          {(['orchestrator', 'team-lead', 'specialist'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setType(t)}
@@ -136,7 +138,7 @@ export function CreateAgentModal({
                   : 'border-border text-content-muted hover:border-borderStrong'
               )}
             >
-              {t === 'orchestrator' ? '◆ Orchestrator' : '◈ Worker'}
+              {t === 'orchestrator' ? '◆ Orchestrator' : t === 'team-lead' ? '◇ Team lead' : '◈ Specialist'}
             </button>
           ))}
         </div>

@@ -37,11 +37,17 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   createAgent: async ({ role, name, title, soul }) => {
     const now = Date.now();
+    const root = get().agents.find((agent) => agent.role === 'orchestrator' && !agent.archived);
     const agent: AgentConfig = {
       id: crypto.randomUUID(),
-      name: name?.trim() || (role === 'orchestrator' ? 'Orchestrator' : 'New agent'),
-      title: title?.trim() || (role === 'orchestrator' ? 'Chief of Staff' : 'Agent'),
+      name:
+        name?.trim() ||
+        (role === 'orchestrator' ? 'Orchestrator' : role === 'team-lead' ? 'Team lead' : 'Specialist'),
+      title:
+        title?.trim() ||
+        (role === 'orchestrator' ? 'Chief of Staff' : role === 'team-lead' ? 'Domain lead' : 'Specialist'),
       role,
+      reportsTo: role === 'orchestrator' ? null : root?.id ?? null,
       connectionId: null,
       model: null,
       soul: soul?.trim() ? soul : role === 'orchestrator' ? DEFAULT_ORCHESTRATOR_SOUL : DEFAULT_WORKER_SOUL,

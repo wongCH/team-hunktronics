@@ -21,12 +21,14 @@ interface ChatState {
   activeId: string | null;
   isStreaming: boolean;
   streamId: string | null;
+  runId: string | null;
+  pendingRunKey: string | null;
   streamConversationId: string | null;
   error: string | null;
   initialized: boolean;
 
   init: () => Promise<void>;
-  newConversation: () => void;
+  newConversation: () => Promise<void>;
   selectConversation: (id: string) => void;
   deleteConversation: (id: string) => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
@@ -46,6 +48,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeId: null,
   isStreaming: false,
   streamId: null,
+  runId: null,
+  pendingRunKey: null,
   streamConversationId: null,
   error: null,
   initialized: false,
@@ -59,61 +63,49 @@ export const useChatStore = create<ChatState>((set, get) => ({
       initialized: true
     });
 
-    api.chat.onChunk(({ streamId, delta }) => {
+    api.runs.onEvent((event) => {
       const state = get();
-      if (streamId !== state.streamId || !state.streamConversationId) return;
-      set({
-        conversations: patchConversation(state.conversations, state.streamConversationId, (c) => {
-          const messages = [...c.messages];
-          const last = messages[messages.length - 1];
-          if (last && last.role === 'assistant') {
-            messages[messages.length - 1] = { ...last, content: last.content + delta };
-          }
-          return { ...c, messages, updatedAt: Date.now() };
-        })
-      });
-    });
+      const matches =
+        event.run.id === state.runId || event.run.idempotencyKey === state.pendingRunKey;
+      if (!matches) return;
 
-    api.chat.onDone(({ streamId }) => {
-      const state = get();
-      if (streamId !== state.streamId) return;
-      const convId = state.streamConversationId;
-      set({ isStreaming: false, streamId: null, streamConversationId: null });
-      const conv = get().conversations.find((c) => c.id === convId);
-      if (conv) void api.conversations.save(conv);
-    });
+      if (event.type === 'chunk' && event.delta) {
+        set({
+          runId: event.run.id,
+          streamId: event.run.streamId,
+          conversations: patchConversation(state.conversations, event.run.conversationId, (c) => {
+            const messages = [...c.messages];
+            const last = messages[messages.length - 1];
+            if (last?.role === 'assistant') {
+              messages[messages.length - 1] = { ...last, content: last.content + event.delta };
+            }
+            return { ...c, messages, updatedAt: Date.now() };
+          })
+        });
+        return;
+      }
 
-    api.chat.onError(({ streamId, message }) => {
-      const state = get();
-      if (streamId !== state.streamId) return;
-      const convId = state.streamConversationId;
-      set({
-        error: message,
-        isStreaming: false,
-        streamId: null,
-        streamConversationId: null,
-        conversations: convId
-          ? patchConversation(state.conversations, convId, (c) => {
-              const messages = [...c.messages];
-              const last = messages[messages.length - 1];
-              if (last && last.role === 'assistant' && last.content === '') {
-                messages[messages.length - 1] = {
-                  ...last,
-                  content: `_⚠️ ${message}_`
-                };
-              }
-              return { ...c, messages };
-            })
-          : state.conversations
-      });
-      const conv = get().conversations.find((c) => c.id === convId);
-      if (conv) void api.conversations.save(conv);
+      if (event.type === 'state' && ['completed', 'failed', 'cancelled'].includes(event.run.status)) {
+        set({
+          error: event.run.status === 'failed' ? event.run.error : null,
+          isStreaming: false,
+          streamId: null,
+          runId: null,
+          pendingRunKey: null,
+          streamConversationId: null
+        });
+        void api.conversations.list().then((conversations) => set({ conversations }));
+        return;
+      }
+
+      set({ runId: event.run.id, streamId: event.run.streamId });
     });
   },
 
-  newConversation: () => {
+  newConversation: async () => {
     const conv = makeConversation();
     set((s) => ({ conversations: [conv, ...s.conversations], activeId: conv.id, error: null }));
+    await api.conversations.save(conv);
   },
 
   selectConversation: (id) => set({ activeId: id, error: null }),
@@ -143,13 +135,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!activeId) {
       const conv = makeConversation();
       set((s) => ({ conversations: [conv, ...s.conversations], activeId: conv.id }));
+      await api.conversations.save(conv);
       activeId = conv.id;
     }
 
     const userMsg: ChatMessage = { role: 'user', content };
     const current = get().conversations.find((c) => c.id === activeId)!;
-    const outgoing: ChatMessage[] = [...current.messages, userMsg];
-
     set((s) => ({
       error: null,
       conversations: patchConversation(s.conversations, activeId!, (c) => ({
@@ -157,27 +148,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
         title: c.messages.length === 0 ? content.slice(0, 48) : c.title,
         connectionId,
         model,
-        messages: [...outgoing, { role: 'assistant', content: '' }],
+        messages: [...current.messages, userMsg, { role: 'assistant', content: '' }],
         updatedAt: Date.now()
       }))
     }));
 
     try {
-      const { streamId } = await api.chat.send({
-        connectionId,
-        model,
-        messages: outgoing,
-        traceContext: { source: 'chat' }
+      const idempotencyKey = crypto.randomUUID();
+      set({
+        isStreaming: true,
+        pendingRunKey: idempotencyKey,
+        streamConversationId: activeId
       });
-      set({ isStreaming: true, streamId, streamConversationId: activeId });
+      const run = await api.runs.start({
+        conversationId: activeId,
+        userContent: content,
+        idempotencyKey
+      });
+      if (get().pendingRunKey === idempotencyKey) {
+        set({ runId: run.id, streamId: run.streamId });
+      }
     } catch (err) {
-      set({ error: (err as Error).message, isStreaming: false });
+      set({
+        error: (err as Error).message,
+        isStreaming: false,
+        streamId: null,
+        runId: null,
+        pendingRunKey: null,
+        streamConversationId: null
+      });
     }
   },
 
   stop: () => {
-    const { streamId } = get();
-    if (streamId) void api.chat.cancel(streamId);
-    set({ isStreaming: false, streamId: null, streamConversationId: null });
+    const { runId } = get();
+    if (runId) void api.runs.cancel(runId);
   }
 }));

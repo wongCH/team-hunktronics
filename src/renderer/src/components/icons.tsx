@@ -139,3 +139,24 @@ export const DatabaseIcon = (p: IconProps) => (
     <path d="M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7" />
   </svg>
 );
+
+export const MemoryIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M9 3a3 3 0 0 0-3 3v1a3 3 0 0 0-2 3v1a3 3 0 0 0 2 3v1a3 3 0 0 0 3 3" />
+    <path d="M15 3a3 3 0 0 1 3 3v1a3 3 0 0 1 2 3v1a3 3 0 0 1-2 3v1a3 3 0 0 1-3 3" />
+    <path d="M9 3v18M15 3v18M9 8h2M13 12h2M9 16h2" />
+  </svg>
+);
+
+export const TasksIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M8 2v4M16 2v4M3 9h18M8 13h.01M12 13h4M8 17h.01M12 17h4" />
+  </svg>
+);
+
+export const ActivityIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 12h4l2-7 4 14 2-7h6" />
+  </svg>
+);

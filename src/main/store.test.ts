@@ -4,7 +4,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { Store } from './store';
 import { DEFAULT_GITHUB_CLIENT_ID } from '@shared/types';
-import type { ApiTrace, ConnectionConfig, Conversation } from '@shared/types';
+import type { AgentSchedule, AgentTask, ApiTrace, ConnectionConfig, Conversation } from '@shared/types';
 
 /**
  * Backlog coverage: US-101 (manage connections), US-401 (conversation CRUD),
@@ -42,11 +42,15 @@ function trace(id: string, content = 'ok'): ApiTrace {
     connectionId: 'c1',
     model: 'gpt-4o',
     request: {
-      messages: [{ role: 'user', content: 'hello' }],
+      messageCount: 1,
+      characterCount: 5,
+      hasSystemContext: false,
       startedAt: 1
     },
     response: {
-      content,
+      preview: content,
+      characterCount: content.length,
+      truncated: false,
       chunks: 1,
       doneAt: 2,
       error: null,
@@ -60,6 +64,43 @@ function trace(id: string, content = 'ok'): ApiTrace {
     status: 'done',
     createdAt: 1,
     updatedAt: 2
+  };
+}
+
+function task(id: string, title = `Task ${id}`): AgentTask {
+  return {
+    id,
+    title,
+    description: '',
+    status: 'backlog',
+    priority: 'medium',
+    agentId: null,
+    conversationId: null,
+    currentRunId: null,
+    lastError: null,
+    createdAt: 1,
+    updatedAt: 1
+  };
+}
+
+function schedule(id: string): AgentSchedule {
+  return {
+    id,
+    name: `Schedule ${id}`,
+    agentId: 'agent-1',
+    prompt: 'Run focused work.',
+    cron: '0 9 * * *',
+    timeZone: 'UTC',
+    enabled: true,
+    maxAttempts: 1,
+    nextRunAt: 10,
+    lastRunAt: null,
+    lastRunStatus: 'idle',
+    lastError: null,
+    conversationId: null,
+    currentRunId: null,
+    createdAt: 1,
+    updatedAt: 1
   };
 }
 
@@ -169,7 +210,7 @@ describe('Store — API traces', () => {
     await store.saveApiTrace(trace('a', 'updated response'));
     const list = await store.listApiTraces();
     expect(list).toHaveLength(1);
-    expect(list[0].response.content).toBe('updated response');
+    expect(list[0].response.preview).toBe('updated response');
   });
 
   it('clears all traces', async () => {
@@ -179,12 +220,40 @@ describe('Store — API traces', () => {
   });
 });
 
+describe('Store — tasks', () => {
+  it('creates, updates, reloads, and deletes durable tasks', async () => {
+    await store.saveTask(task('a'));
+    await store.saveTask(task('a', 'Updated'));
+    expect(await store.listTasks()).toEqual([expect.objectContaining({ id: 'a', title: 'Updated' })]);
+    expect(await new Store(dir).getTask('a')).toMatchObject({ title: 'Updated' });
+    await store.deleteTask('a');
+    expect(await store.listTasks()).toEqual([]);
+  });
+});
+
+describe('Store — schedules', () => {
+  it('creates, reloads, and deletes schedules', async () => {
+    await store.saveSchedule(schedule('a'));
+    expect(await new Store(dir).getSchedule('a')).toMatchObject({ name: 'Schedule a' });
+    await store.deleteSchedule('a');
+    expect(await store.listSchedules()).toEqual([]);
+  });
+});
+
 describe('Store — reliability (NFR-REL-02)', () => {
-  it('falls back to defaults when a data file is corrupt', async () => {
+  it('reports corruption instead of silently returning an empty collection', async () => {
     await fs.writeFile(join(dir, 'connections.json'), '{ not valid json ');
     await fs.writeFile(join(dir, 'settings.json'), 'also broken');
-    expect(await store.listConnections()).toEqual([]);
-    expect(await store.getSettings()).toMatchObject({ theme: 'neon-blue' });
+    await expect(store.listConnections()).rejects.toThrow(/corrupt.*connections\.json/i);
+    await expect(store.getSettings()).rejects.toThrow(/corrupt.*settings\.json/i);
+  });
+
+  it('recovers the last valid snapshot when the primary file is corrupt', async () => {
+    await store.upsertConnection(conn('a'));
+    await store.upsertConnection(conn('b'));
+    await fs.writeFile(join(dir, 'connections.json'), '{ not valid json ');
+
+    expect(await store.listConnections()).toEqual([expect.objectContaining({ id: 'a' })]);
   });
 });
 

@@ -60,8 +60,17 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
     setDirty(false);
   };
 
-  const workerAgents = useMemo(
-    () => agents.filter((a) => a.role === 'worker' && a.id !== draft.id),
+  const managerAgents = useMemo(
+    () =>
+      agents.filter((candidate) => {
+        if (candidate.id === draft.id || candidate.archived) return false;
+        if (draft.role === 'team-lead') return candidate.role === 'orchestrator';
+        return candidate.role === 'orchestrator' || candidate.role === 'team-lead';
+      }),
+    [agents, draft.id, draft.role]
+  );
+  const directReports = useMemo(
+    () => agents.filter((candidate) => candidate.reportsTo === draft.id),
     [agents, draft.id]
   );
   const availableSkills = SKILL_CATALOG.filter((s) => !draft.skills.includes(s.id));
@@ -77,13 +86,6 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
     [next[idx], next[j]] = [next[j], next[idx]];
     set({ skills: next });
   };
-  const toggleDelegate = (id: string) =>
-    set({
-      delegatesTo: draft.delegatesTo.includes(id)
-        ? draft.delegatesTo.filter((d) => d !== id)
-        : [...draft.delegatesTo, id]
-    });
-
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
@@ -105,10 +107,14 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
         <select
           className="field !w-auto !py-1.5 cursor-pointer"
           value={draft.role}
-          onChange={(e) => set({ role: e.target.value as AgentRole })}
+          onChange={(e) => {
+            const role = e.target.value as AgentRole;
+            set({ role, reportsTo: role === 'orchestrator' ? null : draft.reportsTo });
+          }}
         >
-          <option value="worker">Worker</option>
           <option value="orchestrator">Orchestrator</option>
+          <option value="team-lead">Team lead</option>
+          <option value="specialist">Specialist</option>
         </select>
         <button className="btn-primary !py-1.5" onClick={() => void save()} disabled={!dirty}>
           {dirty ? 'Save' : 'Saved'}
@@ -147,8 +153,7 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
           <div className="max-w-2xl mx-auto space-y-7">
             {draft.role === 'orchestrator' && (
               <div className="rounded-lg border border-neon/30 bg-neon/5 px-3 py-2 text-xs text-content-muted">
-                ◆ This orchestrator delegates tasks to the worker agents you select below. It should
-                not perform actions itself.
+                ◆ This is the single team root. It routes work, owns team memory, and synthesizes results.
               </div>
             )}
 
@@ -181,6 +186,23 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
                 </datalist>
               </div>
             </Section>
+
+            {draft.role !== 'orchestrator' && (
+              <Section title="Manager" hint="The canonical reporting edge used for routing and team layout.">
+                <select
+                  className="field cursor-pointer"
+                  value={draft.reportsTo ?? ''}
+                  onChange={(e) => set({ reportsTo: e.target.value || null })}
+                >
+                  <option value="">Select manager…</option>
+                  {managerAgents.map((manager) => (
+                    <option key={manager.id} value={manager.id}>
+                      {manager.name} · {manager.role}
+                    </option>
+                  ))}
+                </select>
+              </Section>
+            )}
 
             <Section title="soul.md" hint="Persona and operating instructions — used as the system prompt.">
               <textarea
@@ -310,30 +332,13 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
               </div>
             </Section>
 
-            {draft.role === 'orchestrator' && (
-              <Section title="Delegation" hint="Worker agents this orchestrator can hand tasks to.">
-                {workerAgents.length === 0 ? (
-                  <p className="text-xs text-content-faint">
-                    No worker agents yet. Create some workers to delegate to.
-                  </p>
+            {draft.role !== 'specialist' && (
+              <Section title="Direct reports" hint="Derived from each agent's manager; edit the report's Manager field to change it.">
+                {directReports.length === 0 ? (
+                  <p className="text-xs text-content-faint">No direct reports.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {workerAgents.map((w) => {
-                      const on = draft.delegatesTo.includes(w.id);
-                      return (
-                        <button
-                          key={w.id}
-                          onClick={() => toggleDelegate(w.id)}
-                          className={clsx(
-                            'chip cursor-pointer transition-colors',
-                            on ? 'border-neon/50 text-neon bg-neon/10' : 'hover:border-borderStrong'
-                          )}
-                        >
-                          {on && <CheckIcon className="w-3 h-3" />}
-                          {w.name}
-                        </button>
-                      );
-                    })}
+                    {directReports.map((report) => <span key={report.id} className="chip">{report.name}</span>)}
                   </div>
                 )}
               </Section>

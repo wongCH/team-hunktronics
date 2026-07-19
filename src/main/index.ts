@@ -2,11 +2,15 @@ import { app, BrowserWindow, shell } from 'electron';
 import { join } from 'path';
 import { Store } from './store';
 import { Vault } from './vault';
-import { registerIpc } from './ipc';
+import { registerIpc, registerPipelineIpc, registerScheduleIpc } from './ipc';
+import { MemoryService } from './memoryService';
+import { ScheduleService } from './scheduleService';
+import { PipelineService } from './pipelineService';
 
 app.setName('Agent Control Panel');
 
 let mainWindow: BrowserWindow | null = null;
+let scheduleService: ScheduleService | null = null;
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -53,7 +57,46 @@ app.whenReady().then(() => {
   const userDataDir = app.getPath('userData');
   const store = new Store(userDataDir);
   const vault = new Vault(userDataDir);
-  registerIpc({ getWindow: () => mainWindow, store, vault });
+  const memory = new MemoryService(userDataDir);
+  const { runService } = registerIpc({ getWindow: () => mainWindow, store, vault, memory });
+  scheduleService = new ScheduleService({
+    listSchedules: () => store.listSchedules(),
+    saveSchedule: (schedule) => store.saveSchedule(schedule),
+    getAgent: (id) => store.getAgent(id),
+    getConversation: (id) => store.getConversation(id),
+    saveConversation: (conversation) => store.saveConversation(conversation),
+    startRun: (command) => runService.start(command)
+  });
+  const pipelineService = new PipelineService({
+    getPipeline: (id) => store.getPipeline(id),
+    listExecutions: () => store.listPipelineExecutions(),
+    getExecution: (id) => store.getPipelineExecution(id),
+    saveExecution: (execution) => store.savePipelineExecution(execution),
+    listArtifacts: () => store.listArtifacts(),
+    saveArtifact: (artifact) => store.saveArtifact(artifact),
+    listAgents: () => store.listAgents(),
+    saveConversation: (conversation) => store.saveConversation(conversation),
+    getConversation: (id) => store.getConversation(id),
+    startRun: (command) => runService.start(command)
+  });
+  runService.subscribe((event) => {
+    void scheduleService?.handleRunEvent(event);
+    void pipelineService.handleRunEvent(event);
+    if (
+      event.type === 'state' &&
+      event.run.agentId &&
+      ['completed', 'failed', 'cancelled'].includes(event.run.status)
+    ) {
+      void memory.appendDailyLog(
+        event.run.agentId,
+        `## ${new Date(event.run.updatedAt).toISOString()} · Agent run\n- Run: ${event.run.id}\n- Conversation: ${event.run.conversationId}\n- Status: ${event.run.status}\n- Error: ${event.run.error ?? 'None'}`,
+        event.run.updatedAt
+      );
+    }
+  });
+  registerScheduleIpc(store, scheduleService);
+  registerPipelineIpc(store, pipelineService);
+  scheduleService.start();
 
   createWindow();
 
@@ -64,4 +107,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', () => {
+  scheduleService?.stop();
 });

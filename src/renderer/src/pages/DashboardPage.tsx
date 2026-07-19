@@ -37,7 +37,7 @@ export function DashboardPage() {
     setPage('chat');
   };
   const startNewChat = () => {
-    newConversation();
+    void newConversation();
     setPage('chat');
   };
   const openConversation = (id: string) => {

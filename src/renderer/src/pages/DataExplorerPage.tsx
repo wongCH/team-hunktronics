@@ -8,6 +8,13 @@ const COLLECTIONS: Array<{ id: LocalDataCollection; label: string }> = [
   { id: 'connections', label: 'Connections' },
   { id: 'conversations', label: 'Conversations' },
   { id: 'agents', label: 'Agents' },
+  { id: 'tasks', label: 'Tasks' },
+  { id: 'schedules', label: 'Schedules' },
+  { id: 'pipelines', label: 'Pipelines' },
+  { id: 'pipeline-executions', label: 'Pipeline runs' },
+  { id: 'artifacts', label: 'Artifacts' },
+  { id: 'tool-actions', label: 'Tool actions' },
+  { id: 'approvals', label: 'Approvals' },
   { id: 'traces', label: 'API traces' },
   { id: 'settings', label: 'Settings' }
 ];

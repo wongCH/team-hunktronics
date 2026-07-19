@@ -8,6 +8,7 @@ import type {
 } from '@shared/types';
 import type { Store } from './store';
 import type { Vault } from './vault';
+import type { MemoryService } from './memoryService';
 
 /**
  * Backlog coverage: US-101/US-102 (connection CRUD + test), US-202 (write-only
@@ -134,6 +135,21 @@ class FakeVault {
   }
 }
 
+class FakeMemory {
+  async list() {
+    return [];
+  }
+  async write(command: unknown) {
+    return command;
+  }
+  async search() {
+    return [];
+  }
+  async health() {
+    return { score: 100, totalBytes: 0, documentCount: 0, findings: [] };
+  }
+}
+
 let store: FakeStore;
 let vault: FakeVault;
 let send: ReturnType<typeof vi.fn>;
@@ -165,7 +181,8 @@ beforeEach(() => {
   registerIpc({
     getWindow: () => ({ webContents: { send } }) as never,
     store: store as unknown as Store,
-    vault: vault as unknown as Vault
+    vault: vault as unknown as Vault,
+    memory: new FakeMemory() as unknown as MemoryService
   });
 });
 
@@ -295,10 +312,10 @@ describe('chat (US-302 / FR-CHAT-04)', () => {
     expect(updates.length).toBeGreaterThanOrEqual(2);
     const lastTrace = updates[updates.length - 1][1].trace as ApiTrace;
     expect(lastTrace.status).toBe('done');
-    expect(lastTrace.response.content).toBe('Hi');
+    expect(lastTrace.response.preview).toBe('Hi');
   });
 
-  it('captures full response traces without truncation', async () => {
+  it('keeps only a bounded response preview and no raw prompt content', async () => {
     store.connections = [connection()];
     const long = 'x'.repeat(2500);
     getProviderMock.mockReturnValue({
@@ -313,8 +330,10 @@ describe('chat (US-302 / FR-CHAT-04)', () => {
     });
     await tick();
     const latest = store.traces[0];
-    expect(latest.response.content.length).toBe(2500);
-    expect(latest.response.content).toBe(long);
+    expect(latest.response.preview.length).toBe(2000);
+    expect(latest.response.characterCount).toBe(2500);
+    expect(latest.response.truncated).toBe(true);
+    expect(latest.request).not.toHaveProperty('messages');
     expect(latest.context).toMatchObject({ source: 'agent', agentId: 'a1', agentName: 'Worker' });
   });
 
@@ -347,8 +366,8 @@ describe('api traces', () => {
         providerType: 'openai',
         connectionId: 'c1',
         model: 'gpt-4o',
-        request: { messages: [], startedAt: 1 },
-        response: { content: 'ok', chunks: 1, doneAt: 2, error: null, cancelled: false },
+        request: { messageCount: 0, characterCount: 0, hasSystemContext: false, startedAt: 1 },
+        response: { preview: 'ok', characterCount: 2, truncated: false, chunks: 1, doneAt: 2, error: null, cancelled: false },
         context: { source: 'chat', agentId: null, agentName: null },
         status: 'done',
         createdAt: 1,

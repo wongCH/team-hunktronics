@@ -10,7 +10,7 @@ export function ConversationSidebar() {
     <aside className="w-64 shrink-0 flex flex-col bg-overlay border-r border-border">
       <div className="app-drag h-11 shrink-0" />
       <div className="px-3 pb-2">
-        <button className="btn-primary w-full app-no-drag" onClick={newConversation}>
+        <button className="btn-primary w-full app-no-drag" onClick={() => void newConversation()}>
           <PlusIcon className="w-4 h-4" /> New chat
         </button>
       </div>

@@ -5,6 +5,7 @@ import { useAgentStore } from '@/store/useAgentStore';
 import { useAppStore } from '@/store/useAppStore';
 import { AgentEditor } from '@/components/AgentEditor';
 import { CreateAgentModal } from '@/components/CreateAgentModal';
+import { TeamMap } from '@/components/TeamMap';
 import { PlusIcon } from '@/components/icons';
 
 function AgentRow({
@@ -31,10 +32,14 @@ function AgentRow({
       <span
         className={clsx(
           'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-sm',
-          agent.role === 'orchestrator' ? 'bg-neon/15 text-neon' : 'bg-white/5 text-content-muted'
+          agent.role === 'orchestrator'
+            ? 'bg-neon/15 text-neon'
+            : agent.role === 'team-lead'
+              ? 'bg-white/10 text-content'
+              : 'bg-white/5 text-content-muted'
         )}
       >
-        {agent.role === 'orchestrator' ? '◆' : '◈'}
+        {agent.role === 'orchestrator' ? '◆' : agent.role === 'team-lead' ? '◇' : '◈'}
       </span>
       <div className="min-w-0 flex-1">
         <div className="text-sm truncate">{agent.name}</div>
@@ -49,6 +54,7 @@ function AgentRow({
 export function AgentsPage() {
   const { agents, selectedId, init, select } = useAgentStore();
   const [creating, setCreating] = useState<AgentRole | null>(null);
+  const [view, setView] = useState<'map' | 'configure'>('map');
 
   useEffect(() => {
     void init();
@@ -56,23 +62,29 @@ export function AgentsPage() {
 
   const selected = agents.find((a) => a.id === selectedId) ?? null;
   const orchestrators = agents.filter((a) => a.role === 'orchestrator');
-  const workers = agents.filter((a) => a.role === 'worker');
+  const leads = agents.filter((a) => a.role === 'team-lead');
+  const specialists = agents.filter((a) => a.role === 'specialist');
+  const hasRoot = orchestrators.length > 0;
 
   return (
     <div className="flex-1 flex min-h-0">
       <aside className="w-72 shrink-0 flex flex-col bg-overlay border-r border-border">
         <div className="app-drag h-11 shrink-0" />
         <div className="px-3 pb-2 flex gap-2 app-no-drag">
-          <button className="btn-primary flex-1" onClick={() => setCreating('worker')}>
-            <PlusIcon className="w-4 h-4" /> Agent
-          </button>
-          <button
-            className="btn-outline !px-3"
-            title="Add orchestrator"
-            onClick={() => setCreating('orchestrator')}
-          >
-            ◆
-          </button>
+          {hasRoot ? (
+            <>
+              <button className="btn-primary flex-1" onClick={() => setCreating('specialist')}>
+                <PlusIcon className="w-4 h-4" /> Specialist
+              </button>
+              <button className="btn-outline !px-3" title="Add team lead" onClick={() => setCreating('team-lead')}>
+                ◇
+              </button>
+            </>
+          ) : (
+            <button className="btn-primary flex-1" onClick={() => setCreating('orchestrator')}>
+              <PlusIcon className="w-4 h-4" /> Create orchestrator
+            </button>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-4">
           {agents.length === 0 && (
@@ -97,13 +109,30 @@ export function AgentsPage() {
               </div>
             </div>
           )}
-          {workers.length > 0 && (
+          {leads.length > 0 && (
             <div>
               <div className="px-3 mb-1 text-[10px] uppercase tracking-wider text-content-faint">
-                Workers
+                Team leads
               </div>
               <div className="space-y-0.5">
-                {workers.map((a) => (
+                {leads.map((a) => (
+                  <AgentRow
+                    key={a.id}
+                    agent={a}
+                    active={a.id === selectedId}
+                    onClick={() => select(a.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          {specialists.length > 0 && (
+            <div>
+              <div className="px-3 mb-1 text-[10px] uppercase tracking-wider text-content-faint">
+                Specialists
+              </div>
+              <div className="space-y-0.5">
+                {specialists.map((a) => (
                   <AgentRow
                     key={a.id}
                     agent={a}
@@ -119,7 +148,37 @@ export function AgentsPage() {
 
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="app-drag h-11 shrink-0" />
-        {selected ? (
+        <div className="px-5 pb-3 border-b border-border flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold">Agent team</h1>
+            <p className="text-xs text-content-muted mt-0.5">One orchestrator, domain leads, and focused specialists.</p>
+          </div>
+          <div className="flex border border-border rounded-lg p-0.5">
+            {(['map', 'configure'] as const).map((mode) => (
+              <button
+                key={mode}
+                className={clsx(
+                  'px-3 py-1.5 text-xs rounded-md capitalize transition-colors',
+                  view === mode ? 'bg-neon/15 text-neon' : 'text-content-muted hover:text-content'
+                )}
+                onClick={() => setView(mode)}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+        </div>
+        {view === 'map' ? (
+          <TeamMap
+            agents={agents.filter((agent) => !agent.archived)}
+            selectedId={selectedId}
+            onSelect={select}
+            onConfigure={(id) => {
+              select(id);
+              setView('configure');
+            }}
+          />
+        ) : selected ? (
           <AgentEditor key={selected.id} agent={selected} />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
@@ -128,15 +187,12 @@ export function AgentsPage() {
             </div>
             <h2 className="text-lg font-semibold mb-1">Build a multi-agent system</h2>
             <p className="text-content-muted text-sm max-w-md mb-5">
-              Create an orchestrator that delegates, plus worker agents — each with its own LLM,
-              soul.md, tools, skill chain, and autonomy level.
+              Start with one orchestrator, then add domain leads and focused specialists. Each agent
+              has its own LLM, character, tools, skill chain, and autonomy policy.
             </p>
             <div className="flex gap-2">
               <button className="btn-primary" onClick={() => setCreating('orchestrator')}>
                 New orchestrator
-              </button>
-              <button className="btn-outline" onClick={() => setCreating('worker')}>
-                New worker
               </button>
             </div>
           </div>
@@ -150,6 +206,7 @@ export function AgentsPage() {
           onCreated={(id) => {
             setCreating(null);
             select(id);
+            setView('configure');
           }}
         />
       )}

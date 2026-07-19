@@ -4,7 +4,10 @@ import { useChatStore } from '@/store/useChatStore';
 import { NavRail } from '@/components/NavRail';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { AgentsPage } from '@/pages/AgentsPage';
+import { TasksPage } from '@/pages/TasksPage';
 import { ChatPage } from '@/pages/ChatPage';
+import { MemoryPage } from '@/pages/MemoryPage';
+import { OperationsPage } from '@/pages/OperationsPage';
 import { DataExplorerPage } from '@/pages/DataExplorerPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 
@@ -33,7 +36,10 @@ export default function App() {
       <main className="flex-1 flex flex-col min-w-0">
         {page === 'dashboard' && <DashboardPage />}
         {page === 'agents' && <AgentsPage />}
+        {page === 'tasks' && <TasksPage />}
         {page === 'chat' && <ChatPage />}
+        {page === 'memory' && <MemoryPage />}
+        {page === 'operations' && <OperationsPage />}
         {page === 'data' && <DataExplorerPage />}
         {page === 'settings' && <SettingsPage />}
       </main>

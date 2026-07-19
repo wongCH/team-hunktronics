@@ -9,7 +9,7 @@ import type {
 import { PROVIDER_META } from '@shared/types';
 import { api } from '@/lib/api';
 
-export type Page = 'dashboard' | 'agents' | 'chat' | 'data' | 'settings';
+export type Page = 'dashboard' | 'agents' | 'tasks' | 'chat' | 'memory' | 'operations' | 'data' | 'settings';
 
 interface AppState {
   ready: boolean;

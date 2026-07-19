@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './globals.css';
+import '@xyflow/react/dist/style.css';
 import 'highlight.js/styles/github-dark-dimmed.css';
 
 const container = document.getElementById('root');
