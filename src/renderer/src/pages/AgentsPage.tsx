@@ -76,22 +76,22 @@ export function AgentsPage() {
           {hasRoot ? (
             <>
               <button className="btn-primary flex-1" onClick={() => setCreating('specialist')}>
-                <PlusIcon className="w-4 h-4" /> Specialist
+                <PlusIcon className="w-4 h-4" /> Sub-agent
               </button>
-              <button className="btn-outline !px-3" title="Add team lead" onClick={() => setCreating('team-lead')}>
-                ◇
+              <button className="btn-outline flex-1" onClick={() => setCreating('team-lead')}>
+                <PlusIcon className="w-4 h-4" /> Team lead
               </button>
             </>
           ) : (
             <button className="btn-primary flex-1" onClick={() => setCreating('orchestrator')}>
-              <PlusIcon className="w-4 h-4" /> Create orchestrator
+              <PlusIcon className="w-4 h-4" /> Create team
             </button>
           )}
         </div>
         <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-4">
           {agents.length === 0 && (
             <div className="px-3 py-8 text-center text-xs text-content-faint">
-              No agents yet. Create an orchestrator and some workers.
+              No team yet. Create one, then add leads and specialists.
             </div>
           )}
           {orchestrators.length > 0 && (
@@ -201,7 +201,7 @@ export function AgentsPage() {
             </p>
             <div className="flex gap-2">
               <button className="btn-primary" onClick={() => setCreating('orchestrator')}>
-                New orchestrator
+                Create team
               </button>
             </div>
           </div>

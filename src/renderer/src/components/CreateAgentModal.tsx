@@ -63,9 +63,13 @@ export function CreateAgentModal({
   onCreated: (id: string) => void;
 }) {
   const settings = useAppStore((s) => s.settings);
-  const createAgent = useAgentStore((s) => s.createAgent);
+  const { agents, createAgent } = useAgentStore();
+  const hasRoot = agents.some((agent) => agent.role === 'orchestrator' && !agent.archived);
 
-  const [type, setType] = useState<AgentRole>(initialRole);
+  const [type, setType] = useState<AgentRole>(
+    hasRoot ? (initialRole === 'orchestrator' ? 'specialist' : initialRole) : 'orchestrator'
+  );
+  const [managerId, setManagerId] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [description, setDescription] = useState('');
@@ -76,10 +80,25 @@ export function CreateAgentModal({
   const connId = settings?.activeConnectionId ?? null;
   const model = settings?.activeModel ?? null;
   const aiAvailable = Boolean(connId && model);
+  const availableTypes: AgentRole[] = hasRoot ? ['team-lead', 'specialist'] : ['orchestrator'];
+  const managers = agents.filter(
+    (agent) =>
+      !agent.archived &&
+      (type === 'team-lead'
+        ? agent.role === 'orchestrator'
+        : agent.role === 'orchestrator' || agent.role === 'team-lead')
+  );
+  const selectedManagerId = managers.some((manager) => manager.id === managerId)
+    ? managerId
+    : (managers[0]?.id ?? '');
 
   const submit = async () => {
     if (!name.trim()) {
       setError('Please enter a name.');
+      return;
+    }
+    if (type !== 'orchestrator' && !selectedManagerId) {
+      setError('Please select a manager for this team member.');
       return;
     }
     setBusy(true);
@@ -96,7 +115,8 @@ export function CreateAgentModal({
         role: type,
         name: name.trim(),
         title: role.trim() || undefined,
-        soul
+        soul,
+        reportsTo: type === 'orchestrator' ? null : selectedManagerId
       });
       onCreated(agent.id);
     } catch (e) {
@@ -108,7 +128,7 @@ export function CreateAgentModal({
 
   return (
     <Modal
-      title="New agent"
+      title={hasRoot ? 'Add team member' : 'Create team'}
       onClose={onClose}
       footer={
         <>
@@ -120,14 +140,20 @@ export function CreateAgentModal({
             onClick={() => void submit()}
             disabled={busy || !name.trim()}
           >
-            {busy ? (useAI ? 'Generating soul.md…' : 'Creating…') : 'Create agent'}
+            {busy
+              ? useAI
+                ? 'Generating soul.md…'
+                : 'Creating…'
+              : hasRoot
+                ? 'Add to team'
+                : 'Create team'}
           </button>
         </>
       }
     >
       <div className="space-y-4">
         <div className="flex gap-2">
-          {(['orchestrator', 'team-lead', 'specialist'] as const).map((t) => (
+          {availableTypes.map((t) => (
             <button
               key={t}
               onClick={() => setType(t)}
@@ -142,6 +168,26 @@ export function CreateAgentModal({
             </button>
           ))}
         </div>
+
+        {type !== 'orchestrator' && (
+          <div>
+            <label className="label">Manager</label>
+            <select
+              className="field cursor-pointer"
+              value={selectedManagerId}
+              onChange={(event) => setManagerId(event.currentTarget.value)}
+            >
+              {managers.map((manager) => (
+                <option key={manager.id} value={manager.id}>
+                  {manager.name} · {manager.role}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-content-faint mt-1">
+              This creates the reporting edge shown in the team map.
+            </p>
+          </div>
+        )}
 
         <div>
           <label className="label">Name</label>
@@ -199,7 +245,10 @@ export function CreateAgentModal({
         </label>
 
         {error && (
-          <div className="text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+          <div
+            className="text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2"
+            role="alert"
+          >
             {error}
           </div>
         )}

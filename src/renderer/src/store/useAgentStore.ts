@@ -8,6 +8,7 @@ interface CreateAgentInput {
   name?: string;
   title?: string;
   soul?: string;
+  reportsTo?: string | null;
 }
 
 interface AgentState {
@@ -35,7 +36,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   select: (id) => set({ selectedId: id }),
 
-  createAgent: async ({ role, name, title, soul }) => {
+  createAgent: async ({ role, name, title, soul, reportsTo }) => {
     const now = Date.now();
     const root = get().agents.find((agent) => agent.role === 'orchestrator' && !agent.archived);
     const agent: AgentConfig = {
@@ -47,7 +48,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         title?.trim() ||
         (role === 'orchestrator' ? 'Chief of Staff' : role === 'team-lead' ? 'Domain lead' : 'Specialist'),
       role,
-      reportsTo: role === 'orchestrator' ? null : root?.id ?? null,
+      reportsTo: role === 'orchestrator' ? null : (reportsTo ?? root?.id ?? null),
       connectionId: null,
       model: null,
       soul: soul?.trim() ? soul : role === 'orchestrator' ? DEFAULT_ORCHESTRATOR_SOUL : DEFAULT_WORKER_SOUL,

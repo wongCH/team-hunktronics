@@ -320,7 +320,7 @@ export const APP_THEMES = [
 
 export type AppTheme = (typeof APP_THEMES)[number]['id'];
 
-export const DEFAULT_APP_THEME: AppTheme = 'linear-indigo';
+export const DEFAULT_APP_THEME: AppTheme = 'indigo-nebula';
 
 export function isAppTheme(value: unknown): value is AppTheme {
   return typeof value === 'string' && APP_THEMES.some((theme) => theme.id === value);

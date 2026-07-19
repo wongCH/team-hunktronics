@@ -26,6 +26,9 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
 
   const [draft, setDraft] = useState<AgentConfig>(agent);
   const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [tab, setTab] = useState<'configure' | 'test'>('configure');
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [uploadedSkills, setUploadedSkills] = useState<SkillMeta[]>([]);
@@ -33,6 +36,9 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
   useEffect(() => {
     setDraft(agent);
     setDirty(false);
+    setSaving(false);
+    setSaved(false);
+    setSaveError(null);
     setTab('configure');
   }, [agent.id]);
 
@@ -58,11 +64,23 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
   const set = (patch: Partial<AgentConfig>) => {
     setDraft((d) => ({ ...d, ...patch }));
     setDirty(true);
+    setSaved(false);
+    setSaveError(null);
   };
 
   const save = async () => {
-    await saveAgent(draft);
-    setDirty(false);
+    setSaving(true);
+    setSaved(false);
+    setSaveError(null);
+    try {
+      await saveAgent(draft);
+      setDirty(false);
+      setSaved(true);
+    } catch (reason) {
+      setSaveError((reason as Error).message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const managerAgents = useMemo(
@@ -125,8 +143,12 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
           <option value="team-lead">Team lead</option>
           <option value="specialist">Specialist</option>
         </select>
-        <button className="btn-primary !py-1.5" onClick={() => void save()} disabled={!dirty}>
-          {dirty ? 'Save' : 'Saved'}
+        <button
+          className="btn-primary !py-1.5"
+          onClick={() => void save()}
+          disabled={!dirty || saving}
+        >
+          {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
         </button>
         <button
           className="btn-danger !py-1.5"
@@ -136,6 +158,22 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
           <TrashIcon className="w-4 h-4" />
         </button>
       </div>
+      {saveError && (
+        <div
+          className="px-5 py-2 text-xs text-red-300 bg-red-500/10 border-b border-red-500/30"
+          role="alert"
+        >
+          Could not save agent: {saveError}
+        </div>
+      )}
+      {saved && (
+        <div
+          className="px-5 py-2 text-xs text-emerald-300 bg-emerald-400/10 border-b border-emerald-400/30"
+          role="status"
+        >
+          Agent saved.
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="px-5 pt-3 flex gap-1 border-b border-border">
@@ -242,6 +280,12 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
                   );
                 })}
               </div>
+              {draft.role === 'specialist' && draft.tools.includes('code') && (
+                <p className="text-xs text-amber-300">
+                  Specialists cannot use Code run. Remove it or change this agent to Team lead
+                  before saving.
+                </p>
+              )}
             </Section>
 
             <Section title="Skill chain" hint="Ordered built-in and uploaded instructions added to every run.">
