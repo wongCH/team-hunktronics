@@ -81,7 +81,7 @@ export interface RunServiceDeps {
   getAgent: (id: string) => Promise<AgentConfig | undefined>;
   listAgents: () => Promise<AgentConfig[]>;
   getConnection: (id: string) => Promise<ConnectionConfig | undefined>;
-  getDefaultTarget: () => Promise<{
+  getDefaultTarget: (query?: string) => Promise<{
     connectionId: string | null;
     model: string | null;
     llmWikiContext?: string;
@@ -525,7 +525,7 @@ export class RunService {
       throw new Error('Delegation loop detected.');
     }
 
-    const defaultTarget = await this.deps.getDefaultTarget();
+    const defaultTarget = await this.deps.getDefaultTarget(userContent);
     const connectionId = agent
       ? agent.connectionId
       : (defaultTarget.connectionId ?? conversation.connectionId);

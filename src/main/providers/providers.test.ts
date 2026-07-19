@@ -156,7 +156,29 @@ describe('OpenAI-compatible — streaming chat (US-301)', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('https://api.test/v1/chat/completions');
     const sent = JSON.parse(init.body);
-    expect(sent).toMatchObject({ model: 'gpt-4o', stream: true, temperature: 0.2, max_tokens: 256 });
+    expect(sent).toMatchObject({
+      model: 'gpt-4o',
+      stream: true,
+      temperature: 0.2,
+      max_tokens: 256
+    });
+  });
+
+  it('disables extended thinking for local Qwen 3 models', async () => {
+    fetchMock.mockResolvedValue({ ok: true, body: sseBody(['[DONE]']) });
+
+    await openaiChatStream(
+      { baseUrl: 'http://127.0.0.1:1234/v1', headers: {} },
+      'qwen/qwen3.6-27b',
+      [{ role: 'user', content: 'hi' }],
+      undefined,
+      new AbortController().signal,
+      collector()
+    );
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+      chat_template_kwargs: { enable_thinking: false }
+    });
   });
 
   it('streams Responses API output text deltas', async () => {

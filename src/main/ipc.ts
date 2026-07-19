@@ -217,12 +217,12 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
     getAgent: (id) => store.getAgent(id),
     listAgents: () => store.listAgents(),
     getConnection: (id) => store.getConnection(id),
-    getDefaultTarget: async () => {
+    getDefaultTarget: async (query) => {
       const settings = await store.getSettings();
       return {
         connectionId: settings.activeConnectionId,
         model: settings.activeModel,
-        llmWikiContext: await llmWiki.loadContext(settings.llmWikiPath)
+        llmWikiContext: await llmWiki.loadContext(settings.llmWikiPath, query)
       };
     },
     getMemory: (agentId, query) => memory.getRunContext(agentId, query ?? ''),

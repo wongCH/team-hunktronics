@@ -10,6 +10,17 @@ export interface OpenAICompatOptions {
 
 const responsesOnlyModels = new Set<string>();
 
+function isLocalQwenThinkingModel(opts: OpenAICompatOptions, model: string): boolean {
+  try {
+    const url = new URL(opts.baseUrl);
+    const localLmStudio =
+      url.port === '1234' && (url.hostname === '127.0.0.1' || url.hostname === 'localhost');
+    return localLmStudio && /(?:^|[/_-])qwen3(?:[.\-_]|$)/i.test(model);
+  } catch {
+    return false;
+  }
+}
+
 /** Shared model listing for OpenAI-compatible `/models` endpoints. */
 export async function openaiListModels(opts: OpenAICompatOptions): Promise<ModelInfo[]> {
   const res = await fetch(`${opts.baseUrl}/models`, { headers: opts.headers });
@@ -87,6 +98,9 @@ export async function openaiChatStream(
   };
   if (params?.temperature !== undefined) body.temperature = params.temperature;
   if (params?.maxTokens !== undefined) body.max_tokens = params.maxTokens;
+  if (isLocalQwenThinkingModel(opts, model)) {
+    body.chat_template_kwargs = { enable_thinking: false };
+  }
 
   const res = await fetch(`${opts.baseUrl}/chat/completions`, {
     method: 'POST',

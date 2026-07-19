@@ -16,6 +16,7 @@ afterEach(async () => {
 
 async function makeVault(path: string): Promise<void> {
   await fs.mkdir(join(path, 'entities', 'priorities', 'personal'), { recursive: true });
+  await fs.mkdir(join(path, 'entities', 'companies'), { recursive: true });
   await fs.mkdir(join(path, 'reviews'), { recursive: true });
   await fs.mkdir(join(path, 'raw'), { recursive: true });
   await fs.writeFile(join(path, 'SCHEMA.md'), '# Rules\n\nAlways ask before writing.');
@@ -25,6 +26,10 @@ async function makeVault(path: string): Promise<void> {
     '# Index\n\n## Priorities\n- [[entities/priorities/personal/focus]]\n\n## Projects\n- Project Alpha'
   );
   await fs.writeFile(join(path, 'log.md'), '# Log\n\n## [2026-07-19] query | Current priorities');
+  await fs.writeFile(
+    join(path, 'entities', 'companies', 'lta.md'),
+    `# LTA\n\n${'overview '.repeat(300)}Azure endpoint: ${'transport context '.repeat(1200)}`
+  );
   await fs.writeFile(join(path, 'raw', 'secret.md'), 'Do not load this raw file.');
 }
 
@@ -48,7 +53,10 @@ describe('LlmWikiService', () => {
     const service = new LlmWikiService([]);
     const first = await service.create(dir);
     const second = await service.create(dir);
-    expect(first).toMatchObject({ state: 'ready', path: await fs.realpath(join(dir, 'LLM-Vault')) });
+    expect(first).toMatchObject({
+      state: 'ready',
+      path: await fs.realpath(join(dir, 'LLM-Vault'))
+    });
     expect(second.path).toBe(first.path);
     expect(await fs.readFile(join(first.path!, 'identity.md'), 'utf8')).toContain('Human Identity');
   });
@@ -56,11 +64,17 @@ describe('LlmWikiService', () => {
   it('loads bounded human context and excludes raw sources', async () => {
     const vault = join(dir, 'vault');
     await makeVault(vault);
-    const context = await new LlmWikiService([]).loadContext(vault);
+    const context = await new LlmWikiService([]).loadContext(
+      vault,
+      'What is the LTA Azure endpoint?'
+    );
     expect(context).toContain('Name: Human User');
     expect(context).toContain('Always ask before writing.');
     expect(context).toContain('Project Alpha');
+    expect(context).toContain('entities/companies/lta.md');
+    expect(context).toContain('Azure endpoint');
     expect(context).not.toContain('Do not load this raw file.');
+    expect(context.length).toBeLessThanOrEqual(8_000);
   });
 
   it('rejects files that escape through an intermediate symlink', async () => {
