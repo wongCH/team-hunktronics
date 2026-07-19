@@ -591,7 +591,7 @@
 
       <main>
         <header class="hero">
-          <div class="eyebrow">Implementation contract / 2026-07-19</div>
+          <div class="eyebrow">Implementation contract / 2026-07-20</div>
           <h1>Agent Control Panel</h1>
           <p class="subtitle">
             A local-first Electron command center for direct multi-provider chat, hierarchical AI
@@ -600,7 +600,7 @@
           </p>
           <div class="meta">
             <div class="meta-item"><span>Document</span><strong>ACP-TS-002</strong></div>
-            <div class="meta-item"><span>Spec revision</span><strong>0.2.2</strong></div>
+            <div class="meta-item"><span>Spec revision</span><strong>0.3.0</strong></div>
             <div class="meta-item"><span>Package version</span><strong>0.1.0</strong></div>
             <div class="meta-item"><span>Status</span><strong>Current implementation</strong></div>
             <div class="meta-item"><span>License</span><strong>MIT</strong></div>
@@ -654,6 +654,16 @@
                     documented immediate, lazy, and external agent dependencies.
                   </td>
                 </tr>
+                <tr>
+                  <td class="mono">0.3.0</td>
+                  <td>2026-07-20</td>
+                  <td>
+                    Added canonical per-agent SOUL.md storage, bounded 100+ agent routing and
+                    admission, scoped memory retrieval, durable compression, scheduler
+                    backpressure/retries, recoverable archival, retention, and branch-oriented team
+                    rendering.
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -661,7 +671,7 @@
             <div class="metric"><strong>8</strong><span>Renderer pages</span></div>
             <div class="metric"><strong>7</strong><span>Provider types</span></div>
             <div class="metric"><strong>6</strong><span>Selectable themes</span></div>
-            <div class="metric"><strong>157</strong><span>Passing automated tests</span></div>
+            <div class="metric"><strong>172</strong><span>Passing automated tests</span></div>
           </div>
         </section>
 
@@ -737,7 +747,9 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
             <div class="layer-label">Renderer</div>
             <div>
               React 18 pages and components; Zustand stores for application, chat, and agents; React
-              Flow plus Dagre for the team graph. No direct Node.js access.
+              Flow plus Dagre for the team graph. Teams above 60 agents render the root/lead spine
+              and selected branch only; activity updates do not rerun topology layout. No direct
+              Node.js access.
             </div>
           </div>
           <div class="layer">
@@ -942,6 +954,12 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
                   registration.
                 </li>
               </ul>
+              <div class="callout">
+                <strong>Persistence scale decision.</strong> The low-churn agent graph remains atomic
+                JSON with an in-process cache. High-churn daily appends are serialized and runtime work
+                is admission-bounded. SQLite is intentionally deferred until measured contention,
+                restart-safe queued work, or query volume exceeds these contracts.
+              </div>
             </article>
           </div>
 
@@ -969,14 +987,15 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
             <div class="flow-step">
               <b>4. Register + persist</b>
               A queued read-modify-write inserts the agent, derives every manager's
-              <code>delegatesTo</code>, validates the full hierarchy, then atomically writes
-              <code>agents.json</code>.
+              <code>delegatesTo</code>, validates the full hierarchy, atomically writes metadata to
+              <code>agents.json</code>, and writes the canonical identity to
+              <code>agents/&lt;id&gt;/SOUL.md</code>.
             </div>
             <div class="flow-step">
               <b>5. Complete</b>
               The normalized roster returns to the renderer, the new agent is selected, and
-              <code>onCreated</code> advances the UI to that agent. No per-agent folder is created
-              in this transaction.
+              <code>onCreated</code> advances the UI to that agent. The new identity file is loaded
+              through a targeted IPC read when the editor opens.
             </div>
           </div>
           <div class="callout">
@@ -987,8 +1006,10 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
 
           <h4>Filesystem and dependent artifacts</h4>
           <div class="callout warning">
-            <strong>Not an execution workspace.</strong> The current implementation has no per-agent
-            checkout, working directory, sandbox, or arbitrary file workspace. The physical path
+            <strong>Identity, not an execution workspace.</strong> Every saved agent owns
+            <code>&lt;userData&gt;/agents/&lt;agent-id&gt;/SOUL.md</code>, but the implementation
+            still has no per-agent checkout, working directory, sandbox, or arbitrary file
+            workspace. The separate physical path
             <code>&lt;userData&gt;/memory/agents/&lt;agent-id&gt;/</code> is a managed Markdown
             memory scope and is created lazily, not when the agent record is saved. On macOS,
             <code>&lt;userData&gt;</code> is typically
@@ -1007,9 +1028,10 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
                 <tr>
                   <td>Agent save</td>
                   <td>
-                    One entry inside <code>&lt;userData&gt;/agents.json</code>; the manager's
-                    derived <code>delegatesTo</code> list is recomputed in the same roster. A valid
-                    prior roster is retained as <code>agents.json.bak</code>.
+                    Metadata inside <code>&lt;userData&gt;/agents.json</code> plus canonical identity
+                    at <code>&lt;userData&gt;/agents/&lt;id&gt;/SOUL.md</code>. The manager's derived
+                    <code>delegatesTo</code> list is recomputed in the same roster. A valid prior
+                    roster is retained as <code>agents.json.bak</code>.
                   </td>
                   <td>
                     A valid non-specialist manager is required for non-orchestrators. The active
@@ -1019,13 +1041,12 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
                 <tr>
                   <td>Agent defaults</td>
                   <td>
-                    UUID, icon, name, title, role, inline soul text, canonical
-                    <code>reportsTo</code>, draft autonomy, and timestamps.
+                    UUID, icon, name, title, role, <code>soulPath</code>, compact routing
+                    capabilities, canonical <code>reportsTo</code>, draft autonomy, and timestamps.
                   </td>
                   <td>
                     <code>connectionId</code> and <code>model</code> are null; tools and skills are
-                    empty. The editor's <code>soul.md</code> label does not represent a separate
-                    physical file.
+                    empty. Editable soul content is not duplicated in <code>agents.json</code>.
                   </td>
                 </tr>
                 <tr>
@@ -1064,8 +1085,10 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
             </table>
           </div>
           <p>
-            Agent deletion removes the roster entry but does not currently remove an existing
-            managed-memory directory. Memory cleanup is therefore a separate lifecycle concern.
+            Removing an agent is a recoverable soft archive. Active runs block archival; the roster
+            metadata, SOUL.md, conversations, tasks, schedules, pipelines, artifacts, and memory are
+            retained. Archived agents leave routing immediately and appear under
+            <em>Removed</em> for explicit restoration.
           </p>
 
           <h3>4.3 Routing priority</h3>
@@ -1076,7 +1099,8 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
           <ol>
             <li>
               The manager scores active direct reports and specialists under each direct-report
-              branch using names, titles, skill IDs, and bounded soul capability text.
+              branch using names, titles, skill IDs, and persisted compact capability manifests.
+              Candidate enumeration never loads every SOUL.md.
             </li>
             <li>
               Explicit agent-name matches receive the highest score. Specialists qualify with one
@@ -1132,7 +1156,18 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
                 </tr>
                 <tr>
                   <td>Capability profile</td>
-                  <td>Maximum 2,000 soul characters per routed agent.</td>
+                  <td>Maximum 300 characters per persisted routing profile.</td>
+                </tr>
+                <tr>
+                  <td>Routing roster</td>
+                  <td>Top five candidates; routing instructions are capped at 8,000 characters.</td>
+                </tr>
+                <tr>
+                  <td>Provider admission</td>
+                  <td>
+                    Atomic limits: eight global calls, four per connection, three per team, and one
+                    per agent.
+                  </td>
                 </tr>
                 <tr>
                   <td>Target validation</td>
@@ -1218,8 +1253,9 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
                   <tr>
                     <td class="mono">AgentConfig</td>
                     <td>
-                      Name/icon/title, role, reportsTo, connection/model, soul, tools, ordered
-                      skills, autonomy, derived delegatesTo, archive flag.
+                      Name/icon/title, role, reportsTo, connection/model, targeted soul hydration,
+                      soulPath, compact capabilities, tools, ordered skills, autonomy, derived
+                      delegatesTo, archive flag.
                     </td>
                   </tr>
                   <tr>
@@ -1376,8 +1412,13 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
                 </tr>
                 <tr>
                   <td class="mono">agents.json</td>
-                  <td>Normalized, validated team graph.</td>
-                  <td>Atomic queued update.</td>
+                  <td>Normalized team metadata and compact routing manifests; no editable souls.</td>
+                  <td>Cached reads plus atomic queued updates.</td>
+                </tr>
+                <tr>
+                  <td class="mono">agents/&lt;agent-id&gt;/SOUL.md</td>
+                  <td>Canonical persona and operating instructions.</td>
+                  <td>Confined targeted read and atomic mode-0600 write.</td>
                 </tr>
                 <tr>
                   <td class="mono">tasks.json</td>
@@ -1451,25 +1492,35 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
     YYYY-MM-DD.md
     &lt;evergreen&gt;.md
     archive/
-  .history/</code></pre>
+  .history/
+  .compression/</code></pre>
           <ul>
             <li>
               Only <code>team/MEMORY.md</code> is initialized automatically when memory is first
-              accessed. Agent directories and documents are lazy first-use artifacts.
+              accessed. Agent memory directories and documents are lazy first-use artifacts.
             </li>
             <li>
               Safe Markdown names and path confinement prevent writes outside the managed root.
             </li>
             <li>Documents are limited to 100 KB; baseline files are limited to 200 lines.</li>
             <li>Optimistic revision checks prevent overwriting a concurrently changed document.</li>
-            <li>Previous versions are retained under <code>.history</code>.</li>
-            <li>Terminal agent runs append dated per-agent daily log entries.</li>
             <li>
-              Search is local lexical scoring; health checks detect size, age, duplicates, missing
-              links, and baseline limits.
+              Previous versions are retained under <code>.history</code> for 30 days; daily logs
+              archive after 60 days and archives retain for 365 days.
             </li>
             <li>
-              Compression is propose-then-apply; accepted source daily logs move into archive.
+              Same-agent/day terminal appends are serialized and retain bounded outcome summaries,
+              artifact references, status, and errors without copying raw prompts.
+            </li>
+            <li>
+              Trusted runs direct-read team and selected-agent baselines, then retrieve at most five
+              lexical excerpts from only those authorized scopes. Global browsing remains available
+              to the memory UI.
+            </li>
+            <li>
+              Compression is propose-then-apply; proposal state persists under
+              <code>.compression</code> across restarts and accepted source daily logs move into
+              archive.
             </li>
           </ul>
 
@@ -1870,8 +1921,9 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
               key.
             </li>
             <li>
-              Definitions persist <code>maxAttempts</code>, but no automatic retry loop currently
-              consumes it.
+              Due bursts admit at most four schedules at once. Overflow remains due for the next
+              poll, and failed starts or terminal failures retry up to <code>maxAttempts</code> with
+              distinct idempotency keys.
             </li>
             <li>
               There is no OS daemon; schedules do not run while the desktop application is closed.
@@ -2013,7 +2065,7 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
 
           <h3>12.2 Automated verification snapshot</h3>
           <p>
-            On 2026-07-19, the repository passed <b>18 test files / 157 tests</b>, TypeScript
+            On 2026-07-20, the repository passed <b>19 test files / 172 tests</b>, TypeScript
             checking, and the production Electron build.
           </p>
           <div class="chips">
@@ -2030,6 +2082,7 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
             <span class="chip">Schedules</span>
             <span class="chip">Tool policy</span>
             <span class="chip">IPC</span>
+            <span class="chip">100 / 250 / 1,000-agent scale fixtures</span>
           </div>
           <p>
             Current Vitest configuration uses a Node environment. There are store/library tests in
@@ -2081,8 +2134,11 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
                 </tr>
                 <tr>
                   <td>Schedules</td>
-                  <td>Cron/timezone, app-open polling, manual run-now, status.</td>
-                  <td>No background daemon or automatic retry consumption.</td>
+                  <td>
+                    Cron/timezone, app-open polling, four-run burst cap, bounded retries, manual
+                    run-now, status.
+                  </td>
+                  <td>No OS background daemon while the application is closed.</td>
                 </tr>
                 <tr>
                   <td>Release</td>
@@ -2199,8 +2255,8 @@ vitest.config.ts        Node test and V8 coverage configuration</code></pre>
         </section>
 
         <footer>
-          Agent Control Panel technical specification ACP-TS-002, revision 0.2.2, updated
-          2026-07-19. Repository behavior was verified against the current source and automated
+          Agent Control Panel technical specification ACP-TS-002, revision 0.3.0, updated
+          2026-07-20. Repository behavior was verified against the current source and automated
           checks. Update this document when architecture or observable contracts change.
         </footer>
       </main>

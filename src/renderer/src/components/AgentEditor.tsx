@@ -22,7 +22,7 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
 }
 
 export function AgentEditor({ agent }: { agent: AgentConfig }) {
-  const { saveAgent, deleteAgent, hydrateAgent, agents } = useAgentStore();
+  const { saveAgent, restoreAgent, deleteAgent, hydrateAgent, agents } = useAgentStore();
   const connections = useAppStore((s) => s.connections);
 
   const [draft, setDraft] = useState<AgentConfig>(agent);
@@ -120,7 +120,9 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
   const availableSkills = skillCatalog.filter((s) => !draft.skills.includes(s.id));
 
   const toggleTool = (id: string) =>
-    set({ tools: draft.tools.includes(id) ? draft.tools.filter((t) => t !== id) : [...draft.tools, id] });
+    set({
+      tools: draft.tools.includes(id) ? draft.tools.filter((t) => t !== id) : [...draft.tools, id]
+    });
   const addSkill = (id: string) => id && set({ skills: [...draft.skills, id] });
   const removeSkill = (id: string) => set({ skills: draft.skills.filter((s) => s !== id) });
   const moveSkill = (idx: number, dir: -1 | 1) => {
@@ -167,13 +169,23 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
         >
           {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
         </button>
-        <button
-          className="btn-danger !py-1.5"
-          onClick={() => void deleteAgent(draft.id)}
-          title="Delete agent"
-        >
-          <TrashIcon className="w-4 h-4" />
-        </button>
+        {draft.archived ? (
+          <button
+            className="btn-outline !py-1.5"
+            onClick={() => void restoreAgent(draft.id)}
+            title="Restore agent"
+          >
+            Restore
+          </button>
+        ) : (
+          <button
+            className="btn-danger !py-1.5"
+            onClick={() => void deleteAgent(draft.id)}
+            title="Archive agent"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        )}
       </div>
       {saveError && (
         <div
@@ -224,7 +236,8 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
 
             {draft.role === 'orchestrator' && (
               <div className="rounded-lg border border-neon/30 bg-neon/5 px-3 py-2 text-xs text-content-muted">
-                ◆ This is the single team root. It routes work, owns team memory, and synthesizes results.
+                ◆ This is the single team root. It routes work, owns team memory, and synthesizes
+                results.
               </div>
             )}
 
@@ -259,7 +272,10 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
             </Section>
 
             {draft.role !== 'orchestrator' && (
-              <Section title="Manager" hint="The canonical reporting edge used for routing and team layout.">
+              <Section
+                title="Manager"
+                hint="The canonical reporting edge used for routing and team layout."
+              >
                 <select
                   className="field cursor-pointer"
                   value={draft.reportsTo ?? ''}
@@ -275,7 +291,10 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
               </Section>
             )}
 
-            <Section title="SOUL.md" hint="Canonical persona and operating instructions loaded from the agent folder.">
+            <Section
+              title="SOUL.md"
+              hint="Canonical persona and operating instructions loaded from the agent folder."
+            >
               <textarea
                 className="field font-mono text-xs leading-relaxed min-h-[180px]"
                 value={draft.soul}
@@ -286,7 +305,10 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
               />
             </Section>
 
-            <Section title="Tools" hint="Capabilities the agent may use (execution wiring coming next).">
+            <Section
+              title="Tools"
+              hint="Capabilities the agent may use (execution wiring coming next)."
+            >
               <div className="flex flex-wrap gap-2">
                 {TOOL_CATALOG.map((t) => {
                   const on = draft.tools.includes(t.id);
@@ -314,16 +336,16 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
               )}
             </Section>
 
-            <Section title="Skill chain" hint="Ordered built-in and uploaded instructions added to every run.">
+            <Section
+              title="Skill chain"
+              hint="Ordered built-in and uploaded instructions added to every run."
+            >
               {draft.skills.length > 0 && (
                 <div className="space-y-1.5 mb-2">
                   {draft.skills.map((sid, idx) => {
                     const meta = skillCatalog.find((s) => s.id === sid);
                     return (
-                      <div
-                        key={sid}
-                        className="flex items-center gap-2 panel bg-overlay px-3 py-2"
-                      >
+                      <div key={sid} className="flex items-center gap-2 panel bg-overlay px-3 py-2">
                         <span className="w-5 h-5 rounded-full bg-neon/15 text-neon text-[11px] flex items-center justify-center shrink-0">
                           {idx + 1}
                         </span>
@@ -412,12 +434,19 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
             </Section>
 
             {draft.role !== 'specialist' && (
-              <Section title="Direct reports" hint="Derived from each agent's manager; edit the report's Manager field to change it.">
+              <Section
+                title="Direct reports"
+                hint="Derived from each agent's manager; edit the report's Manager field to change it."
+              >
                 {directReports.length === 0 ? (
                   <p className="text-xs text-content-faint">No direct reports.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {directReports.map((report) => <span key={report.id} className="chip">{report.name}</span>)}
+                    {directReports.map((report) => (
+                      <span key={report.id} className="chip">
+                        {report.name}
+                      </span>
+                    ))}
                   </div>
                 )}
               </Section>

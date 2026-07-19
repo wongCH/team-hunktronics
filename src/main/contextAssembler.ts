@@ -7,6 +7,7 @@ export interface ContextAssemblyInput {
   skills?: Array<{ name: string; instructions: string }>;
   teamMemory?: string;
   agentMemory?: string;
+  retrievedMemory?: string;
   history: ChatMessage[];
   userContent: string;
   contextWindow?: number;
@@ -54,7 +55,10 @@ export function assembleContext(input: ContextAssemblyInput): ContextAssemblyRes
   }
   const memorySections = [
     input.teamMemory?.trim() ? `## Team Memory\n${input.teamMemory.trim()}` : '',
-    input.agentMemory?.trim() ? `## Agent Memory\n${input.agentMemory.trim()}` : ''
+    input.agentMemory?.trim() ? `## Agent Memory\n${input.agentMemory.trim()}` : '',
+    input.retrievedMemory?.trim()
+      ? `## Relevant Memory Excerpts\n${input.retrievedMemory.trim()}`
+      : ''
   ].filter(Boolean);
   if (memorySections.length) {
     fixed.push({
@@ -63,9 +67,14 @@ export function assembleContext(input: ContextAssemblyInput): ContextAssemblyRes
     });
   }
   const current: ChatMessage = { role: 'user', content: input.userContent.trim() };
-  const fixedTokens = [...fixed, current].reduce((total, message) => total + messageTokens(message), 0);
+  const fixedTokens = [...fixed, current].reduce(
+    (total, message) => total + messageTokens(message),
+    0
+  );
   if (fixedTokens > budget) {
-    throw new Error('Required identity, memory, and current input exceed the model context budget.');
+    throw new Error(
+      'Required identity, memory, and current input exceed the model context budget.'
+    );
   }
 
   let remaining = budget - fixedTokens;

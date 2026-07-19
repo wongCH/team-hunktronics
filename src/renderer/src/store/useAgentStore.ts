@@ -22,6 +22,7 @@ interface AgentState {
   hydrateAgent: (id: string) => Promise<AgentConfig | undefined>;
   createAgent: (input: CreateAgentInput) => Promise<AgentConfig>;
   saveAgent: (agent: AgentConfig) => Promise<void>;
+  restoreAgent: (id: string) => Promise<void>;
   deleteAgent: (id: string) => Promise<void>;
 }
 
@@ -33,7 +34,12 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   init: async () => {
     if (get().loaded) return;
     const agents = await api.agents.list();
-    set({ agents, loaded: true, selectedId: get().selectedId ?? agents[0]?.id ?? null });
+    set({
+      agents,
+      loaded: true,
+      selectedId:
+        get().selectedId ?? agents.find((agent) => !agent.archived)?.id ?? agents[0]?.id ?? null
+    });
   },
 
   select: (id) => set({ selectedId: id }),
@@ -57,15 +63,27 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       icon: icon ?? DEFAULT_AGENT_ICONS[role],
       name:
         name?.trim() ||
-        (role === 'orchestrator' ? 'Orchestrator' : role === 'team-lead' ? 'Team lead' : 'Specialist'),
+        (role === 'orchestrator'
+          ? 'Orchestrator'
+          : role === 'team-lead'
+            ? 'Team lead'
+            : 'Specialist'),
       title:
         title?.trim() ||
-        (role === 'orchestrator' ? 'Chief of Staff' : role === 'team-lead' ? 'Domain lead' : 'Specialist'),
+        (role === 'orchestrator'
+          ? 'Chief of Staff'
+          : role === 'team-lead'
+            ? 'Domain lead'
+            : 'Specialist'),
       role,
       reportsTo: role === 'orchestrator' ? null : (reportsTo ?? root?.id ?? null),
       connectionId: null,
       model: null,
-      soul: soul?.trim() ? soul : role === 'orchestrator' ? DEFAULT_ORCHESTRATOR_SOUL : DEFAULT_WORKER_SOUL,
+      soul: soul?.trim()
+        ? soul
+        : role === 'orchestrator'
+          ? DEFAULT_ORCHESTRATOR_SOUL
+          : DEFAULT_WORKER_SOUL,
       soulPath: `agents/${id}/SOUL.md`,
       tools: [],
       skills: [],
@@ -76,7 +94,9 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     };
     const agents = await api.agents.save(agent);
     set({
-      agents: agents.map((candidate) => (candidate.id === agent.id ? { ...candidate, soul: agent.soul } : candidate)),
+      agents: agents.map((candidate) =>
+        candidate.id === agent.id ? { ...candidate, soul: agent.soul } : candidate
+      ),
       selectedId: agent.id
     });
     return agent;
@@ -85,15 +105,25 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   saveAgent: async (agent) => {
     const agents = await api.agents.save({ ...agent, updatedAt: Date.now() });
     set({
-      agents: agents.map((candidate) => (candidate.id === agent.id ? { ...candidate, soul: agent.soul } : candidate))
+      agents: agents.map((candidate) =>
+        candidate.id === agent.id ? { ...candidate, soul: agent.soul } : candidate
+      )
     });
+  },
+
+  restoreAgent: async (id) => {
+    const agent = await api.agents.get(id);
+    if (!agent) throw new Error('Archived agent not found.');
+    const agents = await api.agents.save({ ...agent, archived: false, updatedAt: Date.now() });
+    set({ agents, selectedId: id });
   },
 
   deleteAgent: async (id) => {
     const agents = await api.agents.delete(id);
     set((s) => ({
       agents,
-      selectedId: s.selectedId === id ? (agents[0]?.id ?? null) : s.selectedId
+      selectedId:
+        s.selectedId === id ? (agents.find((agent) => !agent.archived)?.id ?? id) : s.selectedId
     }));
   }
 }));

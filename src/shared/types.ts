@@ -72,6 +72,9 @@ export interface RunView {
   model: string;
   status: RunStatus;
   error: string | null;
+  /** Bounded terminal output retained for durable learning; never contains the raw prompt. */
+  outputSummary?: string;
+  artifactRefs?: string[];
   createdAt: number;
   updatedAt: number;
 }
@@ -141,6 +144,12 @@ export interface MemoryCompressionProposal {
   createdAt: number;
 }
 
+export interface MemoryRunContext {
+  teamMemory: string;
+  agentMemory: string;
+  retrievedMemory: string;
+}
+
 export type TaskStatus = 'backlog' | 'in-progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -175,6 +184,7 @@ export interface AgentSchedule {
   lastError: string | null;
   conversationId: string | null;
   currentRunId: string | null;
+  currentAttempt?: number;
   createdAt: number;
   updatedAt: number;
 }

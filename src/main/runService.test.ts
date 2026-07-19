@@ -1243,4 +1243,134 @@ describe('RunService', () => {
       childStates.length === 0 || ['completed', 'failed', 'cancelled'].includes(childStates.at(-1)!)
     ).toBe(true);
   });
+
+  it.each([100, 250, 1_000])(
+    'keeps routing instructions bounded for a %,i-agent hierarchy',
+    async (agentCount) => {
+      const root = {
+        ...agent(),
+        id: 'root',
+        name: 'Root',
+        title: 'Orchestrator',
+        role: 'orchestrator' as const,
+        reportsTo: null,
+        capabilities: 'Coordinate work across domain leads.'
+      };
+      const leads = Array.from({ length: 10 }, (_, index) => ({
+        ...agent(),
+        id: `lead-${index}`,
+        name: `Lead ${index}`,
+        title: `Domain ${index} lead`,
+        role: 'team-lead' as const,
+        reportsTo: root.id,
+        soul: '',
+        capabilities: `domain-${index} coordination`
+      }));
+      const specialists = Array.from({ length: agentCount - 11 }, (_, index) => ({
+        ...agent(),
+        id: `specialist-${index}`,
+        name: `Specialist ${index}`,
+        title: `Capability ${index} specialist`,
+        reportsTo: leads[index % leads.length].id,
+        soul: '',
+        capabilities: `capability-${index} focused work`
+      }));
+      const agents = [root, ...leads, ...specialists];
+      const conversations = new Map([[conversation().id, conversation()]]);
+      let routingContext = '';
+      const events: RunEvent[] = [];
+      const service = new RunService({
+        getConversation: async (id) => conversations.get(id),
+        saveConversation: async (value) => conversations.set(value.id, structuredClone(value)),
+        getAgent: async (id) => agents.find((candidate) => candidate.id === id),
+        listAgents: async () => agents,
+        getConnection: async () => connection(),
+        getDefaultTarget: async () => ({ connectionId: null, model: null }),
+        getMemory: async () => ({ teamMemory: '', agentMemory: '' }),
+        getSkills: async () => [],
+        execute: async (execution) => {
+          routingContext =
+            execution.messages.find((message) =>
+              message.content.includes('## Internal delegation transport')
+            )?.content ?? '';
+          execution.onChunk('Hello from the orchestrator.');
+        },
+        onEvent: (event) => events.push(event)
+      });
+
+      const run = await service.start({
+        conversationId: conversation().id,
+        agentId: root.id,
+        userContent: 'Say hello to this team.',
+        idempotencyKey: `scale-${agentCount}`
+      });
+      await vi.waitFor(() =>
+        expect(
+          events.some((event) => event.run.id === run.id && event.run.status === 'completed')
+        ).toBe(true)
+      );
+
+      expect(routingContext.length).toBeLessThanOrEqual(8_500);
+      expect(routingContext.match(/"agentId":/g)?.length).toBeLessThanOrEqual(6);
+      expect(routingContext).not.toContain(`specialist-${agentCount - 12}`);
+    }
+  );
+
+  it('serializes provider work for the same agent through admission control', async () => {
+    const conversations = new Map(
+      ['conversation-1', 'conversation-2'].map((id) => [id, { ...conversation(), id }])
+    );
+    const releases: Array<() => void> = [];
+    let concurrent = 0;
+    let peak = 0;
+    const events: RunEvent[] = [];
+    const execute = vi.fn(async (execution: RunExecution) => {
+      concurrent += 1;
+      peak = Math.max(peak, concurrent);
+      await new Promise<void>((resolve) => releases.push(resolve));
+      concurrent -= 1;
+      execution.onChunk('Done');
+    });
+    const service = new RunService({
+      getConversation: async (id) => conversations.get(id),
+      saveConversation: async (value) => conversations.set(value.id, structuredClone(value)),
+      getAgent: async () => agent(),
+      listAgents: async () => [agent()],
+      getConnection: async () => connection(),
+      getDefaultTarget: async () => ({ connectionId: null, model: null }),
+      getMemory: async () => ({ teamMemory: '', agentMemory: '' }),
+      getSkills: async () => [],
+      execute,
+      onEvent: (event) => events.push(event),
+      admissionLimits: { global: 8, provider: 4, team: 3, agent: 1 }
+    });
+
+    const first = await service.start({
+      conversationId: 'conversation-1',
+      agentId: 'agent-1',
+      userContent: 'First',
+      idempotencyKey: 'admission-1'
+    });
+    await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1));
+    const second = await service.start({
+      conversationId: 'conversation-2',
+      agentId: 'agent-1',
+      userContent: 'Second',
+      idempotencyKey: 'admission-2'
+    });
+    expect(execute).toHaveBeenCalledTimes(1);
+
+    releases.shift()?.();
+    await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(2));
+    releases.shift()?.();
+    await vi.waitFor(() =>
+      expect(
+        events.filter(
+          (event) =>
+            [first.id, second.id].includes(event.run.id) && event.run.status === 'completed'
+        )
+      ).toHaveLength(2)
+    );
+    expect(peak).toBe(1);
+  });
 });

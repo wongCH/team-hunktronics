@@ -7,6 +7,7 @@ import type {
   MemoryHealth,
   MemoryHealthFinding,
   MemoryKind,
+  MemoryRunContext,
   MemorySearchResult,
   MemoryWriteCommand
 } from '@shared/types';
@@ -14,6 +15,9 @@ import type {
 const BASELINE_NAME = 'MEMORY.md';
 const DAILY_PATTERN = /^\d{4}-\d{2}-\d{2}\.md$/;
 const SAFE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*\.md$/;
+const HISTORY_RETENTION_MS = 30 * 86_400_000;
+const DAILY_ARCHIVE_MS = 60 * 86_400_000;
+const ARCHIVE_RETENTION_MS = 365 * 86_400_000;
 
 function revision(content: string): string {
   return createHash('sha256').update(content).digest('hex');
@@ -35,6 +39,7 @@ function tokenize(value: string): string[] {
 export class MemoryService {
   private readonly root: string;
   private readonly proposals = new Map<string, MemoryCompressionProposal>();
+  private readonly appendQueues = new Map<string, Promise<void>>();
 
   constructor(userDataDir: string) {
     this.root = resolve(userDataDir, 'memory');
@@ -42,6 +47,7 @@ export class MemoryService {
 
   async initialize(): Promise<void> {
     await fs.mkdir(join(this.root, 'team'), { recursive: true });
+    await fs.mkdir(join(this.root, '.compression'), { recursive: true });
     const baseline = join(this.root, 'team', BASELINE_NAME);
     try {
       await fs.access(baseline);
@@ -56,7 +62,9 @@ export class MemoryService {
   async list(): Promise<MemoryDocument[]> {
     await this.initialize();
     const files = await this.walk(this.root);
-    const documents = await Promise.all(files.filter((file) => file.endsWith('.md')).map((file) => this.readPath(file)));
+    const documents = await Promise.all(
+      files.filter((file) => file.endsWith('.md')).map((file) => this.readPath(file))
+    );
     return documents.sort((a, b) => {
       if (a.kind === 'baseline' && b.kind !== 'baseline') return -1;
       if (b.kind === 'baseline' && a.kind !== 'baseline') return 1;
@@ -69,7 +77,9 @@ export class MemoryService {
     const target = this.resolveDocument(command);
     const kind = kindOf(command.name);
     if (kind === 'baseline' && lineCount(command.content) > 200) {
-      throw new Error('Baseline memory cannot exceed 200 lines. Move detail into an evergreen file.');
+      throw new Error(
+        'Baseline memory cannot exceed 200 lines. Move detail into an evergreen file.'
+      );
     }
     if (Buffer.byteLength(command.content, 'utf8') > 100_000) {
       throw new Error('Memory documents cannot exceed 100 KB.');
@@ -98,7 +108,40 @@ export class MemoryService {
   async search(query: string, limit = 20): Promise<MemorySearchResult[]> {
     const terms = [...new Set(tokenize(query))];
     if (terms.length === 0) return [];
-    const documents = await this.list();
+    return this.rank(await this.list(), terms, limit);
+  }
+
+  async searchScoped(
+    agentId: string | undefined,
+    query: string,
+    limit = 5
+  ): Promise<MemorySearchResult[]> {
+    const terms = [...new Set(tokenize(query))];
+    if (terms.length === 0) return [];
+    if (agentId && !/^[a-zA-Z0-9_-]{1,200}$/.test(agentId)) {
+      throw new Error('A valid agent id is required.');
+    }
+    await this.initialize();
+    const roots = [join(this.root, 'team')];
+    if (agentId) roots.push(join(this.root, 'agents', agentId));
+    const files = (
+      await Promise.all(
+        roots.map(async (root) => {
+          try {
+            return await this.walk(root);
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+            throw error;
+          }
+        })
+      )
+    )
+      .flat()
+      .filter((file) => file.endsWith('.md') && !file.split(sep).includes('archive'));
+    return this.rank(await Promise.all(files.map((file) => this.readPath(file))), terms, limit);
+  }
+
+  private rank(documents: MemoryDocument[], terms: string[], limit: number): MemorySearchResult[] {
     return documents
       .map((document) => {
         const haystack = `${document.name}\n${document.content}`.toLocaleLowerCase();
@@ -112,7 +155,10 @@ export class MemoryService {
         return {
           document,
           score,
-          excerpt: document.content.slice(start, start + 240).replace(/\s+/g, ' ').trim()
+          excerpt: document.content
+            .slice(start, start + 240)
+            .replace(/\s+/g, ' ')
+            .trim()
         };
       })
       .filter((result) => result.score > 0)
@@ -120,66 +166,134 @@ export class MemoryService {
       .slice(0, Math.max(1, Math.min(limit, 100)));
   }
 
-  async getBaseline(agentId?: string): Promise<{ teamMemory: string; agentMemory: string }> {
-    const documents = await this.list();
+  async getBaseline(agentId?: string): Promise<MemoryRunContext> {
+    await this.initialize();
+    if (agentId && !/^[a-zA-Z0-9_-]{1,200}$/.test(agentId)) {
+      throw new Error('A valid agent id is required.');
+    }
+    const [team, agent] = await Promise.all([
+      this.readOptional(join(this.root, 'team', BASELINE_NAME)),
+      agentId ? this.readOptional(join(this.root, 'agents', agentId, BASELINE_NAME)) : null
+    ]);
     return {
-      teamMemory:
-        documents.find((document) => document.scope === 'team' && document.kind === 'baseline')
-          ?.content ?? '',
-      agentMemory: agentId
-        ? documents.find(
-            (document) =>
-              document.scope === 'agent' &&
-              document.agentId === agentId &&
-              document.kind === 'baseline'
-          )?.content ?? ''
-        : ''
+      teamMemory: team?.content ?? '',
+      agentMemory: agent?.content ?? '',
+      retrievedMemory: ''
+    };
+  }
+
+  async getRunContext(agentId: string | undefined, query: string): Promise<MemoryRunContext> {
+    const baseline = await this.getBaseline(agentId);
+    const results = (await this.searchScoped(agentId, query, 5)).filter(
+      (result) => result.document.kind !== 'baseline'
+    );
+    return {
+      ...baseline,
+      retrievedMemory: results
+        .map((result) => `### ${result.document.id}\n${result.excerpt}`)
+        .join('\n\n')
     };
   }
 
   async appendDailyLog(agentId: string, entry: string, at = Date.now()): Promise<MemoryDocument> {
     const name = `${new Date(at).toISOString().slice(0, 10)}.md`;
-    const existing = (await this.list()).find(
-      (document) => document.scope === 'agent' && document.agentId === agentId && document.name === name
-    );
-    const content = existing
-      ? `${existing.content.trimEnd()}\n\n${entry.trim()}\n`
-      : `# Daily Log · ${name.slice(0, 10)}\n\n${entry.trim()}\n`;
-    return this.write({
-      scope: 'agent',
-      agentId,
-      name,
-      content,
-      expectedRevision: existing?.revision
+    const key = `${agentId}:${name}`;
+    const previous = this.appendQueues.get(key) ?? Promise.resolve();
+    let document!: MemoryDocument;
+    const current = previous.then(async () => {
+      const existing = await this.readOptional(
+        this.resolveDocument({ scope: 'agent', agentId, name, content: '' })
+      );
+      const content = existing
+        ? `${existing.content.trimEnd()}\n\n${entry.trim()}\n`
+        : `# Daily Log · ${name.slice(0, 10)}\n\n${entry.trim()}\n`;
+      document = await this.write({
+        scope: 'agent',
+        agentId,
+        name,
+        content,
+        expectedRevision: existing?.revision
+      });
     });
+    this.appendQueues.set(key, current);
+    try {
+      await current;
+      return document;
+    } finally {
+      if (this.appendQueues.get(key) === current) this.appendQueues.delete(key);
+    }
   }
 
   async health(now = Date.now()): Promise<MemoryHealth> {
     const documents = await this.list();
     const findings: MemoryHealthFinding[] = [];
     const totalBytes = documents.reduce((total, document) => total + document.sizeBytes, 0);
-    const baseline = documents.find((document) => document.scope === 'team' && document.kind === 'baseline');
+    const baseline = documents.find(
+      (document) => document.scope === 'team' && document.kind === 'baseline'
+    );
 
     if (!baseline) this.add(findings, 'baseline-missing', 'critical', 'Team MEMORY.md is missing.');
     if (baseline && baseline.lineCount > 200) {
-      this.add(findings, 'baseline-lines-critical', 'critical', 'Team MEMORY.md exceeds 200 lines.', baseline.id);
+      this.add(
+        findings,
+        'baseline-lines-critical',
+        'critical',
+        'Team MEMORY.md exceeds 200 lines.',
+        baseline.id
+      );
     } else if (baseline && baseline.lineCount >= 150) {
-      this.add(findings, 'baseline-lines-warning', 'warning', 'Team MEMORY.md is approaching 200 lines.', baseline.id);
+      this.add(
+        findings,
+        'baseline-lines-warning',
+        'warning',
+        'Team MEMORY.md is approaching 200 lines.',
+        baseline.id
+      );
     }
 
     for (const document of documents) {
       if (document.sizeBytes > 100_000) {
-        this.add(findings, 'file-size-critical', 'critical', `${document.name} exceeds 100 KB.`, document.id);
+        this.add(
+          findings,
+          'file-size-critical',
+          'critical',
+          `${document.name} exceeds 100 KB.`,
+          document.id
+        );
       } else if (document.sizeBytes >= 50_000) {
-        this.add(findings, 'file-size-warning', 'warning', `${document.name} exceeds 50 KB.`, document.id);
+        this.add(
+          findings,
+          'file-size-warning',
+          'warning',
+          `${document.name} exceeds 50 KB.`,
+          document.id
+        );
       }
       const ageDays = (now - document.updatedAt) / 86_400_000;
       if (document.kind === 'daily' && ageDays > 60) {
-        this.add(findings, 'daily-stale-warning', 'warning', `${document.name} is older than 60 days.`, document.id);
+        this.add(
+          findings,
+          'daily-stale-warning',
+          'warning',
+          `${document.name} is older than 60 days.`,
+          document.id
+        );
       } else if (document.kind === 'daily' && ageDays >= 30) {
-        this.add(findings, 'daily-stale-info', 'info', `${document.name} should be reviewed for knowledge worth retaining.`, document.id);
+        this.add(
+          findings,
+          'daily-stale-info',
+          'info',
+          `${document.name} should be reviewed for knowledge worth retaining.`,
+          document.id
+        );
       } else if (document.kind === 'evergreen' && ageDays >= 90) {
-        this.add(findings, 'evergreen-stale-info', 'info', `${document.name} has not been verified in 90 days.`, document.id);
+        this.add(
+          findings,
+          'evergreen-stale-info',
+          'info',
+          `${document.name} has not been verified in 90 days.`,
+          document.id
+        );
       }
     }
 
@@ -235,7 +349,10 @@ export class MemoryService {
     }
 
     const deductions = { critical: 20, warning: 10, info: 3 } as const;
-    const score = Math.max(0, 100 - findings.reduce((total, finding) => total + deductions[finding.severity], 0));
+    const score = Math.max(
+      0,
+      100 - findings.reduce((total, finding) => total + deductions[finding.severity], 0)
+    );
     return { score, totalBytes, documentCount: documents.length, findings };
   }
 
@@ -276,11 +393,15 @@ export class MemoryService {
       ...sourceLogs.map((document) => `- ${document.id}`)
     ].join('\n');
     const warnings: string[] = [];
-    if (lineCount(proposedContent) >= 150) warnings.push('Proposal is approaching the 200-line baseline limit.');
-    if (unique.length === 0) warnings.push('No durable bullet candidates were detected; review before applying.');
+    if (lineCount(proposedContent) >= 150)
+      warnings.push('Proposal is approaching the 200-line baseline limit.');
+    if (unique.length === 0)
+      warnings.push('No durable bullet candidates were detected; review before applying.');
     const proposal: MemoryCompressionProposal = {
       id: createHash('sha256')
-        .update(`${agentId}:${baseline?.revision ?? revision('')}:${sourceLogs.map((document) => document.revision).join(':')}`)
+        .update(
+          `${agentId}:${baseline?.revision ?? revision('')}:${sourceLogs.map((document) => document.revision).join(':')}`
+        )
         .digest('hex'),
       agentId,
       baselineRevision: baseline?.revision ?? revision(''),
@@ -290,11 +411,12 @@ export class MemoryService {
       createdAt: now
     };
     this.proposals.set(proposal.id, proposal);
+    await this.atomicWrite(this.proposalPath(proposal.id), JSON.stringify(proposal, null, 2));
     return proposal;
   }
 
   async applyCompression(proposalId: string): Promise<MemoryDocument> {
-    const proposal = this.proposals.get(proposalId);
+    const proposal = this.proposals.get(proposalId) ?? (await this.readProposal(proposalId));
     if (!proposal) throw new Error('Compression proposal not found or expired.');
     if (lineCount(proposal.proposedContent) > 200) {
       throw new Error('Compression proposal exceeds 200 lines. Edit the baseline manually.');
@@ -308,9 +430,13 @@ export class MemoryService {
     );
     const currentRevision = currentBaseline?.revision ?? revision('');
     if (currentRevision !== proposal.baselineRevision) {
-      throw new Error('Agent memory changed after compression was proposed. Generate a new proposal.');
+      throw new Error(
+        'Agent memory changed after compression was proposed. Generate a new proposal.'
+      );
     }
-    const sources = proposal.sourceDocumentIds.map((id) => documents.find((document) => document.id === id));
+    const sources = proposal.sourceDocumentIds.map((id) =>
+      documents.find((document) => document.id === id)
+    );
     if (sources.some((document) => !document || document.kind !== 'daily')) {
       throw new Error('A source daily log changed or is no longer available.');
     }
@@ -331,7 +457,41 @@ export class MemoryService {
       await fs.rename(sourcePath, archivePath);
     }
     this.proposals.delete(proposal.id);
+    await fs.rm(this.proposalPath(proposal.id), { force: true });
     return baseline;
+  }
+
+  async maintain(now = Date.now()): Promise<{ archived: number; removed: number }> {
+    await this.initialize();
+    const files = await this.walk(this.root, true);
+    let archived = 0;
+    let removed = 0;
+    for (const file of files) {
+      const rel = relative(this.root, file);
+      const segments = rel.split(sep);
+      const stat = await fs.stat(file);
+      const age = now - stat.mtimeMs;
+      if (segments[0] === '.history' && age > HISTORY_RETENTION_MS) {
+        await fs.rm(file, { force: true });
+        removed += 1;
+      } else if (segments.includes('archive') && age > ARCHIVE_RETENTION_MS) {
+        await fs.rm(file, { force: true });
+        removed += 1;
+      } else if (
+        segments[0] === 'agents' &&
+        segments.length === 3 &&
+        DAILY_PATTERN.test(segments[2]) &&
+        age > DAILY_ARCHIVE_MS
+      ) {
+        const archive = this.confine(
+          join(this.root, 'agents', segments[1], 'archive', segments[2])
+        );
+        await fs.mkdir(dirname(archive), { recursive: true });
+        await fs.rename(file, archive);
+        archived += 1;
+      }
+    }
+    return { archived, removed };
   }
 
   private resolveDocument(command: MemoryWriteCommand): string {
@@ -382,14 +542,41 @@ export class MemoryService {
     };
   }
 
-  private async walk(path: string): Promise<string[]> {
+  private async readOptional(path: string): Promise<MemoryDocument | null> {
+    try {
+      return await this.readPath(path);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+
+  private proposalPath(id: string): string {
+    if (!/^[a-f0-9]{64}$/.test(id)) throw new Error('Invalid compression proposal id.');
+    return this.confine(join(this.root, '.compression', `${id}.json`));
+  }
+
+  private async readProposal(id: string): Promise<MemoryCompressionProposal | null> {
+    try {
+      return JSON.parse(
+        await fs.readFile(this.proposalPath(id), 'utf8')
+      ) as MemoryCompressionProposal;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+
+  private async walk(path: string, includeManaged = false): Promise<string[]> {
     const entries = await fs.readdir(path, { withFileTypes: true });
     const files = await Promise.all(
       entries
-        .filter((entry) => entry.name !== '.history')
+        .filter(
+          (entry) => includeManaged || (entry.name !== '.history' && entry.name !== '.compression')
+        )
         .map((entry) => {
           const child = join(path, entry.name);
-          return entry.isDirectory() ? this.walk(child) : Promise.resolve([child]);
+          return entry.isDirectory() ? this.walk(child, includeManaged) : Promise.resolve([child]);
         })
     );
     return files.flat();
@@ -398,7 +585,10 @@ export class MemoryService {
   private async atomicWrite(path: string, content: string): Promise<void> {
     const target = this.confine(path);
     await fs.mkdir(dirname(target), { recursive: true });
-    const temporary = join(dirname(target), `.${basename(target)}.${process.pid}.${Date.now()}.tmp`);
+    const temporary = join(
+      dirname(target),
+      `.${basename(target)}.${process.pid}.${Date.now()}.tmp`
+    );
     await fs.writeFile(temporary, content, { encoding: 'utf8', mode: 0o600 });
     await fs.rename(temporary, target);
   }

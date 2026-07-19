@@ -86,9 +86,9 @@ export function AgentsPage() {
   const [view, setView] = useState<'map' | 'configure'>('map');
   const [wikiOnboarding, setWikiOnboarding] = useState(false);
   const [runActivity, setRunActivity] = useState<ReadonlyMap<string, RunView>>(() => new Map());
-  const [delegationActivity, setDelegationActivity] = useState<ReadonlyMap<string, DelegationActivity>>(
-    () => new Map()
-  );
+  const [delegationActivity, setDelegationActivity] = useState<
+    ReadonlyMap<string, DelegationActivity>
+  >(() => new Map());
   const openAgentConversation = useChatStore((state) => state.openAgentConversation);
 
   useEffect(() => {
@@ -106,7 +106,9 @@ export function AgentsPage() {
     });
     void api.runs.listActive().then((runs) => {
       update(runs);
-      setDelegationActivity((current) => new Map([...getActiveDelegationActivity(runs), ...current]));
+      setDelegationActivity(
+        (current) => new Map([...getActiveDelegationActivity(runs), ...current])
+      );
     });
     return () => {
       mounted = false;
@@ -115,11 +117,13 @@ export function AgentsPage() {
   }, []);
 
   const selected = agents.find((a) => a.id === selectedId) ?? null;
+  const activeAgents = agents.filter((agent) => !agent.archived);
+  const archivedAgents = agents.filter((agent) => agent.archived);
   const workingAgentIds = useMemo(() => getWorkingAgentIds(runActivity), [runActivity]);
   const edgeActivity = useMemo(() => getEdgeActivity(delegationActivity), [delegationActivity]);
-  const orchestrators = agents.filter((a) => a.role === 'orchestrator');
-  const leads = agents.filter((a) => a.role === 'team-lead');
-  const specialists = agents.filter((a) => a.role === 'specialist');
+  const orchestrators = activeAgents.filter((a) => a.role === 'orchestrator');
+  const leads = activeAgents.filter((a) => a.role === 'team-lead');
+  const specialists = activeAgents.filter((a) => a.role === 'specialist');
   const hasRoot = orchestrators.length > 0;
   const selectForChat = (id: string) => {
     select(id);
@@ -133,7 +137,10 @@ export function AgentsPage() {
         <div className="px-3 pb-2 flex gap-2 app-no-drag">
           {hasRoot ? (
             <div className="w-full space-y-2">
-              <button className="btn-primary w-full justify-center" onClick={() => setLibraryOpen(true)}>
+              <button
+                className="btn-primary w-full justify-center"
+                onClick={() => setLibraryOpen(true)}
+              >
                 <LibraryIcon className="w-4 h-4" /> Agent library
               </button>
               <div className="flex gap-2">
@@ -193,6 +200,27 @@ export function AgentsPage() {
               </div>
             </div>
           )}
+          {archivedAgents.length > 0 && (
+            <div>
+              <div className="px-3 mb-1 text-[10px] uppercase tracking-wider text-content-faint">
+                Removed
+              </div>
+              <div className="space-y-0.5 opacity-70">
+                {archivedAgents.map((agent) => (
+                  <AgentRow
+                    key={agent.id}
+                    agent={agent}
+                    active={agent.id === selectedId}
+                    working={false}
+                    onClick={() => {
+                      select(agent.id);
+                      setView('configure');
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           {specialists.length > 0 && (
             <div>
               <div className="px-3 mb-1 text-[10px] uppercase tracking-wider text-content-faint">
@@ -219,7 +247,9 @@ export function AgentsPage() {
         <div className="px-5 pb-3 border-b border-border flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold">Agent team</h1>
-            <p className="text-xs text-content-muted mt-0.5">One orchestrator, domain leads, and focused specialists.</p>
+            <p className="text-xs text-content-muted mt-0.5">
+              One orchestrator, domain leads, and focused specialists.
+            </p>
           </div>
           <div className="flex border border-border rounded-lg p-0.5">
             {(['map', 'configure'] as const).map((mode) => (
@@ -238,7 +268,7 @@ export function AgentsPage() {
         </div>
         {view === 'map' ? (
           <TeamMap
-            agents={agents.filter((agent) => !agent.archived)}
+            agents={activeAgents}
             selectedId={selectedId}
             workingAgentIds={workingAgentIds}
             edgeActivity={edgeActivity}

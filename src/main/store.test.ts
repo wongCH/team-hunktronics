@@ -282,7 +282,7 @@ describe('Store — agent manager registration', () => {
     expect(persisted[0]).not.toHaveProperty('soul');
     expect(persisted[0]).toMatchObject({
       soulPath: 'agents/root/SOUL.md',
-      capabilities: expect.stringContaining('Legacy identity')
+      capabilities: expect.stringContaining('Canonical identity')
     });
   });
 

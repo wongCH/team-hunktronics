@@ -4,6 +4,7 @@ import type {
   ChatMessage,
   ConnectionConfig,
   Conversation,
+  MemoryRunContext,
   RunEvent,
   RunStatus,
   RunView,
@@ -85,7 +86,13 @@ export interface RunServiceDeps {
     model: string | null;
     llmWikiContext?: string;
   }>;
-  getMemory: (agentId?: string) => Promise<{ teamMemory: string; agentMemory: string }>;
+  getMemory: (
+    agentId?: string,
+    query?: string
+  ) => Promise<
+    Pick<MemoryRunContext, 'teamMemory' | 'agentMemory'> &
+      Partial<Pick<MemoryRunContext, 'retrievedMemory'>>
+  >;
   getSkills: (skillIds: string[]) => Promise<Array<{ name: string; instructions: string }>>;
   execute: (execution: RunExecution) => Promise<void>;
   onEvent: (event: RunEvent) => void;
@@ -145,7 +152,7 @@ class RunAdmission {
   }
 
   private drain(): void {
-    for (let index = 0; index < this.waiters.length; ) {
+    for (let index = 0; index < this.waiters.length;) {
       const waiter = this.waiters[index];
       if (!this.canRun(waiter.keys)) {
         index += 1;
@@ -229,6 +236,7 @@ interface RunContext {
   skills: Array<{ name: string; instructions: string }>;
   teamMemory: string;
   agentMemory: string;
+  retrievedMemory: string;
   history: ChatMessage[];
   userContent: string;
 }
@@ -360,10 +368,8 @@ function includesReportName(userContent: string, reportName: string): boolean {
 function routingProfile(agent: AgentConfig): string {
   return (
     agent.capabilities?.trim() ||
-    [agent.name, agent.title, agent.skills.join(' '), agent.soul]
-      .filter(Boolean)
-      .join(' ')
-      .replace(/\s+/g, ' ')
+    agent.soul.trim() ||
+    [agent.name, agent.title, agent.skills.join(' ')].filter(Boolean).join(' ').replace(/\s+/g, ' ')
   ).slice(0, MAX_DELEGATION_PROFILE_CHARS);
 }
 
@@ -563,7 +569,7 @@ export class RunService {
     }
 
     try {
-      const memory = await this.deps.getMemory(agent?.id);
+      const memory = await this.deps.getMemory(agent?.id, userContent);
       const skills = await this.deps.getSkills(agent?.skills ?? []);
       const agents = agent
         ? (await this.deps.listAgents()).filter((candidate) => !candidate.archived)
@@ -584,6 +590,7 @@ export class RunService {
         skills,
         teamMemory: memory.teamMemory,
         agentMemory: memory.agentMemory,
+        retrievedMemory: memory.retrievedMemory ?? '',
         history: conversation.messages,
         userContent
       };
@@ -683,20 +690,23 @@ export class RunService {
           )
         : null;
       if (!automaticRequests) {
-        await this.executeProvider({
-          run,
-          connection,
-          model: run.model,
-          messages,
-          signal: controller.signal,
-          onChunk: (delta) => {
-            firstResponse += delta;
-            if (!agent) {
-              response += delta;
-              this.emit({ type: 'chunk', run, delta });
+        await this.executeProvider(
+          {
+            run,
+            connection,
+            model: run.model,
+            messages,
+            signal: controller.signal,
+            onChunk: (delta) => {
+              firstResponse += delta;
+              if (!agent) {
+                response += delta;
+                this.emit({ type: 'chunk', run, delta });
+              }
             }
-          }
-        }, teamId);
+          },
+          teamId
+        );
       }
 
       const requests = automaticRequests ?? (agent ? parseDelegationRequest(firstResponse) : null);
@@ -737,16 +747,19 @@ The internal runtime completed the requested child runs. Synthesize the final an
           userContent: synthesisPrompt
         }).messages;
         let synthesisResponse = '';
-        await this.executeProvider({
-          run,
-          connection,
-          model: run.model,
-          messages: synthesisMessages,
-          signal: controller.signal,
-          onChunk: (delta) => {
-            synthesisResponse += delta;
-          }
-        }, teamId);
+        await this.executeProvider(
+          {
+            run,
+            connection,
+            model: run.model,
+            messages: synthesisMessages,
+            signal: controller.signal,
+            onChunk: (delta) => {
+              synthesisResponse += delta;
+            }
+          },
+          teamId
+        );
         if (parseDelegationRequest(synthesisResponse)) {
           throw new Error('Only one delegation round is allowed per run.');
         }
@@ -758,7 +771,10 @@ The internal runtime completed the requested child runs. Synthesize the final an
       }
       conversation = replaceAssistantDraft(conversation, response);
       await this.deps.saveConversation(conversation);
-      run = this.update(run, 'completed');
+      run = this.update(run, 'completed', null, {
+        outputSummary: summarizeOutcome(response),
+        artifactRefs: []
+      });
       return { status: run.status, content: response, error: null };
     } catch (error) {
       const cancelled = controller.signal.aborted || (error as Error).name === 'AbortError';
@@ -767,7 +783,9 @@ The internal runtime completed the requested child runs. Synthesize the final an
         : (error as Error).message || 'Unknown error.';
       conversation = replaceAssistantDraft(conversation, response || `_⚠️ ${message}_`);
       await this.deps.saveConversation(conversation);
-      run = this.update(run, cancelled ? 'cancelled' : 'failed', message);
+      run = this.update(run, cancelled ? 'cancelled' : 'failed', message, {
+        outputSummary: summarizeOutcome(response)
+      });
       return { status: run.status, content: response, error: message };
     } finally {
       this.active.delete(initial.id);
@@ -809,21 +827,6 @@ ${request.task}`;
         throw new DOMException('Aborted', 'AbortError');
       }
 
-      private async executeProvider(execution: RunExecution, teamId: string): Promise<void> {
-        const release = await this.admission.acquire(
-          {
-            provider: execution.connection.id,
-            team: teamId,
-            agent: execution.run.agentId ?? `conversation:${execution.run.conversationId}`
-          },
-          execution.signal
-        );
-        try {
-          await this.deps.execute(execution);
-        } finally {
-          release();
-        }
-      }
       const currentTarget = await this.deps.getAgent(target.id);
       if (!currentTarget || currentTarget.archived || currentTarget.reportsTo !== parentAgent.id) {
         throw new Error('Delegation target must remain an active direct report.');
@@ -878,8 +881,29 @@ ${request.task}`;
     }
   }
 
-  private update(run: RunView, status: RunStatus, error: string | null = null): RunView {
-    const next = { ...run, status, error, updatedAt: this.now() };
+  private async executeProvider(execution: RunExecution, teamId: string): Promise<void> {
+    const release = await this.admission.acquire(
+      {
+        provider: execution.connection.id,
+        team: teamId,
+        agent: execution.run.agentId ?? `conversation:${execution.run.conversationId}`
+      },
+      execution.signal
+    );
+    try {
+      await this.deps.execute(execution);
+    } finally {
+      release();
+    }
+  }
+
+  private update(
+    run: RunView,
+    status: RunStatus,
+    error: string | null = null,
+    patch: Partial<Pick<RunView, 'outputSummary' | 'artifactRefs'>> = {}
+  ): RunView {
+    const next = { ...run, ...patch, status, error, updatedAt: this.now() };
     this.byIdempotencyKey.set(next.idempotencyKey, next);
     const active = this.active.get(run.id);
     if (active) active.view = next;
@@ -891,4 +915,8 @@ ${request.task}`;
     this.deps.onEvent(event);
     this.listeners.forEach((listener) => listener(event));
   }
+}
+
+function summarizeOutcome(content: string): string {
+  return content.replace(/\s+/g, ' ').trim().slice(0, 1_000);
 }

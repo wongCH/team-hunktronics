@@ -15,6 +15,7 @@ export interface ScheduleServiceDeps {
     idempotencyKey: string;
   }) => Promise<RunView>;
   onCompleted?: (schedule: AgentSchedule, event: RunEvent) => Promise<void>;
+  maxConcurrent?: number;
   createId?: () => string;
   now?: () => number;
 }
@@ -24,7 +25,9 @@ export function nextScheduleRun(cron: string, timeZone: string, after: number): 
     return CronExpressionParser.parse(cron, {
       currentDate: new Date(after),
       tz: timeZone || 'UTC'
-    }).next().getTime();
+    })
+      .next()
+      .getTime();
   } catch (error) {
     throw new Error(`Invalid schedule: ${(error as Error).message}`);
   }
@@ -34,11 +37,13 @@ export class ScheduleService {
   private readonly activeScheduleIds = new Set<string>();
   private readonly createId: () => string;
   private readonly now: () => number;
+  private readonly maxConcurrent: number;
   private timer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly deps: ScheduleServiceDeps) {
     this.createId = deps.createId ?? randomUUID;
     this.now = deps.now ?? Date.now;
+    this.maxConcurrent = Math.max(1, Math.trunc(deps.maxConcurrent ?? 4));
   }
 
   start(intervalMs = 30_000): void {
@@ -54,16 +59,15 @@ export class ScheduleService {
 
   async tick(at = this.now()): Promise<void> {
     const schedules = await this.deps.listSchedules();
-    await Promise.all(
-      schedules
-        .filter(
-          (schedule) =>
-            schedule.enabled &&
-            schedule.nextRunAt <= at &&
-            !this.activeScheduleIds.has(schedule.id)
-        )
-        .map((schedule) => this.execute(schedule, at))
-    );
+    const available = Math.max(0, this.maxConcurrent - this.activeScheduleIds.size);
+    const due = schedules
+      .filter(
+        (schedule) =>
+          schedule.enabled && schedule.nextRunAt <= at && !this.activeScheduleIds.has(schedule.id)
+      )
+      .sort((left, right) => left.nextRunAt - right.nextRunAt)
+      .slice(0, available);
+    await Promise.allSettled(due.map((schedule) => this.execute(schedule, at)));
   }
 
   async runNow(scheduleId: string): Promise<RunView> {
@@ -74,7 +78,8 @@ export class ScheduleService {
   }
 
   async handleRunEvent(event: RunEvent): Promise<void> {
-    if (event.type !== 'state' || !['completed', 'failed', 'cancelled'].includes(event.run.status)) return;
+    if (event.type !== 'state' || !['completed', 'failed', 'cancelled'].includes(event.run.status))
+      return;
     const schedules = await this.deps.listSchedules();
     const schedule = schedules.find(
       (item) =>
@@ -82,6 +87,19 @@ export class ScheduleService {
         (item.conversationId === event.run.conversationId && item.lastRunStatus === 'running')
     );
     if (!schedule) return;
+    const attempt = schedule.currentAttempt ?? 1;
+    if (event.run.status === 'failed' && attempt < schedule.maxAttempts) {
+      const retry = {
+        ...schedule,
+        currentRunId: null,
+        lastError: event.run.error,
+        updatedAt: this.now()
+      };
+      await this.deps.saveSchedule(retry);
+      this.activeScheduleIds.delete(schedule.id);
+      await this.execute(retry, this.now(), false, attempt + 1);
+      return;
+    }
     const updated: AgentSchedule = {
       ...schedule,
       currentRunId: null,
@@ -92,6 +110,7 @@ export class ScheduleService {
             ? 'cancelled'
             : 'failed',
       lastError: event.run.status === 'completed' ? null : event.run.error,
+      currentAttempt: 0,
       updatedAt: this.now()
     };
     await this.deps.saveSchedule(updated);
@@ -99,7 +118,12 @@ export class ScheduleService {
     await this.deps.onCompleted?.(updated, event);
   }
 
-  private async execute(schedule: AgentSchedule, at: number, manual = false): Promise<RunView> {
+  private async execute(
+    schedule: AgentSchedule,
+    at: number,
+    manual = false,
+    attempt = 1
+  ): Promise<RunView> {
     this.activeScheduleIds.add(schedule.id);
     const agent = await this.deps.getAgent(schedule.agentId);
     if (!agent) {
@@ -125,15 +149,19 @@ export class ScheduleService {
       });
     }
 
-    const occurrence = schedule.nextRunAt || at;
+    const occurrence = attempt > 1 ? schedule.lastRunAt || at : schedule.nextRunAt || at;
     const pending: AgentSchedule = {
       ...schedule,
       conversationId,
-      nextRunAt: nextScheduleRun(schedule.cron, schedule.timeZone, Math.max(at, occurrence)),
-      lastRunAt: at,
+      nextRunAt:
+        attempt > 1
+          ? schedule.nextRunAt
+          : nextScheduleRun(schedule.cron, schedule.timeZone, Math.max(at, occurrence)),
+      lastRunAt: attempt > 1 ? schedule.lastRunAt : at,
       lastRunStatus: 'running',
       lastError: null,
       currentRunId: null,
+      currentAttempt: attempt,
       updatedAt: at
     };
     await this.deps.saveSchedule(pending);
@@ -142,7 +170,9 @@ export class ScheduleService {
         conversationId,
         agentId: agent.id,
         userContent: schedule.prompt,
-        idempotencyKey: `schedule-${schedule.id}-${manual ? `manual-${at}` : occurrence}`
+        idempotencyKey: `schedule-${schedule.id}-${manual ? `manual-${at}` : occurrence}${
+          schedule.maxAttempts > 1 ? `-attempt-${attempt}` : ''
+        }`
       });
       const latest = (await this.deps.listSchedules()).find((item) => item.id === schedule.id);
       if (latest?.lastRunStatus === 'running') {
@@ -150,7 +180,8 @@ export class ScheduleService {
       }
       return run;
     } catch (error) {
-      const latest = (await this.deps.listSchedules()).find((item) => item.id === schedule.id) ?? pending;
+      const latest =
+        (await this.deps.listSchedules()).find((item) => item.id === schedule.id) ?? pending;
       await this.deps.saveSchedule({
         ...latest,
         currentRunId: null,
@@ -159,6 +190,9 @@ export class ScheduleService {
         updatedAt: this.now()
       });
       this.activeScheduleIds.delete(schedule.id);
+      if (attempt < schedule.maxAttempts) {
+        return this.execute(pending, this.now(), manual, attempt + 1);
+      }
       throw error;
     }
   }

@@ -54,7 +54,10 @@ interface Deps {
   llmWiki: LlmWikiService;
 }
 
-function parseSkill(content: string, sourceFile: string): Pick<SkillDefinition, 'id' | 'name' | 'description'> {
+function parseSkill(
+  content: string,
+  sourceFile: string
+): Pick<SkillDefinition, 'id' | 'name' | 'description'> {
   const frontmatter = content.match(/^---\s*\n([\s\S]*?)\n---/);
   const fields = Object.fromEntries(
     (frontmatter?.[1] ?? '')
@@ -92,10 +95,12 @@ export function registerScheduleIpc(store: Store, scheduler: ScheduleService): v
     const agentId = typeof value.agentId === 'string' ? value.agentId.trim() : '';
     const prompt = typeof value.prompt === 'string' ? value.prompt.trim() : '';
     const cron = typeof value.cron === 'string' ? value.cron.trim() : '';
-    const timeZone = typeof value.timeZone === 'string' && value.timeZone.trim() ? value.timeZone.trim() : 'UTC';
+    const timeZone =
+      typeof value.timeZone === 'string' && value.timeZone.trim() ? value.timeZone.trim() : 'UTC';
     if (!name || name.length > 240) throw new Error('A schedule name is required.');
     if (!agentId || agentId.length > 200) throw new Error('A scheduled agent is required.');
-    if (!prompt || prompt.length > 100_000) throw new Error('A focused schedule prompt is required.');
+    if (!prompt || prompt.length > 100_000)
+      throw new Error('A focused schedule prompt is required.');
     if (!cron || cron.length > 200) throw new Error('A cron expression is required.');
     const nextRunAt = nextScheduleRun(cron, timeZone, now);
     return {
@@ -113,6 +118,10 @@ export function registerScheduleIpc(store: Store, scheduler: ScheduleService): v
       lastError: typeof value.lastError === 'string' ? value.lastError.slice(0, 10_000) : null,
       conversationId: typeof value.conversationId === 'string' ? value.conversationId : null,
       currentRunId: typeof value.currentRunId === 'string' ? value.currentRunId : null,
+      currentAttempt:
+        typeof value.currentAttempt === 'number'
+          ? Math.max(0, Math.min(Math.trunc(value.currentAttempt), 3))
+          : 0,
       createdAt: typeof value.createdAt === 'number' ? value.createdAt : now,
       updatedAt: now
     };
@@ -142,7 +151,9 @@ export function registerPipelineIpc(store: Store, pipelines: PipelineService): v
             name: typeof stage.name === 'string' ? stage.name.trim().slice(0, 240) : '',
             agentId: typeof stage.agentId === 'string' ? stage.agentId.trim().slice(0, 200) : '',
             instructions:
-              typeof stage.instructions === 'string' ? stage.instructions.trim().slice(0, 100_000) : '',
+              typeof stage.instructions === 'string'
+                ? stage.instructions.trim().slice(0, 100_000)
+                : '',
             expectedOutput:
               typeof stage.expectedOutput === 'string'
                 ? stage.expectedOutput.trim().slice(0, 20_000)
@@ -163,7 +174,9 @@ export function registerPipelineIpc(store: Store, pipelines: PipelineService): v
     return store.savePipeline(pipeline);
   });
   ipcMain.handle(IPC.pipelinesDelete, (_event, id: string) => store.deletePipeline(id));
-  ipcMain.handle(IPC.pipelinesStart, (_event, id: string, goal: string) => pipelines.start(id, goal));
+  ipcMain.handle(IPC.pipelinesStart, (_event, id: string, goal: string) =>
+    pipelines.start(id, goal)
+  );
   ipcMain.handle(IPC.pipelineExecutionsList, () => store.listPipelineExecutions());
   ipcMain.handle(IPC.artifactsList, () => store.listArtifacts());
 }
@@ -185,7 +198,8 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
   function validateRunCommand(input: unknown): StartRunCommand {
     if (!input || typeof input !== 'object') throw new Error('Invalid run payload.');
     const command = input as Partial<StartRunCommand>;
-    const conversationId = typeof command.conversationId === 'string' ? command.conversationId.trim() : '';
+    const conversationId =
+      typeof command.conversationId === 'string' ? command.conversationId.trim() : '';
     const userContent = typeof command.userContent === 'string' ? command.userContent.trim() : '';
     const idempotencyKey =
       typeof command.idempotencyKey === 'string' ? command.idempotencyKey.trim() : '';
@@ -211,7 +225,7 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
         llmWikiContext: await llmWiki.loadContext(settings.llmWikiPath)
       };
     },
-    getMemory: (agentId) => memory.getBaseline(agentId),
+    getMemory: (agentId, query) => memory.getRunContext(agentId, query ?? ''),
     getSkills: async (skillIds) => {
       const skills = await store.listSkills();
       return skillIds
@@ -227,7 +241,9 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
       if (connection.providerType === 'copilot') {
         const settings = await store.getSettings();
         if (!settings.experimentalCopilot) {
-          throw new Error('Enable experimental Copilot support in Settings to use this connection.');
+          throw new Error(
+            'Enable experimental Copilot support in Settings to use this connection.'
+          );
         }
       }
 
@@ -268,23 +284,30 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
       send(IPC.traceUpdate, { trace });
 
       try {
-        await provider.streamChat(await buildContext(connection), model, messages, undefined, signal, {
-          onChunk: (delta) => {
-            trace = {
-              ...trace,
-              response: {
-                ...trace.response,
-                preview: (trace.response.preview + delta).slice(0, 2_000),
-                characterCount: trace.response.characterCount + delta.length,
-                truncated: trace.response.characterCount + delta.length > 2_000,
-                chunks: trace.response.chunks + 1
-              },
-              updatedAt: Date.now()
-            };
-            onChunk(delta);
-            send(IPC.traceUpdate, { trace });
+        await provider.streamChat(
+          await buildContext(connection),
+          model,
+          messages,
+          undefined,
+          signal,
+          {
+            onChunk: (delta) => {
+              trace = {
+                ...trace,
+                response: {
+                  ...trace.response,
+                  preview: (trace.response.preview + delta).slice(0, 2_000),
+                  characterCount: trace.response.characterCount + delta.length,
+                  truncated: trace.response.characterCount + delta.length > 2_000,
+                  chunks: trace.response.chunks + 1
+                },
+                updatedAt: Date.now()
+              };
+              onChunk(delta);
+              send(IPC.traceUpdate, { trace });
+            }
           }
-        });
+        );
         const doneAt = Date.now();
         trace = {
           ...trace,
@@ -315,7 +338,10 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
     },
     onEvent: (event) => {
       send(IPC.runEvent, event);
-      if (event.type !== 'state' || !['completed', 'failed', 'cancelled'].includes(event.run.status)) {
+      if (
+        event.type !== 'state' ||
+        !['completed', 'failed', 'cancelled'].includes(event.run.status)
+      ) {
         return;
       }
       void store.listTasks().then(async (tasks) => {
@@ -392,7 +418,9 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
       soul: typeof value.soul === 'string' ? value.soul.slice(0, 500_000) : '',
       soulPath: `agents/${id}/SOUL.md`,
       capabilities:
-        typeof value.capabilities === 'string' ? value.capabilities.trim().slice(0, 500) : undefined,
+        typeof value.capabilities === 'string'
+          ? value.capabilities.trim().slice(0, 500)
+          : undefined,
       tools: Array.isArray(value.tools)
         ? value.tools.filter((item): item is string => typeof item === 'string').slice(0, 100)
         : [],
@@ -415,7 +443,8 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
     const id = typeof value.id === 'string' && value.id.trim() ? value.id.trim() : randomUUID();
     const title = typeof value.title === 'string' ? value.title.trim() : '';
     if (!title || title.length > 240) throw new Error('A task title is required.');
-    if (!value.status || !validStatuses.includes(value.status)) throw new Error('Invalid task status.');
+    if (!value.status || !validStatuses.includes(value.status))
+      throw new Error('Invalid task status.');
     if (!value.priority || !validPriorities.includes(value.priority)) {
       throw new Error('Invalid task priority.');
     }
@@ -428,7 +457,9 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
       priority: value.priority,
       agentId: typeof value.agentId === 'string' && value.agentId ? value.agentId : null,
       conversationId:
-        typeof value.conversationId === 'string' && value.conversationId ? value.conversationId : null,
+        typeof value.conversationId === 'string' && value.conversationId
+          ? value.conversationId
+          : null,
       currentRunId:
         typeof value.currentRunId === 'string' && value.currentRunId ? value.currentRunId : null,
       lastError: typeof value.lastError === 'string' ? value.lastError.slice(0, 10_000) : null,
@@ -632,7 +663,9 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
   });
 
   // ---- Trusted runs (main-owned prompt assembly and persistence) ----
-  ipcMain.handle(IPC.runsStart, (_e, input: unknown) => runService.start(validateRunCommand(input)));
+  ipcMain.handle(IPC.runsStart, (_e, input: unknown) =>
+    runService.start(validateRunCommand(input))
+  );
   ipcMain.handle(IPC.runsCancel, (_e, runId: string) => ({ ok: runService.cancel(runId) }));
   ipcMain.handle(IPC.runsListActive, () => runService.listActive());
 
@@ -645,7 +678,12 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
   ipcMain.handle(IPC.agentsList, () => store.listAgents());
   ipcMain.handle(IPC.agentsGet, (_e, id: string) => store.getAgent(id));
   ipcMain.handle(IPC.agentsSave, (_e, input: unknown) => store.saveAgent(validateAgent(input)));
-  ipcMain.handle(IPC.agentsDelete, (_e, id: string) => store.deleteAgent(id));
+  ipcMain.handle(IPC.agentsDelete, (_e, id: string) => {
+    if (runService.listActive().some((run) => run.agentId === id)) {
+      throw new Error('Stop the active agent run before archiving this agent.');
+    }
+    return store.deleteAgent(id);
+  });
 
   // ---- Skills library ----
   ipcMain.handle(IPC.skillsList, () => store.listSkills());
@@ -662,7 +700,8 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
     if (result.canceled) return store.listSkills();
     for (const filePath of result.filePaths) {
       const stat = await fs.stat(filePath);
-      if (stat.size > 100_000) throw new Error(`${basename(filePath)} exceeds the 100 KB skill limit.`);
+      if (stat.size > 100_000)
+        throw new Error(`${basename(filePath)} exceeds the 100 KB skill limit.`);
       if (!['.md', '.markdown'].includes(extname(filePath).toLocaleLowerCase())) {
         throw new Error('Skills must be Markdown files.');
       }
@@ -702,7 +741,8 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
   ipcMain.handle(IPC.llmWikiReferenceFound, async () => {
     const settings = await store.getSettings();
     const status = await llmWiki.status(null);
-    if (status.state !== 'found' || !status.path) throw new Error('No existing llm-wiki vault was found.');
+    if (status.state !== 'found' || !status.path)
+      throw new Error('No existing llm-wiki vault was found.');
     await store.setSettings({ ...settings, llmWikiPath: status.path });
     return llmWiki.status(status.path);
   });
@@ -749,7 +789,8 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
   ipcMain.handle(IPC.memoryList, () => memory.list());
   ipcMain.handle(IPC.memoryWrite, (_e, command: MemoryWriteCommand) => memory.write(command));
   ipcMain.handle(IPC.memorySearch, (_e, query: string, limit?: number) => {
-    if (typeof query !== 'string' || query.length > 10_000) throw new Error('Invalid memory search.');
+    if (typeof query !== 'string' || query.length > 10_000)
+      throw new Error('Invalid memory search.');
     return memory.search(query, limit);
   });
   ipcMain.handle(IPC.memoryHealth, () => memory.health());
@@ -770,7 +811,8 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
     if (!task.agentId) throw new Error('Assign an agent before starting work.');
     const agent = await store.getAgent(task.agentId);
     if (!agent) throw new Error('Assigned agent not found.');
-    if (!agent.connectionId || !agent.model) throw new Error('Configure the assigned agent model first.');
+    if (!agent.connectionId || !agent.model)
+      throw new Error('Configure the assigned agent model first.');
 
     let conversationId = task.conversationId;
     if (!conversationId) {

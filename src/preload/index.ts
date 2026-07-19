@@ -81,11 +81,9 @@ const api = {
   runs: {
     start: (command: StartRunCommand): Promise<RunView> =>
       ipcRenderer.invoke(IPC.runsStart, command),
-    cancel: (runId: string): Promise<{ ok: boolean }> =>
-      ipcRenderer.invoke(IPC.runsCancel, runId),
+    cancel: (runId: string): Promise<{ ok: boolean }> => ipcRenderer.invoke(IPC.runsCancel, runId),
     listActive: (): Promise<RunView[]> => ipcRenderer.invoke(IPC.runsListActive),
-    onEvent: (cb: (event: RunEventPayload) => void): Unsubscribe =>
-      subscribe(IPC.runEvent, cb)
+    onEvent: (cb: (event: RunEventPayload) => void): Unsubscribe => subscribe(IPC.runEvent, cb)
   },
   traces: {
     list: (): Promise<ApiTrace[]> => ipcRenderer.invoke(IPC.tracesList),
@@ -156,9 +154,7 @@ const api = {
   },
   toolPolicy: {
     actions: (): Promise<ToolAction[]> => ipcRenderer.invoke(IPC.toolActionsList),
-    authorize: (
-      request: ToolActionRequest
-    ): Promise<{ action: ToolAction; approval?: Approval }> =>
+    authorize: (request: ToolActionRequest): Promise<{ action: ToolAction; approval?: Approval }> =>
       ipcRenderer.invoke(IPC.toolActionsAuthorize, request),
     approvals: (): Promise<Approval[]> => ipcRenderer.invoke(IPC.approvalsList),
     decide: (approvalId: string, approved: boolean): Promise<Approval> =>

@@ -55,7 +55,9 @@ function toPersistedAgent(agent: AgentConfig): PersistedAgent {
   return {
     ...metadata,
     soulPath: soulPathFor(agent.id),
-    capabilities: capabilityManifest(agent)
+    capabilities: agent.soul.trim()
+      ? capabilityManifest(agent)
+      : (agent.capabilities?.trim().slice(0, MAX_CAPABILITY_CHARS) ?? capabilityManifest(agent))
   };
 }
 
@@ -249,7 +251,8 @@ export class Store {
     return updateJson<ApiTrace[]>(this.tracesFile, [], (current) =>
       current.filter((trace) => {
         if (scope.agentId && trace.context.agentId === scope.agentId) return false;
-        if (scope.runId && (trace.id === scope.runId || trace.streamId === scope.runId)) return false;
+        if (scope.runId && (trace.id === scope.runId || trace.streamId === scope.runId))
+          return false;
         return true;
       })
     );
@@ -276,7 +279,9 @@ export class Store {
     try {
       return await fs.readFile(path, 'utf8');
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return '';
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new Error(`Agent SOUL.md is missing: ${id}`);
+      }
       throw error;
     }
   }
@@ -362,7 +367,14 @@ export class Store {
             await atomicWriteText(path, agent.soul ?? '');
           }
         }
-        const normalized = normalizeTeam(stored.map(toAgentShell));
+        const migrated = await Promise.all(
+          stored.map(async (agent) => {
+            const shell = toAgentShell(agent);
+            const soul = await fs.readFile(this.resolveSoulPath(agent.id), 'utf8');
+            return { ...shell, capabilities: capabilityManifest({ ...shell, soul }) };
+          })
+        );
+        const normalized = normalizeTeam(migrated);
         await writeJson(this.agentsFile, normalized.map(toPersistedAgent));
         this.agentsCache = normalized;
       });
@@ -374,7 +386,11 @@ export class Store {
     if (!SAFE_AGENT_ID.test(agentId)) throw new Error('Invalid agent id.');
     const path = resolve(this.root, soulPathFor(agentId));
     const relativePath = relative(this.root, path);
-    if (relativePath.startsWith(`..${sep}`) || relativePath === '..' || relativePath.startsWith(sep)) {
+    if (
+      relativePath.startsWith(`..${sep}`) ||
+      relativePath === '..' ||
+      relativePath.startsWith(sep)
+    ) {
       throw new Error('Agent soul path is outside the managed root.');
     }
     return path;

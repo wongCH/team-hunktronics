@@ -12,6 +12,7 @@ app.setName('Agent Control Panel');
 
 let mainWindow: BrowserWindow | null = null;
 let scheduleService: ScheduleService | null = null;
+let memoryMaintenanceTimer: ReturnType<typeof setInterval> | null = null;
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -88,23 +89,35 @@ app.whenReady().then(() => {
     startRun: (command) => runService.start(command)
   });
   runService.subscribe((event) => {
-    void scheduleService?.handleRunEvent(event);
-    void pipelineService.handleRunEvent(event);
+    void scheduleService
+      ?.handleRunEvent(event)
+      .catch((error) => console.error('Schedule event handling failed.', error));
+    void pipelineService
+      .handleRunEvent(event)
+      .catch((error) => console.error('Pipeline event handling failed.', error));
     if (
       event.type === 'state' &&
       event.run.agentId &&
       ['completed', 'failed', 'cancelled'].includes(event.run.status)
     ) {
-      void memory.appendDailyLog(
-        event.run.agentId,
-        `## ${new Date(event.run.updatedAt).toISOString()} · Agent run\n- Run: ${event.run.id}\n- Conversation: ${event.run.conversationId}\n- Status: ${event.run.status}\n- Error: ${event.run.error ?? 'None'}`,
-        event.run.updatedAt
-      );
+      void memory
+        .appendDailyLog(
+          event.run.agentId,
+          `## ${new Date(event.run.updatedAt).toISOString()} · Agent run\n- Run: ${event.run.id}\n- Conversation: ${event.run.conversationId}\n- Status: ${event.run.status}\n- Outcome: ${event.run.outputSummary || 'No output was produced.'}\n- Artifacts: ${event.run.artifactRefs?.join(', ') || 'None'}\n- Error: ${event.run.error ?? 'None'}`,
+          event.run.updatedAt
+        )
+        .catch((error) => console.error('Could not append agent memory log.', error));
     }
   });
   registerScheduleIpc(store, scheduleService);
   registerPipelineIpc(store, pipelineService);
   scheduleService.start();
+  void memory.maintain().catch((error) => console.error('Memory maintenance failed.', error));
+  memoryMaintenanceTimer = setInterval(
+    () =>
+      void memory.maintain().catch((error) => console.error('Memory maintenance failed.', error)),
+    86_400_000
+  );
 
   createWindow();
 
@@ -119,4 +132,6 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   scheduleService?.stop();
+  if (memoryMaintenanceTimer) clearInterval(memoryMaintenanceTimer);
+  memoryMaintenanceTimer = null;
 });

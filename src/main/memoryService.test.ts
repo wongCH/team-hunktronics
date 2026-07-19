@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { promises as fs } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -29,12 +29,20 @@ describe('MemoryService', () => {
       memory.write({ scope: 'agent', agentId: '../../escape', name: 'MEMORY.md', content: 'bad' })
     ).rejects.toThrow(/valid agent id/i);
     await expect(
-      memory.write({ scope: 'team', name: 'MEMORY.md', content: Array.from({ length: 201 }, () => 'x').join('\n') })
+      memory.write({
+        scope: 'team',
+        name: 'MEMORY.md',
+        content: Array.from({ length: 201 }, () => 'x').join('\n')
+      })
     ).rejects.toThrow(/200 lines/i);
   });
 
   it('uses optimistic revisions and snapshots the prior version', async () => {
-    const first = await memory.write({ scope: 'team', name: 'patterns.md', content: 'Use Vitest.' });
+    const first = await memory.write({
+      scope: 'team',
+      name: 'patterns.md',
+      content: 'Use Vitest.'
+    });
     const second = await memory.write({
       scope: 'team',
       name: 'patterns.md',
@@ -55,8 +63,17 @@ describe('MemoryService', () => {
   });
 
   it('searches lexically and reports health deductions', async () => {
-    await memory.write({ scope: 'team', name: 'architecture.md', content: 'Electron main owns provider execution.' });
-    await memory.write({ scope: 'agent', agentId: 'researcher', name: 'patterns.md', content: 'Provider evidence must be verified.' });
+    await memory.write({
+      scope: 'team',
+      name: 'architecture.md',
+      content: 'Electron main owns provider execution.'
+    });
+    await memory.write({
+      scope: 'agent',
+      agentId: 'researcher',
+      name: 'patterns.md',
+      content: 'Provider evidence must be verified.'
+    });
     const results = await memory.search('provider evidence');
     expect(results[0].document).toMatchObject({ agentId: 'researcher', name: 'patterns.md' });
     expect(results[0].score).toBeGreaterThan(0);
@@ -71,7 +88,9 @@ describe('MemoryService', () => {
     const health = await memory.health();
     expect(health.score).toBe(90);
     expect(health.findings).toEqual(
-      expect.arrayContaining([expect.objectContaining({ code: 'baseline-lines-warning', severity: 'warning' })])
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'baseline-lines-warning', severity: 'warning' })
+      ])
     );
   });
 
@@ -88,6 +107,42 @@ describe('MemoryService', () => {
     expect(document.content).toContain('Completed second task.');
   });
 
+  it('serializes concurrent same-day appends without losing entries', async () => {
+    const at = Date.parse('2026-07-19T10:00:00Z');
+    await Promise.all(
+      Array.from({ length: 20 }, (_, index) =>
+        memory.appendDailyLog('researcher', `- Outcome: result-${index}`, at)
+      )
+    );
+    const context = await memory.searchScoped('researcher', 'result', 5);
+    const daily = context.find((result) => result.document.name === '2026-07-19.md')?.document;
+    expect(daily?.content.match(/Outcome: result-/g)).toHaveLength(20);
+  });
+
+  it('direct-reads run baselines and retrieves only authorized scopes', async () => {
+    await memory.write({
+      scope: 'agent',
+      agentId: 'researcher',
+      name: 'patterns.md',
+      content: 'Use endpoint verification for Azure.'
+    });
+    await memory.write({
+      scope: 'agent',
+      agentId: 'private-agent',
+      name: 'private.md',
+      content: 'confidential-marker must not cross agent scope'
+    });
+    const list = vi.spyOn(memory, 'list').mockRejectedValue(new Error('global walk forbidden'));
+    const baseline = await memory.getBaseline('researcher');
+    expect(baseline.teamMemory).toContain('# Team Memory');
+    expect(list).not.toHaveBeenCalled();
+    list.mockRestore();
+
+    const context = await memory.getRunContext('researcher', 'Azure endpoint confidential-marker');
+    expect(context.retrievedMemory).toContain('endpoint verification');
+    expect(context.retrievedMemory).not.toContain('confidential-marker');
+  });
+
   it('proposes bounded compression and archives only accepted daily logs', async () => {
     const at = Date.parse('2026-07-19T10:00:00Z');
     await memory.write({
@@ -96,6 +151,7 @@ describe('MemoryService', () => {
       name: 'MEMORY.md',
       content: '# Researcher Memory\n\n## Patterns\n- Verify sources.'
     });
+
     await memory.appendDailyLog(
       'researcher',
       '## Run\n- Decision: Prefer primary sources.\n- Error: None',
@@ -112,28 +168,71 @@ describe('MemoryService', () => {
         expect.objectContaining({ id: 'agents/researcher/archive/2026-07-19.md', kind: 'archive' })
       ])
     );
-    expect(documents.some((document) => document.id === 'agents/researcher/2026-07-19.md')).toBe(false);
+    expect(documents.some((document) => document.id === 'agents/researcher/2026-07-19.md')).toBe(
+      false
+    );
+  });
+
+  it('persists compression proposals across service restarts', async () => {
+    const at = Date.parse('2026-07-19T10:00:00Z');
+    await memory.appendDailyLog('researcher', '- Decision: Persist maintenance state.', at);
+    const proposal = await memory.proposeCompression('researcher', at);
+
+    const restarted = new MemoryService(dir);
+    const baseline = await restarted.applyCompression(proposal.id);
+    expect(baseline.content).toContain('Persist maintenance state.');
+  });
+
+  it('archives stale daily logs during bounded maintenance', async () => {
+    const at = Date.parse('2026-01-01T10:00:00Z');
+    await memory.appendDailyLog('researcher', '- Outcome: old result', at);
+    const path = join(dir, 'memory', 'agents', 'researcher', '2026-01-01.md');
+    await fs.utimes(path, new Date(at), new Date(at));
+
+    const result = await memory.maintain(Date.parse('2026-07-20T00:00:00Z'));
+    expect(result.archived).toBe(1);
+    expect(
+      await fs.readFile(
+        join(dir, 'memory', 'agents', 'researcher', 'archive', '2026-01-01.md'),
+        'utf8'
+      )
+    ).toContain('old result');
   });
 
   it('rejects compression when the baseline changed after proposal creation', async () => {
     const at = Date.parse('2026-07-19T10:00:00Z');
-    const baseline = await memory.write({ scope: 'agent', agentId: 'researcher', name: 'MEMORY.md', content: '# Memory' });
+    const baseline = await memory.write({
+      scope: 'agent',
+      agentId: 'researcher',
+      name: 'MEMORY.md',
+      content: '# Memory'
+    });
     await memory.appendDailyLog('researcher', '- Decision: Keep strict typing.', at);
     const proposal = await memory.proposeCompression('researcher', at);
     await memory.write({
-      scope: 'agent', agentId: 'researcher', name: 'MEMORY.md', content: '# Memory\n- Human edit',
+      scope: 'agent',
+      agentId: 'researcher',
+      name: 'MEMORY.md',
+      content: '# Memory\n- Human edit',
       expectedRevision: baseline.revision
     });
-    await expect(memory.applyCompression(proposal.id)).rejects.toThrow(/changed after compression/i);
+    await expect(memory.applyCompression(proposal.id)).rejects.toThrow(
+      /changed after compression/i
+    );
   });
 
   it('detects duplicate content and orphaned baseline references', async () => {
-    const duplicate = 'This is a durable architecture note with enough repeated content to cross the duplicate threshold.'.repeat(2);
+    const duplicate =
+      'This is a durable architecture note with enough repeated content to cross the duplicate threshold.'.repeat(
+        2
+      );
     await memory.write({ scope: 'team', name: 'one.md', content: duplicate });
     await memory.write({ scope: 'team', name: 'two.md', content: duplicate });
     const baseline = (await memory.list()).find((document) => document.id === 'team/MEMORY.md')!;
     await memory.write({
-      scope: 'team', name: 'MEMORY.md', content: '# Team Memory\n\n[Missing topic](missing.md)',
+      scope: 'team',
+      name: 'MEMORY.md',
+      content: '# Team Memory\n\n[Missing topic](missing.md)',
       expectedRevision: baseline.revision
     });
     const health = await memory.health();

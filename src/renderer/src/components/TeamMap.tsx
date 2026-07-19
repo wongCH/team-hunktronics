@@ -13,6 +13,7 @@ import {
 import clsx from 'clsx';
 import type { AgentConfig } from '@shared/types';
 import type { EdgeActivity } from '@/lib/runActivity';
+import { selectVisibleAgents } from '@/lib/teamMapLayout';
 import { ChatView } from './ChatView';
 import { getAgentIcon } from './AgentIconPicker';
 
@@ -54,7 +55,11 @@ function AgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-neon" />
         </span>
       )}
-      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-content-faint !border-0" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!w-2 !h-2 !bg-content-faint !border-0"
+      />
       <div className="flex items-center gap-3 h-full">
         <div
           className={clsx(
@@ -83,9 +88,7 @@ const nodeTypes = { agent: AgentNode };
 
 function layoutTeam(
   agents: AgentConfig[],
-  selectedId: string | null,
-  workingAgentIds: ReadonlySet<string>,
-  edgeActivity: ReadonlyMap<string, EdgeActivity>
+  selectedId: string | null
 ): { nodes: Node<AgentNodeData>[]; edges: Edge[] } {
   const graph = new dagre.graphlib.Graph();
   graph.setDefaultEdgeLabel(() => ({}));
@@ -104,33 +107,25 @@ function layoutTeam(
       id: agent.id,
       type: 'agent',
       position: { x: position.x - NODE_WIDTH / 2, y: position.y - NODE_HEIGHT / 2 },
-      data: { agent, selected: agent.id === selectedId, working: workingAgentIds.has(agent.id) },
+      data: { agent, selected: agent.id === selectedId, working: false },
       draggable: false
     };
   });
   const edges = agents
-    .filter((agent) => agent.reportsTo && agents.some((candidate) => candidate.id === agent.reportsTo))
+    .filter(
+      (agent) => agent.reportsTo && agents.some((candidate) => candidate.id === agent.reportsTo)
+    )
     .map<Edge>((agent) => ({
       id: `${agent.reportsTo}-${agent.id}`,
       source: agent.reportsTo!,
       target: agent.id,
       type: 'smoothstep',
-      className: edgeActivity.has(`${agent.reportsTo}-${agent.id}`)
-        ? `team-edge-active team-edge-${edgeActivity.get(`${agent.reportsTo}-${agent.id}`)!.direction}`
-        : undefined,
       style: {
         stroke:
-          edgeActivity.has(`${agent.reportsTo}-${agent.id}`) ||
-          agent.id === selectedId ||
-          agent.reportsTo === selectedId
+          agent.id === selectedId || agent.reportsTo === selectedId
             ? 'var(--color-neon)'
             : 'var(--color-borderStrong)',
-        strokeWidth:
-          edgeActivity.has(`${agent.reportsTo}-${agent.id}`) ||
-          agent.id === selectedId ||
-          agent.reportsTo === selectedId
-            ? 2
-            : 1
+        strokeWidth: agent.id === selectedId || agent.reportsTo === selectedId ? 2 : 1
       }
     }));
   return { nodes, edges };
@@ -151,20 +146,58 @@ export function TeamMap({
   onSelect: (id: string) => void;
   onConfigure: (id: string) => void;
 }) {
-  const { nodes, edges } = useMemo(
-    () => layoutTeam(agents, selectedId, workingAgentIds, edgeActivity),
-    [agents, selectedId, workingAgentIds, edgeActivity]
+  const visibleAgents = useMemo(
+    () => selectVisibleAgents(agents, selectedId),
+    [agents, selectedId]
+  );
+  const topology = useMemo(
+    () => layoutTeam(visibleAgents, selectedId),
+    [visibleAgents, selectedId]
+  );
+  const nodes = useMemo(
+    () =>
+      topology.nodes.map((node) => ({
+        ...node,
+        data: { ...node.data, working: workingAgentIds.has(node.id) }
+      })),
+    [topology.nodes, workingAgentIds]
+  );
+  const edges = useMemo(
+    () =>
+      topology.edges.map((edge) => {
+        const activity = edgeActivity.get(edge.id);
+        return {
+          ...edge,
+          className: activity ? `team-edge-active team-edge-${activity.direction}` : undefined,
+          style: activity
+            ? { ...edge.style, stroke: 'var(--color-neon)', strokeWidth: 2 }
+            : edge.style
+        };
+      }),
+    [topology.edges, edgeActivity]
   );
   const selected = agents.find((agent) => agent.id === selectedId) ?? null;
-  const manager = selected?.reportsTo ? agents.find((agent) => agent.id === selected.reportsTo) : null;
+  const manager = selected?.reportsTo
+    ? agents.find((agent) => agent.id === selected.reportsTo)
+    : null;
 
   if (agents.length === 0) {
-    return <div className="flex-1 grid place-items-center text-sm text-content-faint">Create an orchestrator to begin the team map.</div>;
+    return (
+      <div className="flex-1 grid place-items-center text-sm text-content-faint">
+        Create an orchestrator to begin the team map.
+      </div>
+    );
   }
 
   return (
     <div className="flex-1 min-h-0 flex flex-col min-[1200px]:flex-row">
-      <div className="flex-1 min-w-0 min-h-[210px]">
+      <div className="relative flex-1 min-w-0 min-h-[210px]">
+        {visibleAgents.length < agents.length && (
+          <div className="absolute z-10 m-3 rounded-lg border border-border bg-surface px-3 py-2 text-xs text-content-muted shadow-lg">
+            Showing {visibleAgents.length} of {agents.length} agents. Select an agent in the sidebar
+            to open its branch.
+          </div>
+        )}
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -194,7 +227,10 @@ export function TeamMap({
                 {roleLabel(selected.role)} · {manager ? `Reports to ${manager.name}` : 'Team root'}
               </p>
             </div>
-            <button className="btn-outline !px-2.5 !py-1.5 text-xs" onClick={() => onConfigure(selected.id)}>
+            <button
+              className="btn-outline !px-2.5 !py-1.5 text-xs"
+              onClick={() => onConfigure(selected.id)}
+            >
               Configure
             </button>
           </div>
