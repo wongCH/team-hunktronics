@@ -5,14 +5,14 @@ describe('assembleContext', () => {
   it('always includes identity, curated memory, and the current user input', () => {
     const result = assembleContext({
       identity: 'You are a research specialist.',
-      humanIdentity: 'Name: Ada\nRole: Engineering lead',
+      llmWikiContext: '## Identity\nName: Ada\nRole: Engineering lead',
       teamMemory: 'Use Vitest.',
       agentMemory: 'Verify sources.',
       history: [{ role: 'assistant', content: 'Earlier response' }],
       userContent: 'Research this topic.'
     });
     expect(result.messages[0]).toEqual({ role: 'system', content: 'You are a research specialist.' });
-    expect(result.messages[1].content).toContain('## Human Identity');
+    expect(result.messages[1].content).toContain('## Human LLM Wiki');
     expect(result.messages[1].content).toContain('Name: Ada');
     expect(result.messages[2].content).toContain('## Team Memory');
     expect(result.messages[2].content).toContain('## Agent Memory');

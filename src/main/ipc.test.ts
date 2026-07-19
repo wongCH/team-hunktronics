@@ -13,6 +13,7 @@ import type {
 import type { Store } from './store';
 import type { Vault } from './vault';
 import type { MemoryService } from './memoryService';
+import type { LlmWikiService } from './llmWikiService';
 
 /**
  * Backlog coverage: US-101/US-102 (connection CRUD + test), US-202 (write-only
@@ -52,11 +53,11 @@ class FakeStore {
   traces: ApiTrace[] = [];
   skills: SkillDefinition[] = [];
   settings: AppSettings = {
-    theme: 'neon-blue',
+    theme: 'linear-indigo',
     experimentalCopilot: false,
     activeConnectionId: null,
     activeModel: null,
-    humanIdentity: '',
+    llmWikiPath: null,
     githubClientId: 'Iv1.default'
   };
   async listConnections() {
@@ -169,6 +170,23 @@ class FakeMemory {
   }
 }
 
+class FakeLlmWiki {
+  async status(path: string | null) {
+    return path
+      ? { state: 'ready', path, pageCount: 4, message: 'ready' }
+      : { state: 'found', path: '/wiki', pageCount: 4, message: 'found' };
+  }
+  async inspect(path: string) {
+    return { state: 'ready', path, pageCount: 4, message: 'ready' };
+  }
+  async create(path: string) {
+    return { state: 'ready', path: `${path}/LLM-Vault`, pageCount: 4, message: 'ready' };
+  }
+  async loadContext() {
+    return '';
+  }
+}
+
 let store: FakeStore;
 let vault: FakeVault;
 let send: ReturnType<typeof vi.fn>;
@@ -202,7 +220,8 @@ beforeEach(() => {
     getWindow: () => ({ webContents: { send } }) as never,
     store: store as unknown as Store,
     vault: vault as unknown as Vault,
-    memory: new FakeMemory() as unknown as MemoryService
+    memory: new FakeMemory() as unknown as MemoryService,
+    llmWiki: new FakeLlmWiki() as unknown as LlmWikiService
   });
 });
 
@@ -274,6 +293,19 @@ describe('skills library', () => {
     });
     expect(skills[0].instructions).toContain('Cite primary sources.');
     await fs.rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe('human llm-wiki', () => {
+  it('references the discovered vault only after explicit confirmation', async () => {
+    expect(store.settings.llmWikiPath).toBeNull();
+    expect(await invoke(IPC.llmWikiStatus)).toMatchObject({ state: 'found', path: '/wiki' });
+
+    expect(await invoke(IPC.llmWikiReferenceFound)).toMatchObject({
+      state: 'ready',
+      path: '/wiki'
+    });
+    expect(store.settings.llmWikiPath).toBe('/wiki');
   });
 });
 
@@ -409,7 +441,15 @@ describe('api traces', () => {
         connectionId: 'c1',
         model: 'gpt-4o',
         request: { messageCount: 0, characterCount: 0, hasSystemContext: false, startedAt: 1 },
-        response: { preview: 'ok', characterCount: 2, truncated: false, chunks: 1, doneAt: 2, error: null, cancelled: false },
+        response: {
+          preview: 'ok',
+          characterCount: 2,
+          truncated: false,
+          chunks: 1,
+          doneAt: 2,
+          error: null,
+          cancelled: false
+        },
         context: { source: 'chat', agentId: null, agentName: null },
         status: 'done',
         createdAt: 1,

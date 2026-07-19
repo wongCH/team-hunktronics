@@ -34,6 +34,7 @@ import type { MemoryService } from './memoryService';
 import { nextScheduleRun, type ScheduleService } from './scheduleService';
 import { validatePipeline, type PipelineService } from './pipelineService';
 import { ToolPolicyBroker } from './toolPolicy';
+import type { LlmWikiService } from './llmWikiService';
 
 const VALID_TYPES: ProviderType[] = [
   'ollama',
@@ -50,6 +51,7 @@ interface Deps {
   store: Store;
   vault: Vault;
   memory: MemoryService;
+  llmWiki: LlmWikiService;
 }
 
 function parseSkill(content: string, sourceFile: string): Pick<SkillDefinition, 'id' | 'name' | 'description'> {
@@ -166,7 +168,7 @@ export function registerPipelineIpc(store: Store, pipelines: PipelineService): v
   ipcMain.handle(IPC.artifactsList, () => store.listArtifacts());
 }
 
-export function registerIpc({ getWindow, store, vault, memory }: Deps): IpcRuntime {
+export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps): IpcRuntime {
   const activeStreams = new Map<string, AbortController>();
   let deviceFlow: DeviceFlowHandle | null = null;
 
@@ -205,7 +207,7 @@ export function registerIpc({ getWindow, store, vault, memory }: Deps): IpcRunti
       return {
         connectionId: settings.activeConnectionId,
         model: settings.activeModel,
-        humanIdentity: settings.humanIdentity
+        llmWikiContext: await llmWiki.loadContext(settings.llmWikiPath)
       };
     },
     getMemory: (agentId) => memory.getBaseline(agentId),
@@ -679,6 +681,57 @@ export function registerIpc({ getWindow, store, vault, memory }: Deps): IpcRunti
     return store.deleteSkill(id);
   });
 
+  // ---- Human-owned llm-wiki ----
+  ipcMain.handle(IPC.llmWikiStatus, async () => {
+    const settings = await store.getSettings();
+    return llmWiki.status(settings.llmWikiPath);
+  });
+  ipcMain.handle(IPC.llmWikiReferenceFound, async () => {
+    const settings = await store.getSettings();
+    const status = await llmWiki.status(null);
+    if (status.state !== 'found' || !status.path) throw new Error('No existing llm-wiki vault was found.');
+    await store.setSettings({ ...settings, llmWikiPath: status.path });
+    return llmWiki.status(status.path);
+  });
+  ipcMain.handle(IPC.llmWikiChoose, async () => {
+    const options: OpenDialogOptions = {
+      title: 'Choose human llm-wiki vault',
+      properties: ['openDirectory']
+    };
+    const window = getWindow();
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options);
+    if (result.canceled || !result.filePaths[0]) {
+      return llmWiki.status((await store.getSettings()).llmWikiPath);
+    }
+    const status = await llmWiki.inspect(result.filePaths[0]);
+    if (status.state !== 'ready' || !status.path) throw new Error(status.message);
+    await store.setSettings({ ...(await store.getSettings()), llmWikiPath: status.path });
+    return status;
+  });
+  ipcMain.handle(IPC.llmWikiCreate, async () => {
+    const options: OpenDialogOptions = {
+      title: 'Choose where to create LLM-Vault',
+      properties: ['openDirectory', 'createDirectory']
+    };
+    const window = getWindow();
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options);
+    if (result.canceled || !result.filePaths[0]) {
+      return llmWiki.status((await store.getSettings()).llmWikiPath);
+    }
+    const status = await llmWiki.create(result.filePaths[0]);
+    if (!status.path) throw new Error(status.message);
+    await store.setSettings({ ...(await store.getSettings()), llmWikiPath: status.path });
+    return status;
+  });
+  ipcMain.handle(IPC.llmWikiRemove, async () => {
+    await store.setSettings({ ...(await store.getSettings()), llmWikiPath: null });
+    return llmWiki.status(null);
+  });
+
   // ---- Managed memory ----
   ipcMain.handle(IPC.memoryList, () => memory.list());
   ipcMain.handle(IPC.memoryWrite, (_e, command: MemoryWriteCommand) => memory.write(command));
@@ -760,10 +813,7 @@ export function registerIpc({ getWindow, store, vault, memory }: Deps): IpcRunti
   // ---- Settings ----
   ipcMain.handle(IPC.settingsGet, () => store.getSettings());
   ipcMain.handle(IPC.settingsSet, (_e, patch: Partial<AppSettings>) => {
-    if (patch.humanIdentity !== undefined) {
-      if (typeof patch.humanIdentity !== 'string') throw new Error('Invalid human identity.');
-      patch = { ...patch, humanIdentity: patch.humanIdentity.trim().slice(0, 20_000) };
-    }
+    delete patch.llmWikiPath;
     return store.setSettings(patch);
   });
 

@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { AgentEditor } from '@/components/AgentEditor';
 import { CreateAgentModal } from '@/components/CreateAgentModal';
 import { TeamMap } from '@/components/TeamMap';
+import { LlmWikiSetup } from '@/components/LlmWikiSetup';
 import { PlusIcon } from '@/components/icons';
 
 function AgentRow({
@@ -55,6 +56,7 @@ export function AgentsPage() {
   const { agents, selectedId, init, select } = useAgentStore();
   const [creating, setCreating] = useState<AgentRole | null>(null);
   const [view, setView] = useState<'map' | 'configure'>('map');
+  const [wikiOnboarding, setWikiOnboarding] = useState(false);
 
   useEffect(() => {
     void init();
@@ -179,7 +181,14 @@ export function AgentsPage() {
             }}
           />
         ) : selected ? (
-          <AgentEditor key={selected.id} agent={selected} />
+          <div className="flex-1 min-h-0 flex flex-col">
+            {wikiOnboarding && (
+              <div className="px-5 pt-4">
+                <LlmWikiSetup onDone={() => setWikiOnboarding(false)} />
+              </div>
+            )}
+            <AgentEditor key={selected.id} agent={selected} />
+          </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
             <div className="w-14 h-14 rounded-2xl bg-neon/10 border border-neon/40 shadow-neon flex items-center justify-center mb-4 text-neon text-xl">
@@ -207,6 +216,7 @@ export function AgentsPage() {
             setCreating(null);
             select(id);
             setView('configure');
+            setWikiOnboarding(true);
           }}
         />
       )}

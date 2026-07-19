@@ -190,12 +190,7 @@ export interface AgentPipeline {
   updatedAt: number;
 }
 
-export type PipelineExecutionStatus =
-  | 'queued'
-  | 'running'
-  | 'review'
-  | 'failed'
-  | 'cancelled';
+export type PipelineExecutionStatus = 'queued' | 'running' | 'review' | 'failed' | 'cancelled';
 
 export interface PipelineExecution {
   id: string;
@@ -226,12 +221,7 @@ export interface RunArtifact {
 
 export type ToolSideEffect = 'none' | 'local-write' | 'external';
 export type ToolActionStatus =
-  | 'denied'
-  | 'awaiting-approval'
-  | 'approved'
-  | 'executing'
-  | 'succeeded'
-  | 'failed';
+  'denied' | 'awaiting-approval' | 'approved' | 'executing' | 'succeeded' | 'failed';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired';
 
 export interface ToolActionRequest {
@@ -319,14 +309,40 @@ export interface ApiTrace {
   updatedAt: number;
 }
 
+export const APP_THEMES = [
+  { id: 'graphite-amber', label: 'Graphite Amber' },
+  { id: 'indigo-nebula', label: 'Indigo Nebula' },
+  { id: 'neon-green-grid', label: 'Neon Green Grid' },
+  { id: 'graphite-blue', label: 'Graphite Blue' },
+  { id: 'linear-indigo', label: 'Linear Indigo Light' },
+  { id: 'graphite-light', label: 'Graphite Light' }
+] as const;
+
+export type AppTheme = (typeof APP_THEMES)[number]['id'];
+
+export const DEFAULT_APP_THEME: AppTheme = 'linear-indigo';
+
+export function isAppTheme(value: unknown): value is AppTheme {
+  return typeof value === 'string' && APP_THEMES.some((theme) => theme.id === value);
+}
+
 export interface AppSettings {
-  theme: 'neon-blue';
+  theme: AppTheme;
   experimentalCopilot: boolean;
   activeConnectionId: string | null;
   activeModel: string | null;
-  humanIdentity: string;
+  llmWikiPath: string | null;
   /** OAuth client id used for GitHub device-flow login (advanced/experimental). */
   githubClientId: string;
+}
+
+export type LlmWikiState = 'ready' | 'found' | 'unconfigured' | 'missing' | 'invalid';
+
+export interface LlmWikiStatus {
+  state: LlmWikiState;
+  path: string | null;
+  pageCount: number;
+  message: string;
 }
 
 export interface VaultStatus {

@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
+import { DEFAULT_APP_THEME } from '@shared/types';
 import { useAppStore } from '@/store/useAppStore';
 import { useChatStore } from '@/store/useChatStore';
 import { NavRail } from '@/components/NavRail';
@@ -15,7 +16,12 @@ export default function App() {
   const ready = useAppStore((s) => s.ready);
   const loadAll = useAppStore((s) => s.loadAll);
   const page = useAppStore((s) => s.page);
+  const theme = useAppStore((s) => s.settings?.theme ?? DEFAULT_APP_THEME);
   const initChat = useChatStore((s) => s.init);
+
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   useEffect(() => {
     void loadAll();

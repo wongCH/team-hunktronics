@@ -6,6 +6,7 @@ import { registerIpc, registerPipelineIpc, registerScheduleIpc } from './ipc';
 import { MemoryService } from './memoryService';
 import { ScheduleService } from './scheduleService';
 import { PipelineService } from './pipelineService';
+import { LlmWikiService } from './llmWikiService';
 
 app.setName('Agent Control Panel');
 
@@ -19,7 +20,7 @@ function createWindow(): void {
     minWidth: 900,
     minHeight: 600,
     show: false,
-    backgroundColor: '#080b11',
+    backgroundColor: '#ffffff',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 18 },
     webPreferences: {
@@ -58,7 +59,14 @@ app.whenReady().then(() => {
   const store = new Store(userDataDir);
   const vault = new Vault(userDataDir);
   const memory = new MemoryService(userDataDir);
-  const { runService } = registerIpc({ getWindow: () => mainWindow, store, vault, memory });
+  const llmWiki = new LlmWikiService();
+  const { runService } = registerIpc({
+    getWindow: () => mainWindow,
+    store,
+    vault,
+    memory,
+    llmWiki
+  });
   scheduleService = new ScheduleService({
     listSchedules: () => store.listSchedules(),
     saveSchedule: (schedule) => store.saveSchedule(schedule),

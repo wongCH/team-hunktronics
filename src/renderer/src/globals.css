@@ -4,7 +4,116 @@
 
 @layer base {
   :root {
+    color-scheme: light;
+    --theme-base: 255 255 255;
+    --theme-panel: 255 255 255;
+    --theme-elevated: 247 247 251;
+    --theme-line: 227 228 238;
+    --theme-foreground: 27 28 46;
+    --theme-muted: 91 93 122;
+    --theme-faint: 112 115 144;
+    --theme-accent: 79 70 229;
+    --theme-accent-foreground: 67 56 202;
+    --theme-glow: 79 70 229;
+    --theme-success: 4 120 87;
+    --theme-warning: 180 83 9;
+    --theme-danger: 185 28 28;
+    --theme-radius: 12px;
+    --theme-background-image: none;
+    --color-neon: rgb(var(--theme-accent));
+    --color-borderStrong: color-mix(in srgb, rgb(var(--theme-line)) 75%, rgb(var(--theme-accent)));
+  }
+
+  :root[data-theme='graphite-amber'] {
     color-scheme: dark;
+    --theme-base: 17 19 21;
+    --theme-panel: 24 27 30;
+    --theme-elevated: 20 22 24;
+    --theme-line: 38 42 46;
+    --theme-foreground: 231 233 234;
+    --theme-muted: 139 145 150;
+    --theme-faint: 92 98 104;
+    --theme-accent: 245 166 35;
+    --theme-accent-foreground: 255 198 92;
+    --theme-glow: 245 166 35;
+    --theme-success: 110 231 183;
+    --theme-warning: 252 211 77;
+    --theme-danger: 252 165 165;
+  }
+
+  :root[data-theme='indigo-nebula'] {
+    color-scheme: dark;
+    --theme-base: 11 13 26;
+    --theme-panel: 20 23 42;
+    --theme-elevated: 15 18 34;
+    --theme-line: 36 42 69;
+    --theme-foreground: 232 234 246;
+    --theme-muted: 154 160 196;
+    --theme-faint: 100 106 146;
+    --theme-accent: 129 140 248;
+    --theme-accent-foreground: 165 176 255;
+    --theme-glow: 129 140 248;
+    --theme-success: 110 231 183;
+    --theme-warning: 252 211 77;
+    --theme-danger: 252 165 165;
+    --theme-radius: 14px;
+    --theme-background-image:
+      radial-gradient(130% 90% at 10% 0%, rgb(99 102 241 / 0.22), transparent 55%),
+      radial-gradient(130% 90% at 95% 100%, rgb(168 85 247 / 0.2), transparent 55%);
+  }
+
+  :root[data-theme='neon-green-grid'] {
+    color-scheme: dark;
+    --theme-base: 5 10 7;
+    --theme-panel: 10 20 13;
+    --theme-elevated: 7 16 9;
+    --theme-line: 22 40 27;
+    --theme-foreground: 230 245 234;
+    --theme-muted: 132 168 145;
+    --theme-faint: 79 106 88;
+    --theme-accent: 0 255 156;
+    --theme-accent-foreground: 110 255 196;
+    --theme-glow: 0 255 156;
+    --theme-success: 110 231 183;
+    --theme-warning: 252 211 77;
+    --theme-danger: 252 165 165;
+    --theme-background-image:
+      radial-gradient(130% 90% at 12% 0%, rgb(0 255 156 / 0.16), transparent 55%),
+      radial-gradient(130% 90% at 92% 100%, rgb(16 185 129 / 0.18), transparent 55%);
+  }
+
+  :root[data-theme='graphite-blue'] {
+    color-scheme: dark;
+    --theme-base: 8 11 17;
+    --theme-panel: 13 19 28;
+    --theme-elevated: 10 15 23;
+    --theme-line: 28 42 58;
+    --theme-foreground: 230 237 246;
+    --theme-muted: 142 163 189;
+    --theme-faint: 96 117 141;
+    --theme-accent: 56 189 248;
+    --theme-accent-foreground: 167 229 252;
+    --theme-glow: 56 189 248;
+    --theme-success: 110 231 183;
+    --theme-warning: 252 211 77;
+    --theme-danger: 252 165 165;
+  }
+
+  :root[data-theme='graphite-light'] {
+    color-scheme: light;
+    --theme-base: 245 248 251;
+    --theme-panel: 255 255 255;
+    --theme-elevated: 237 242 247;
+    --theme-line: 214 224 234;
+    --theme-foreground: 24 35 50;
+    --theme-muted: 82 101 121;
+    --theme-faint: 101 123 146;
+    --theme-accent: 3 105 161;
+    --theme-accent-foreground: 7 89 133;
+    --theme-glow: 3 105 161;
+    --theme-success: 4 120 87;
+    --theme-warning: 180 83 9;
+    --theme-danger: 185 28 28;
   }
 
   html,
@@ -15,15 +124,16 @@
 
   body {
     @apply bg-base text-content font-sans antialiased;
+    background-image: var(--theme-background-image);
+    background-attachment: fixed;
     margin: 0;
     overflow: hidden;
   }
 
   ::selection {
-    background: rgba(0, 229, 255, 0.28);
+    background: rgb(var(--theme-accent) / 0.28);
   }
 
-  /* Neon scrollbars */
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -32,13 +142,13 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #172233;
+    background: rgb(var(--theme-line));
     border-radius: 999px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #223449;
+    background: var(--color-borderStrong);
     background-clip: content-box;
   }
 
@@ -46,6 +156,10 @@
   textarea,
   select {
     @apply bg-transparent outline-none;
+  }
+
+  option {
+    @apply bg-surface text-content;
   }
 }
 
@@ -102,7 +216,7 @@
   }
 
   .neon-text {
-    text-shadow: 0 0 12px rgba(0, 229, 255, 0.55);
+    text-shadow: 0 0 12px rgb(var(--theme-glow) / 0.55);
   }
 
   /* Rendered markdown for assistant messages */

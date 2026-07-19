@@ -28,7 +28,7 @@ export interface RunServiceDeps {
   getDefaultTarget: () => Promise<{
     connectionId: string | null;
     model: string | null;
-    humanIdentity?: string;
+    llmWikiContext?: string;
   }>;
   getMemory: (agentId?: string) => Promise<{ teamMemory: string; agentMemory: string }>;
   getSkills: (skillIds: string[]) => Promise<Array<{ name: string; instructions: string }>>;
@@ -110,7 +110,7 @@ export class RunService {
     const skills = await this.deps.getSkills(agent?.skills ?? []);
     const outbound = assembleContext({
       identity: agent?.soul,
-      humanIdentity: defaultTarget.humanIdentity,
+      llmWikiContext: defaultTarget.llmWikiContext,
       skills,
       teamMemory: memory.teamMemory,
       agentMemory: memory.agentMemory,

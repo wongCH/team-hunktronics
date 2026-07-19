@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { Store } from './store';
-import { DEFAULT_GITHUB_CLIENT_ID } from '@shared/types';
+import { APP_THEMES, DEFAULT_APP_THEME, DEFAULT_GITHUB_CLIENT_ID } from '@shared/types';
 import type {
   AgentSchedule,
   AgentTask,
@@ -196,11 +196,11 @@ describe('Store — settings', () => {
   it('returns defaults when nothing is persisted', async () => {
     const s = await store.getSettings();
     expect(s).toMatchObject({
-      theme: 'neon-blue',
+      theme: DEFAULT_APP_THEME,
       experimentalCopilot: false,
       activeConnectionId: null,
       activeModel: null,
-      humanIdentity: '',
+      llmWikiPath: null,
       githubClientId: DEFAULT_GITHUB_CLIENT_ID
     });
   });
@@ -214,6 +214,34 @@ describe('Store — settings', () => {
       experimentalCopilot: true
     });
     expect(await new Store(dir).getSettings()).toMatchObject({ activeConnectionId: 'x' });
+  });
+
+  it('persists every supported theme and rejects unsupported values', async () => {
+    for (const theme of APP_THEMES) {
+      expect((await store.setSettings({ theme: theme.id })).theme).toBe(theme.id);
+    }
+    await expect(store.setSettings(JSON.parse('{"theme":"not-a-theme"}'))).rejects.toThrow(
+      /unsupported theme/i
+    );
+  });
+
+  it('migrates the legacy neon-blue theme to Graphite Blue', async () => {
+    await fs.writeFile(join(dir, 'settings.json'), JSON.stringify({ theme: 'neon-blue' }));
+    expect((await store.getSettings()).theme).toBe('graphite-blue');
+    expect(JSON.parse(await fs.readFile(join(dir, 'settings.json'), 'utf8')).theme).toBe(
+      'graphite-blue'
+    );
+  });
+
+  it('removes the legacy humanIdentity field during settings migration', async () => {
+    await fs.writeFile(
+      join(dir, 'settings.json'),
+      JSON.stringify({ theme: DEFAULT_APP_THEME, humanIdentity: 'Legacy profile' })
+    );
+    expect(await store.getSettings()).toMatchObject({ llmWikiPath: null });
+    expect(JSON.parse(await fs.readFile(join(dir, 'settings.json'), 'utf8'))).not.toHaveProperty(
+      'humanIdentity'
+    );
   });
 });
 
@@ -244,7 +272,9 @@ describe('Store — tasks', () => {
   it('creates, updates, reloads, and deletes durable tasks', async () => {
     await store.saveTask(task('a'));
     await store.saveTask(task('a', 'Updated'));
-    expect(await store.listTasks()).toEqual([expect.objectContaining({ id: 'a', title: 'Updated' })]);
+    expect(await store.listTasks()).toEqual([
+      expect.objectContaining({ id: 'a', title: 'Updated' })
+    ]);
     expect(await new Store(dir).getTask('a')).toMatchObject({ title: 'Updated' });
     await store.deleteTask('a');
     expect(await store.listTasks()).toEqual([]);

@@ -21,6 +21,7 @@ import type {
   Conversation,
   LocalDataQuery,
   LocalDataResult,
+  LlmWikiStatus,
   MemoryDocument,
   MemoryCompressionProposal,
   MemoryHealth,
@@ -107,6 +108,13 @@ const api = {
     list: (): Promise<SkillDefinition[]> => ipcRenderer.invoke(IPC.skillsList),
     import: (): Promise<SkillDefinition[]> => ipcRenderer.invoke(IPC.skillsImport),
     delete: (id: string): Promise<SkillDefinition[]> => ipcRenderer.invoke(IPC.skillsDelete, id)
+  },
+  llmWiki: {
+    status: (): Promise<LlmWikiStatus> => ipcRenderer.invoke(IPC.llmWikiStatus),
+    referenceFound: (): Promise<LlmWikiStatus> => ipcRenderer.invoke(IPC.llmWikiReferenceFound),
+    choose: (): Promise<LlmWikiStatus> => ipcRenderer.invoke(IPC.llmWikiChoose),
+    create: (): Promise<LlmWikiStatus> => ipcRenderer.invoke(IPC.llmWikiCreate),
+    remove: (): Promise<LlmWikiStatus> => ipcRenderer.invoke(IPC.llmWikiRemove)
   },
   memory: {
     list: (): Promise<MemoryDocument[]> => ipcRenderer.invoke(IPC.memoryList),

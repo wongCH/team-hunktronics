@@ -18,7 +18,7 @@ import type {
   LocalDataQuery,
   LocalDataResult
 } from '@shared/types';
-import { DEFAULT_GITHUB_CLIENT_ID } from '@shared/types';
+import { DEFAULT_APP_THEME, DEFAULT_GITHUB_CLIENT_ID, isAppTheme } from '@shared/types';
 import { normalizeTeam, validateTeam } from './teamGraph';
 
 async function readJson<T>(file: string, fallback: T): Promise<T> {
@@ -81,11 +81,11 @@ async function writeJson(file: string, data: unknown): Promise<void> {
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
-  theme: 'neon-blue',
+  theme: DEFAULT_APP_THEME,
   experimentalCopilot: false,
   activeConnectionId: null,
   activeModel: null,
-  humanIdentity: '',
+  llmWikiPath: null,
   githubClientId: DEFAULT_GITHUB_CLIENT_ID
 };
 
@@ -373,10 +373,34 @@ export class Store {
 
   async getSettings(): Promise<AppSettings> {
     const partial = await readJson<Partial<AppSettings>>(this.settingsFile, {});
-    return { ...DEFAULT_SETTINGS, ...partial };
+    const storedTheme: unknown = partial.theme;
+    const settings: AppSettings = {
+      theme:
+        storedTheme === 'neon-blue'
+          ? 'graphite-blue'
+          : isAppTheme(storedTheme)
+            ? storedTheme
+            : DEFAULT_APP_THEME,
+      experimentalCopilot: partial.experimentalCopilot === true,
+      activeConnectionId:
+        typeof partial.activeConnectionId === 'string' ? partial.activeConnectionId : null,
+      activeModel: typeof partial.activeModel === 'string' ? partial.activeModel : null,
+      llmWikiPath: typeof partial.llmWikiPath === 'string' ? partial.llmWikiPath : null,
+      githubClientId:
+        typeof partial.githubClientId === 'string'
+          ? partial.githubClientId
+          : DEFAULT_SETTINGS.githubClientId
+    };
+    if (JSON.stringify(partial) !== JSON.stringify(settings)) {
+      await writeJson(this.settingsFile, settings);
+    }
+    return settings;
   }
 
   async setSettings(patch: Partial<AppSettings>): Promise<AppSettings> {
+    if (patch.theme !== undefined && !isAppTheme(patch.theme)) {
+      throw new Error(`Unsupported theme: ${String(patch.theme)}`);
+    }
     const next = { ...(await this.getSettings()), ...patch };
     await writeJson(this.settingsFile, next);
     return next;

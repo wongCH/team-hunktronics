@@ -2,7 +2,7 @@ import type { ChatMessage } from '@shared/types';
 
 export interface ContextAssemblyInput {
   identity?: string;
-  humanIdentity?: string;
+  llmWikiContext?: string;
   skills?: Array<{ name: string; instructions: string }>;
   teamMemory?: string;
   agentMemory?: string;
@@ -34,10 +34,10 @@ export function assembleContext(input: ContextAssemblyInput): ContextAssemblyRes
   const fixed: ChatMessage[] = [];
 
   if (input.identity?.trim()) fixed.push({ role: 'system', content: input.identity.trim() });
-  if (input.humanIdentity?.trim()) {
+  if (input.llmWikiContext?.trim()) {
     fixed.push({
       role: 'system',
-      content: `## Human Identity\n${input.humanIdentity.trim()}`
+      content: `## Human LLM Wiki\n${input.llmWikiContext.trim()}`
     });
   }
   if (input.skills?.length) {
