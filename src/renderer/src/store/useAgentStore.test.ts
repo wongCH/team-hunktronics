@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentConfig } from '@shared/types';
 
 const mocks = vi.hoisted(() => ({
-  saveAgent: vi.fn()
+  saveAgent: vi.fn(),
+  getAgent: vi.fn()
 }));
 
 vi.mock('@/lib/api', () => ({
   api: {
     agents: {
+      get: mocks.getAgent,
       save: mocks.saveAgent
     }
   }

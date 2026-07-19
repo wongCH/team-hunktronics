@@ -1,5 +1,5 @@
 import { promises as fs } from 'fs';
-import { basename, dirname, join } from 'path';
+import { basename, dirname, join, relative, resolve, sep } from 'path';
 import type {
   Approval,
   AgentPipeline,
@@ -20,6 +20,44 @@ import type {
 } from '@shared/types';
 import { DEFAULT_APP_THEME, DEFAULT_GITHUB_CLIENT_ID, isAppTheme } from '@shared/types';
 import { normalizeTeam, validateTeam } from './teamGraph';
+
+type PersistedAgent = Omit<AgentConfig, 'soul'> & { soul?: string };
+
+const SAFE_AGENT_ID = /^[a-zA-Z0-9_-]{1,200}$/;
+const MAX_CAPABILITY_CHARS = 500;
+
+function soulPathFor(agentId: string): string {
+  return `agents/${agentId}/SOUL.md`;
+}
+
+function capabilityManifest(agent: AgentConfig): string {
+  const identity = agent.soul.trim() || agent.capabilities?.trim() || '';
+  return [agent.name, agent.title, agent.skills.join(' '), identity]
+    .filter(Boolean)
+    .join(' · ')
+    .replace(/\s+/g, ' ')
+    .slice(0, MAX_CAPABILITY_CHARS);
+}
+
+function toAgentShell(agent: PersistedAgent): AgentConfig {
+  return {
+    ...agent,
+    soul: '',
+    soulPath: soulPathFor(agent.id),
+    capabilities:
+      agent.capabilities?.trim().slice(0, MAX_CAPABILITY_CHARS) ??
+      capabilityManifest({ ...agent, soul: agent.soul ?? '' })
+  };
+}
+
+function toPersistedAgent(agent: AgentConfig): PersistedAgent {
+  const { soul: _soul, ...metadata } = agent;
+  return {
+    ...metadata,
+    soulPath: soulPathFor(agent.id),
+    capabilities: capabilityManifest(agent)
+  };
+}
 
 async function readJson<T>(file: string, fallback: T): Promise<T> {
   try {
@@ -107,6 +145,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 
 /** Plaintext (non-secret) persistence for connections, conversations, and settings. */
 export class Store {
+  private readonly root: string;
   private readonly connectionsFile: string;
   private readonly conversationsFile: string;
   private readonly agentsFile: string;
@@ -120,8 +159,12 @@ export class Store {
   private readonly skillsFile: string;
   private readonly tracesFile: string;
   private readonly settingsFile: string;
+  private agentMutationQueue: Promise<void> = Promise.resolve();
+  private agentMigration: Promise<void> | null = null;
+  private agentsCache: AgentConfig[] | null = null;
 
   constructor(dir: string) {
+    this.root = resolve(dir);
     this.connectionsFile = join(dir, 'connections.json');
     this.conversationsFile = join(dir, 'conversations.json');
     this.agentsFile = join(dir, 'agents.json');
@@ -212,31 +255,138 @@ export class Store {
     );
   }
 
-  listAgents(): Promise<AgentConfig[]> {
-    return readJson<AgentConfig[]>(this.agentsFile, []).then((agents) => normalizeTeam(agents));
+  async listAgents(): Promise<AgentConfig[]> {
+    await this.ensureAgentMigration();
+    await this.agentMutationQueue;
+    if (!this.agentsCache) {
+      const stored = await readJson<PersistedAgent[]>(this.agentsFile, []);
+      this.agentsCache = normalizeTeam(stored.map(toAgentShell));
+    }
+    return this.agentsCache.map((agent) => ({ ...agent, delegatesTo: [...agent.delegatesTo] }));
   }
 
   async getAgent(id: string): Promise<AgentConfig | undefined> {
-    return (await this.listAgents()).find((agent) => agent.id === id);
+    const agent = (await this.listAgents()).find((candidate) => candidate.id === id);
+    if (!agent) return undefined;
+    return { ...agent, soul: await this.getAgentSoul(id) };
+  }
+
+  async getAgentSoul(id: string): Promise<string> {
+    const path = this.resolveSoulPath(id);
+    try {
+      return await fs.readFile(path, 'utf8');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return '';
+      throw error;
+    }
   }
 
   async saveAgent(agent: AgentConfig): Promise<AgentConfig[]> {
-    const list = await this.listAgents();
-    const idx = list.findIndex((a) => a.id === agent.id);
-    if (idx >= 0) list[idx] = agent;
-    else list.push(agent);
-    const normalized = normalizeTeam(list);
-    validateTeam(normalized);
-    await writeJson(this.agentsFile, normalized);
-    return normalized;
+    await this.ensureAgentMigration();
+    return this.queueAgentMutation(async () => {
+      const soulPath = this.resolveSoulPath(agent.id);
+      let previousSoul: string | null = null;
+      try {
+        previousSoul = await fs.readFile(soulPath, 'utf8');
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      }
+
+      const stored = await readJson<PersistedAgent[]>(this.agentsFile, []);
+      const list = normalizeTeam(stored.map(toAgentShell));
+      const normalizedAgent = {
+        ...agent,
+        soulPath: soulPathFor(agent.id),
+        capabilities: capabilityManifest(agent)
+      };
+      const idx = list.findIndex((candidate) => candidate.id === agent.id);
+      if (idx >= 0) list[idx] = normalizedAgent;
+      else list.push(normalizedAgent);
+      const normalized = normalizeTeam(list);
+      validateTeam(normalized);
+
+      await atomicWriteText(soulPath, agent.soul);
+      try {
+        await writeJson(this.agentsFile, normalized.map(toPersistedAgent));
+      } catch (error) {
+        if (previousSoul === null) await fs.rm(soulPath, { force: true });
+        else await atomicWriteText(soulPath, previousSoul);
+        throw error;
+      }
+      this.agentsCache = normalized.map((candidate) => ({ ...candidate, soul: '' }));
+      return this.agentsCache.map((candidate) => ({
+        ...candidate,
+        delegatesTo: [...candidate.delegatesTo]
+      }));
+    });
   }
 
   async deleteAgent(id: string): Promise<AgentConfig[]> {
-    const list = (await this.listAgents()).filter((a) => a.id !== id);
-    const normalized = normalizeTeam(list);
-    validateTeam(normalized);
-    await writeJson(this.agentsFile, normalized);
-    return normalized;
+    await this.ensureAgentMigration();
+    return this.queueAgentMutation(async () => {
+      const stored = await readJson<PersistedAgent[]>(this.agentsFile, []);
+      const list = normalizeTeam(stored.map(toAgentShell));
+      const index = list.findIndex((agent) => agent.id === id);
+      if (index < 0) return list;
+      list[index] = { ...list[index], archived: true, updatedAt: Date.now() };
+      const normalized = normalizeTeam(list);
+      validateTeam(normalized);
+      await writeJson(this.agentsFile, normalized.map(toPersistedAgent));
+      this.agentsCache = normalized;
+      return normalized.map((candidate) => ({
+        ...candidate,
+        delegatesTo: [...candidate.delegatesTo]
+      }));
+    });
+  }
+
+  private async ensureAgentMigration(): Promise<void> {
+    if (!this.agentMigration) {
+      this.agentMigration = this.queueAgentMutation(async () => {
+        const stored = await readJson<PersistedAgent[]>(this.agentsFile, []);
+        const needsMigration = stored.some(
+          (agent) =>
+            Object.prototype.hasOwnProperty.call(agent, 'soul') ||
+            agent.soulPath !== soulPathFor(agent.id) ||
+            !agent.capabilities
+        );
+        if (!needsMigration) return;
+
+        for (const agent of stored) {
+          if (!Object.prototype.hasOwnProperty.call(agent, 'soul')) continue;
+          const path = this.resolveSoulPath(agent.id);
+          try {
+            await fs.access(path);
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+            await atomicWriteText(path, agent.soul ?? '');
+          }
+        }
+        const normalized = normalizeTeam(stored.map(toAgentShell));
+        await writeJson(this.agentsFile, normalized.map(toPersistedAgent));
+        this.agentsCache = normalized;
+      });
+    }
+    await this.agentMigration;
+  }
+
+  private resolveSoulPath(agentId: string): string {
+    if (!SAFE_AGENT_ID.test(agentId)) throw new Error('Invalid agent id.');
+    const path = resolve(this.root, soulPathFor(agentId));
+    const relativePath = relative(this.root, path);
+    if (relativePath.startsWith(`..${sep}`) || relativePath === '..' || relativePath.startsWith(sep)) {
+      throw new Error('Agent soul path is outside the managed root.');
+    }
+    return path;
+  }
+
+  private queueAgentMutation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.agentMutationQueue.then(operation);
+    this.agentMutationQueue = result.then(
+      () => undefined,
+      () => undefined
+    );
+    return result;
   }
 
   listTasks(): Promise<AgentTask[]> {

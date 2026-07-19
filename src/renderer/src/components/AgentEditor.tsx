@@ -22,7 +22,7 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
 }
 
 export function AgentEditor({ agent }: { agent: AgentConfig }) {
-  const { saveAgent, deleteAgent, agents } = useAgentStore();
+  const { saveAgent, deleteAgent, hydrateAgent, agents } = useAgentStore();
   const connections = useAppStore((s) => s.connections);
 
   const [draft, setDraft] = useState<AgentConfig>(agent);
@@ -30,6 +30,7 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadingSoul, setLoadingSoul] = useState(true);
   const [tab, setTab] = useState<'configure' | 'test'>('configure');
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [uploadedSkills, setUploadedSkills] = useState<SkillMeta[]>([]);
@@ -40,8 +41,23 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
     setSaving(false);
     setSaved(false);
     setSaveError(null);
+    setLoadingSoul(true);
     setTab('configure');
-  }, [agent.id]);
+    let cancelled = false;
+    void hydrateAgent(agent.id)
+      .then((hydrated) => {
+        if (!cancelled && hydrated) setDraft(hydrated);
+      })
+      .catch((reason) => {
+        if (!cancelled) setSaveError(`Could not load SOUL.md: ${(reason as Error).message}`);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSoul(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [agent.id, hydrateAgent]);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,7 +163,7 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
         <button
           className="btn-primary !py-1.5"
           onClick={() => void save()}
-          disabled={!dirty || saving}
+          disabled={!dirty || saving || loadingSoul}
         >
           {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
         </button>
@@ -259,11 +275,13 @@ export function AgentEditor({ agent }: { agent: AgentConfig }) {
               </Section>
             )}
 
-            <Section title="soul.md" hint="Persona and operating instructions — used as the system prompt.">
+            <Section title="SOUL.md" hint="Canonical persona and operating instructions loaded from the agent folder.">
               <textarea
                 className="field font-mono text-xs leading-relaxed min-h-[180px]"
                 value={draft.soul}
                 onChange={(e) => set({ soul: e.target.value })}
+                disabled={loadingSoul}
+                placeholder={loadingSoul ? 'Loading SOUL.md…' : undefined}
                 spellCheck={false}
               />
             </Section>

@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="XP and Ponytail maintainability assessment for Agent Control Panel">
+  <title>XP and Ponytail Code Improvement Assessment</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        var(--cp-bg) 0,
+        var(--cp-bg) 31px,
+        var(--cp-bg-elevated) 32px
+      );
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+    a { color: var(--cp-link); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: var(--cp-accent-hover); }
+    code, pre, .mono {
+      font-family: Consolas, "Courier New", Courier, monospace;
+    }
+    code {
+      padding: 0.1rem 0.3rem;
+      border-radius: 0.25rem;
+      background: var(--cp-surface-soft);
+      color: var(--cp-text);
+      overflow-wrap: anywhere;
+    }
+    pre code { padding: 0; background: none; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2, h3 { letter-spacing: 0; }
+    h1 { max-width: 18ch; margin-bottom: 1rem; font-size: clamp(2rem, 5vw, 4.4rem); line-height: 0.98; }
+    h2 { margin-bottom: 0.5rem; font-size: 1.65rem; line-height: 1.15; }
+    h3 { margin-bottom: 0.4rem; font-size: 1rem; line-height: 1.3; }
+    p:last-child { margin-bottom: 0; }
+
+    .page-shell {
+      display: grid;
+      grid-template-columns: 15rem minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      padding: 2rem 1.25rem;
+      border-right: 1px solid var(--cp-border);
+      background: var(--cp-panel-strong);
+      overflow-y: auto;
+    }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      margin-bottom: 1rem;
+      border: 2px solid var(--cp-accent);
+      border-radius: 0.625rem;
+      color: var(--cp-accent);
+      font-weight: 800;
+    }
+    .sidebar-title { margin-bottom: 1.5rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .nav-list { display: grid; gap: 0.25rem; margin: 0; padding: 0; list-style: none; }
+    .nav-list a {
+      display: block;
+      padding: 0.55rem 0.7rem;
+      border-left: 3px solid var(--cp-border);
+      color: var(--cp-text-muted);
+      font-size: 0.84rem;
+      text-decoration: none;
+    }
+    .nav-list a:hover, .nav-list a:focus-visible {
+      border-left-color: var(--cp-accent);
+      background: var(--cp-accent-soft);
+      color: var(--cp-text);
+      outline: none;
+    }
+    .sidebar-note {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--cp-border);
+      color: var(--cp-text-muted);
+      font-size: 0.75rem;
+    }
+    main { min-width: 0; background: var(--cp-overlay); }
+    section { scroll-margin-top: 1.5rem; }
+    .band { padding: 4.5rem clamp(1.25rem, 5vw, 5rem); border-bottom: 1px solid var(--cp-border); }
+    .band:nth-child(even) { background: var(--cp-bg-elevated); }
+    .inner { width: min(74rem, 100%); margin: 0 auto; }
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+      color: var(--cp-accent);
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { width: 2.5rem; height: 2px; background: var(--cp-accent); content: ""; }
+    .lede { max-width: 58rem; color: var(--cp-text-soft); font-size: 1.08rem; }
+    .muted { color: var(--cp-text-muted); }
+    .small { font-size: 0.82rem; }
+    .section-heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, 34rem); gap: 2rem; align-items: end; margin-bottom: 2rem; }
+    .section-heading p { margin: 0; color: var(--cp-text-muted); }
+
+    .hero { min-height: 88vh; display: grid; align-items: center; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.8fr); gap: clamp(2rem, 6vw, 6rem); align-items: center; }
+    .hero-rule { width: 4rem; height: 0.45rem; margin: 1.5rem 0; background: var(--cp-accent); }
+    .snapshot {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      border: 1px solid var(--cp-border-strong);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      overflow: hidden;
+    }
+    .snapshot-item { min-height: 8.5rem; padding: 1.25rem; border-right: 1px solid var(--cp-border); border-bottom: 1px solid var(--cp-border); }
+    .snapshot-item:nth-child(2n) { border-right: 0; }
+    .snapshot-item:nth-last-child(-n+2) { border-bottom: 0; }
+    .snapshot-value { display: block; margin-bottom: 0.4rem; color: var(--cp-accent); font-size: 2.2rem; font-weight: 800; line-height: 1; }
+    .snapshot-label { color: var(--cp-text-muted); font-size: 0.76rem; }
+    .scope-note { margin-top: 1.25rem; padding: 0.9rem 1rem; border-left: 3px solid var(--cp-success); background: var(--cp-surface-soft); font-size: 0.82rem; }
+
+    .verdict {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 1.25rem;
+      align-items: start;
+      padding: 1.5rem;
+      border: 1px solid var(--cp-border-strong);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+    }
+    .verdict-index { color: var(--cp-accent); font-size: 3.25rem; font-weight: 800; line-height: 0.9; }
+    .score-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.75rem; margin-top: 1.5rem; }
+    .score-item { padding: 1rem; border-top: 3px solid var(--cp-border-strong); background: var(--cp-surface-soft); }
+    .score-item.good { border-top-color: var(--cp-success); }
+    .score-item.warn { border-top-color: var(--cp-warning); }
+    .score-item.risk { border-top-color: var(--cp-danger); }
+    .score-value { display: block; margin-bottom: 0.35rem; font-size: 1.5rem; font-weight: 800; }
+    .score-label { color: var(--cp-text-muted); font-size: 0.75rem; }
+
+    .flow-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .flow-panel { padding: 1.25rem; border: 1px solid var(--cp-border); border-radius: 0.625rem; background: var(--cp-surface); }
+    .flow-panel.current { border-top: 4px solid var(--cp-danger); }
+    .flow-panel.target { border-top: 4px solid var(--cp-success); }
+    .flow-stack { display: grid; gap: 0.6rem; margin-top: 1rem; }
+    .flow-node { padding: 0.8rem 0.9rem; border: 1px solid var(--cp-border); border-radius: 0.4rem; background: var(--cp-surface-soft); }
+    .flow-node strong { display: block; margin-bottom: 0.15rem; font-size: 0.85rem; }
+    .flow-node span { color: var(--cp-text-muted); font-size: 0.75rem; }
+    .flow-node.hot { border-color: var(--cp-danger); }
+    .flow-node.clear { border-color: var(--cp-success); }
+    .flow-arrow { color: var(--cp-accent); text-align: center; font-weight: 800; line-height: 1; }
+    .flow-forks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+
+    .hotspots { display: grid; gap: 0.7rem; }
+    .bar-row { display: grid; grid-template-columns: minmax(10rem, 16rem) minmax(8rem, 1fr) 4rem; gap: 0.8rem; align-items: center; }
+    .bar-label { overflow: hidden; font-size: 0.78rem; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { height: 0.75rem; border-radius: 0.25rem; background: var(--cp-surface-soft); overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--cp-accent); }
+    .bar-fill.warning { background: var(--cp-warning); }
+    .bar-value { color: var(--cp-text-muted); font-size: 0.75rem; text-align: right; }
+    .caption { margin-top: 0.8rem; color: var(--cp-text-muted); font-size: 0.75rem; }
+
+    .priority-list { display: grid; gap: 0.8rem; }
+    .finding {
+      display: grid;
+      grid-template-columns: 5.5rem minmax(0, 1fr) 12rem;
+      gap: 1rem;
+      align-items: start;
+      padding: 1.2rem;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+    }
+    .severity { display: inline-block; padding: 0.25rem 0.45rem; border: 1px solid var(--cp-border-strong); border-radius: 0.25rem; font-size: 0.68rem; font-weight: 800; text-align: center; text-transform: uppercase; }
+    .severity.critical { border-color: var(--cp-danger); color: var(--cp-danger); }
+    .severity.high { border-color: var(--cp-warning); color: var(--cp-warning); }
+    .severity.medium { border-color: var(--cp-link); color: var(--cp-link); }
+    .finding p { margin-bottom: 0.5rem; color: var(--cp-text-muted); font-size: 0.86rem; }
+    .evidence { color: var(--cp-text-muted); font-size: 0.72rem; }
+    .check { padding-left: 0.8rem; border-left: 2px solid var(--cp-success); font-size: 0.75rem; }
+    .check strong { display: block; margin-bottom: 0.25rem; color: var(--cp-success); }
+
+    .principle-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+    .principle { padding: 1.25rem; border-top: 3px solid var(--cp-accent); background: var(--cp-surface); }
+    .principle-number { display: block; margin-bottom: 0.7rem; color: var(--cp-accent); font-size: 0.72rem; font-weight: 800; }
+    .principle p { color: var(--cp-text-muted); font-size: 0.84rem; }
+
+    .tree-grid { display: grid; grid-template-columns: 0.82fr 1.18fr; gap: 1.25rem; }
+    .tree-panel { min-width: 0; border: 1px solid var(--cp-border); border-radius: 0.625rem; background: var(--cp-surface); overflow: hidden; }
+    .tree-header { padding: 1rem 1.2rem; border-bottom: 1px solid var(--cp-border); }
+    .tree-header span { display: block; color: var(--cp-text-muted); font-size: 0.75rem; }
+    .tree-panel pre { margin: 0; padding: 1.2rem; background: var(--cp-surface-soft); color: var(--cp-text); font-size: 0.74rem; line-height: 1.65; overflow: auto; }
+    .tree-key { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-top: 1rem; font-size: 0.75rem; }
+    .tree-key span::before { display: inline-block; width: 0.6rem; height: 0.6rem; margin-right: 0.35rem; border-radius: 0.15rem; background: var(--cp-border-strong); content: ""; }
+    .tree-key .move::before { background: var(--cp-warning); }
+    .tree-key .new::before { background: var(--cp-success); }
+    .tree-key .keep::before { background: var(--cp-border-strong); }
+
+    .decision-table { width: 100%; border-collapse: collapse; background: var(--cp-surface); font-size: 0.82rem; }
+    .decision-table th, .decision-table td { padding: 0.85rem; border: 1px solid var(--cp-border); text-align: left; vertical-align: top; }
+    .decision-table th { background: var(--cp-surface-soft); color: var(--cp-text-muted); font-size: 0.7rem; text-transform: uppercase; }
+    .decision-table td:first-child { font-weight: 700; }
+    .yes { color: var(--cp-success); font-weight: 700; }
+    .later { color: var(--cp-warning); font-weight: 700; }
+    .no { color: var(--cp-danger); font-weight: 700; }
+
+    .roadmap { position: relative; display: grid; gap: 0; }
+    .roadmap::before { position: absolute; top: 1.25rem; bottom: 1.25rem; left: 1.2rem; width: 2px; background: var(--cp-border-strong); content: ""; }
+    .phase { position: relative; display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: 1rem; padding-bottom: 1.5rem; }
+    .phase:last-child { padding-bottom: 0; }
+    .phase-dot { z-index: 1; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border: 2px solid var(--cp-accent); border-radius: 50%; background: var(--cp-bg-elevated); color: var(--cp-accent); font-weight: 800; }
+    .phase-body { padding: 1.1rem 1.25rem; border: 1px solid var(--cp-border); border-radius: 0.625rem; background: var(--cp-surface); }
+    .phase-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.65rem 0; }
+    .tag { padding: 0.2rem 0.4rem; border: 1px solid var(--cp-border); border-radius: 0.25rem; color: var(--cp-text-muted); font-size: 0.68rem; }
+    .phase ul, .keep-stop ul { margin: 0.65rem 0 0; padding-left: 1.2rem; }
+    .phase li, .keep-stop li { margin: 0.25rem 0; color: var(--cp-text-muted); font-size: 0.83rem; }
+
+    .keep-stop { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+    .keep-stop article { padding: 1.25rem; border: 1px solid var(--cp-border); border-radius: 0.625rem; background: var(--cp-surface); }
+    .keep-stop .keep { border-top: 4px solid var(--cp-success); }
+    .keep-stop .change { border-top: 4px solid var(--cp-warning); }
+    .keep-stop .avoid { border-top: 4px solid var(--cp-danger); }
+
+    .test-loop { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.6rem; align-items: stretch; }
+    .loop-step { position: relative; min-height: 8rem; padding: 1rem; border: 1px solid var(--cp-border); background: var(--cp-surface); }
+    .loop-step:not(:last-child)::after { position: absolute; top: 50%; right: -0.48rem; z-index: 2; width: 0.8rem; height: 0.8rem; border-top: 2px solid var(--cp-accent); border-right: 2px solid var(--cp-accent); background: var(--cp-surface); content: ""; transform: rotate(45deg); }
+    .loop-step span { display: block; margin-bottom: 0.5rem; color: var(--cp-accent); font-size: 0.7rem; font-weight: 800; }
+    .loop-step p { color: var(--cp-text-muted); font-size: 0.78rem; }
+    .command-block { margin-top: 1.25rem; padding: 1rem; border-left: 3px solid var(--cp-success); background: var(--cp-surface-soft); overflow-x: auto; }
+    .command-block code { background: none; }
+
+    .matrix { display: grid; grid-template-columns: 5rem 1fr 1fr; grid-template-rows: auto 1fr 1fr; gap: 0.45rem; }
+    .matrix-label { display: grid; place-items: center; min-height: 3rem; color: var(--cp-text-muted); font-size: 0.72rem; text-align: center; }
+    .matrix-label.vertical { writing-mode: vertical-rl; transform: rotate(180deg); }
+    .matrix-cell { min-height: 10rem; padding: 1rem; border: 1px solid var(--cp-border); background: var(--cp-surface); }
+    .matrix-cell.priority { border-color: var(--cp-danger); background: var(--cp-accent-soft); }
+    .matrix-cell h3 { color: var(--cp-text-muted); font-size: 0.72rem; text-transform: uppercase; }
+    .matrix-item { margin: 0.35rem 0; padding: 0.35rem 0.5rem; border-left: 3px solid var(--cp-accent); background: var(--cp-surface-soft); font-size: 0.76rem; }
+
+    .footer { padding: 2.5rem clamp(1.25rem, 5vw, 5rem); background: var(--cp-surface); }
+    .footer-inner { display: flex; justify-content: space-between; gap: 2rem; width: min(74rem, 100%); margin: 0 auto; color: var(--cp-text-muted); font-size: 0.76rem; }
+
+    @media (max-width: 72rem) {
+      .page-shell { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; padding: 1rem; border-right: 0; border-bottom: 1px solid var(--cp-border); }
+      .brand-mark, .sidebar-note { display: none; }
+      .sidebar-title { margin-bottom: 0.6rem; }
+      .nav-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .nav-list a { border-left: 0; border-bottom: 2px solid var(--cp-border); text-align: center; }
+      .hero { min-height: auto; }
+      .score-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 52rem) {
+      .band { padding-top: 3rem; padding-bottom: 3rem; }
+      .nav-list { display: flex; overflow-x: auto; }
+      .nav-list li { flex: 0 0 auto; }
+      .hero-grid, .section-heading, .flow-compare, .tree-grid { grid-template-columns: 1fr; }
+      .principle-grid, .keep-stop { grid-template-columns: 1fr 1fr; }
+      .finding { grid-template-columns: 4.5rem minmax(0, 1fr); }
+      .finding .check { grid-column: 2; }
+      .test-loop { grid-template-columns: 1fr; }
+      .loop-step:not(:last-child)::after { display: none; }
+      .flow-forks { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 36rem) {
+      h1 { font-size: 2.5rem; }
+      .snapshot, .score-grid, .principle-grid, .keep-stop { grid-template-columns: 1fr; }
+      .snapshot-item { border-right: 0; }
+      .snapshot-item:nth-last-child(-n+2) { border-bottom: 1px solid var(--cp-border); }
+      .snapshot-item:last-child { border-bottom: 0; }
+      .bar-row { grid-template-columns: 7.5rem minmax(5rem, 1fr) 3rem; }
+      .finding { grid-template-columns: 1fr; }
+      .finding .check { grid-column: 1; }
+      .matrix { grid-template-columns: 2.5rem 1fr 1fr; }
+      .matrix-cell { min-height: 13rem; padding: 0.65rem; }
+      .footer-inner { flex-direction: column; }
+    }
+    @media print {
+      body { background: var(--cp-bg); }
+      .page-shell { display: block; }
+      .sidebar { display: none; }
+      .band { break-inside: avoid; padding: 2rem 0; }
+      .hero { min-height: auto; }
+      .footer { padding: 2rem 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <aside class="sidebar" aria-label="Report navigation">
+      <div class="brand-mark" aria-hidden="true">XP</div>
+      <div class="sidebar-title">Maintainability review</div>
+      <nav>
+        <ul class="nav-list">
+          <li><a href="#summary">Summary</a></li>
+          <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#hotspots">Hotspots</a></li>
+          <li><a href="#findings">Findings</a></li>
+          <li><a href="#principles">Principles</a></li>
+          <li><a href="#arrangement">Arrangement</a></li>
+          <li><a href="#roadmap">Roadmap</a></li>
+          <li><a href="#feedback">Feedback loop</a></li>
+          <li><a href="#guardrails">Guardrails</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-note">
+        Assessment date: 19 July 2026<br>
+        Scope: current working tree<br>
+        Source edits: none
+      </div>
+    </aside>
+
+    <main>
+      <section class="band hero" id="summary">
+        <div class="inner hero-grid">
+          <div>
+            <div class="eyebrow">Lead developer assessment</div>
+            <h1>Make change cheap, not architecture impressive.</h1>
+            <div class="hero-rule"></div>
+            <p class="lede">The repository has a sound process boundary, strict TypeScript, fast co-located tests, and small provider adapters. Its maintenance risk is concentrated in state ownership: persistence updates can race, run completion has several owners, and the renderer carries duplicate run controllers.</p>
+            <p class="lede"><strong>Recommendation:</strong> fix the behavioral boundaries first, delete duplicate paths second, and move files only when a tested feature slice is already changing.</p>
+          </div>
+          <div>
+            <div class="snapshot" aria-label="Repository snapshot">
+              <div class="snapshot-item"><span class="snapshot-value">15.4k</span><span class="snapshot-label">TypeScript, TSX, and CSS lines measured</span></div>
+              <div class="snapshot-item"><span class="snapshot-value">82</span><span class="snapshot-label">TypeScript and TSX files, including tests and declarations</span></div>
+              <div class="snapshot-item"><span class="snapshot-value">18</span><span class="snapshot-label">Co-located test files: 14 main, 4 renderer</span></div>
+              <div class="snapshot-item"><span class="snapshot-value">159</span><span class="snapshot-label">Tests reported passing during this assessment</span></div>
+            </div>
+            <div class="scope-note"><strong>Read-only review.</strong> Application source was not changed. Existing dirty working-tree content was treated as the review target.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" aria-labelledby="verdict-title">
+        <div class="inner">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">Verdict</div>
+              <h2 id="verdict-title">Keep the skeleton. Repair ownership.</h2>
+            </div>
+            <p>This is not a repository that needs a clean-room reorganization. The existing <code>main</code>, <code>preload</code>, <code>renderer</code>, and <code>shared</code> boundaries are correct for Electron. XP value comes from shorter feedback and one owner per behavior.</p>
+          </div>
+          <div class="verdict">
+            <div class="verdict-index">B-</div>
+            <div>
+              <h3>Structurally healthy, operationally uneven</h3>
+              <p class="muted">The code is testable and understandable in slices, but central files mix responsibilities and several asynchronous projections rely on timing rather than completion. Those are maintenance and correctness problems, not merely style concerns.</p>
+            </div>
+          </div>
+          <div class="score-grid" aria-label="Maintainability scorecard">
+            <div class="score-item good"><span class="score-value">4/5</span><span class="score-label">Process boundaries</span></div>
+            <div class="score-item good"><span class="score-value">4/5</span><span class="score-label">Unit testability</span></div>
+            <div class="score-item warn"><span class="score-value">3/5</span><span class="score-label">Feedback gate</span></div>
+            <div class="score-item risk"><span class="score-value">2/5</span><span class="score-label">State ownership</span></div>
+            <div class="score-item warn"><span class="score-value">3/5</span><span class="score-label">Change locality</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="architecture" aria-labelledby="architecture-title">
+        <div class="inner">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">Architecture visual</div>
+              <h2 id="architecture-title">From timing-based fan-out to explicit ownership</h2>
+            </div>
+            <p>The target keeps the same process model. It narrows the IPC layer, gives runtime completion one owner, and makes storage mutation serial from read through write.</p>
+          </div>
+          <div class="flow-compare">
+            <article class="flow-panel current">
+              <h3>Current control flow</h3>
+              <p class="small muted">Correct boundaries, too many behavior owners.</p>
+              <div class="flow-stack">
+                <div class="flow-node"><strong>Renderer pages + components + stores</strong><span>Feature state is spread by technical type.</span></div>
+                <div class="flow-arrow" aria-hidden="true">&darr;</div>
+                <div class="flow-node"><strong>Preload bridge</strong><span>Good typed capability boundary.</span></div>
+                <div class="flow-arrow" aria-hidden="true">&darr;</div>
+                <div class="flow-node hot"><strong><code>ipc.ts</code> - 863 lines</strong><span>Construction, validation, raw chat, tracing, tasks, dialogs, and handlers.</span></div>
+                <div class="flow-arrow" aria-hidden="true">&darr;</div>
+                <div class="flow-forks">
+                  <div class="flow-node hot"><strong>Run events</strong><span>Several fire-and-forget projections.</span></div>
+                  <div class="flow-node hot"><strong>JSON writes</strong><span>Some reads occur before the write queue.</span></div>
+                  <div class="flow-node hot"><strong>UI reloads</strong><span>50/80/100 ms timers guess persistence is done.</span></div>
+                </div>
+              </div>
+            </article>
+            <article class="flow-panel target">
+              <h3>Recommended control flow</h3>
+              <p class="small muted">One path per job, explicit completion.</p>
+              <div class="flow-stack">
+                <div class="flow-node clear"><strong>Feature UI + app shell</strong><span>Agent, chat, task, operations, and settings clusters own their state.</span></div>
+                <div class="flow-arrow" aria-hidden="true">&darr;</div>
+                <div class="flow-node clear"><strong>Preload + shared contract</strong><span>Remain the single renderer trust boundary.</span></div>
+                <div class="flow-arrow" aria-hidden="true">&darr;</div>
+                <div class="flow-node clear"><strong>IPC registration</strong><span>Validate input and call an owning service.</span></div>
+                <div class="flow-arrow" aria-hidden="true">&darr;</div>
+                <div class="flow-node clear"><strong><code>appRuntime.ts</code></strong><span>Construct services, reconcile startup, await terminal projections, publish persisted events.</span></div>
+                <div class="flow-arrow" aria-hidden="true">&darr;</div>
+                <div class="flow-forks">
+                  <div class="flow-node clear"><strong>Run policy</strong><span>One trusted run controller.</span></div>
+                  <div class="flow-node clear"><strong>Queued storage</strong><span>Read-modify-write is one transaction.</span></div>
+                  <div class="flow-node clear"><strong>Adapters</strong><span>Existing providers stay small.</span></div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="hotspots" aria-labelledby="hotspots-title">
+        <div class="inner">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">Measured hotspots</div>
+              <h2 id="hotspots-title">Size is a clue, not a conviction</h2>
+            </div>
+            <p>These are the largest production files. A split is recommended only where the file also contains independent reasons to change. <code>memoryService.ts</code>, for example, is large but mostly cohesive.</p>
+          </div>
+          <div class="hotspots" role="img" aria-label="Largest production source files by line count">
+            <div class="bar-row"><div class="bar-label"><code>main/ipc.ts</code></div><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><div class="bar-value">863</div></div>
+            <div class="bar-row"><div class="bar-label"><code>main/runService.ts</code></div><div class="bar-track"><div class="bar-fill" style="width:85%"></div></div><div class="bar-value">733</div></div>
+            <div class="bar-row"><div class="bar-label"><code>shared/types.ts</code></div><div class="bar-track"><div class="bar-fill warning" style="width:74%"></div></div><div class="bar-value">638</div></div>
+            <div class="bar-row"><div class="bar-label"><code>main/store.ts</code></div><div class="bar-track"><div class="bar-fill warning" style="width:54%"></div></div><div class="bar-value">464</div></div>
+            <div class="bar-row"><div class="bar-label"><code>main/memoryService.ts</code></div><div class="bar-track"><div class="bar-fill warning" style="width:48%"></div></div><div class="bar-value">414</div></div>
+            <div class="bar-row"><div class="bar-label"><code>components/AgentEditor.tsx</code></div><div class="bar-track"><div class="bar-fill warning" style="width:48%"></div></div><div class="bar-value">412</div></div>
+            <div class="bar-row"><div class="bar-label"><code>components/PipelinePanel.tsx</code></div><div class="bar-track"><div class="bar-fill warning" style="width:38%"></div></div><div class="bar-value">331</div></div>
+            <div class="bar-row"><div class="bar-label"><code>store/useChatStore.ts</code></div><div class="bar-track"><div class="bar-fill warning" style="width:37%"></div></div><div class="bar-value">319</div></div>
+          </div>
+          <p class="caption">Line counts include the current dirty working tree. Test files are intentionally excluded from this chart.</p>
+        </div>
+      </section>
+
+      <section class="band" id="findings" aria-labelledby="findings-title">
+        <div class="inner">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">Prioritized findings</div>
+              <h2 id="findings-title">Fix behavior before moving folders</h2>
+            </div>
+            <p>Each recommendation includes the cheapest check that can disprove the proposed fix. That is the XP contract: no non-trivial change without a fast executable signal.</p>
+          </div>
+          <div class="priority-list">
+            <article class="finding">
+              <div><span class="severity critical">Critical</span></div>
+              <div>
+                <h3>Serialize the whole persistence mutation</h3>
+                <p><code>writeJson</code> queues writes, but several collections read before joining that queue. Concurrent task, schedule, pipeline, artifact, action, approval, skill, connection, or settings saves can write stale snapshots over each other. Vault writes also need explicit corruption handling and atomic serialized replacement.</p>
+                <div class="evidence">Evidence: <a href="../src/main/store.ts">src/main/store.ts</a>, especially <code>writeJson</code>, <code>updateJson</code>, <code>saveTask</code>, and sibling save methods; <a href="../src/main/vault.ts">src/main/vault.ts</a>.</div>
+              </div>
+              <div class="check"><strong>Smallest check</strong>Start two deferred saves to distinct records, resolve together, and assert both survive. Parameterize across collection methods.</div>
+            </article>
+
+            <article class="finding">
+              <div><span class="severity critical">Critical</span></div>
+              <div>
+                <h3>Route delegation using the persisted capability manifest</h3>
+                <p>Agent summaries deliberately omit full SOUL content, but automatic delegation and delegation prompts still inspect <code>candidate.soul</code>. Production routing can therefore ignore the capability data that persistence created, while unit fakes with hydrated agents continue to pass.</p>
+                <div class="evidence">Evidence: <a href="../src/main/store.ts">src/main/store.ts</a> <code>toAgentShell</code>/<code>listAgents</code>; <a href="../src/main/runService.ts">src/main/runService.ts</a> <code>delegationInstructions</code>/<code>automaticDelegation</code>.</div>
+              </div>
+              <div class="check"><strong>Smallest check</strong>Use a real temporary <code>Store</code>, save a capability-only report, run routing, and assert the expected direct report is selected.</div>
+            </article>
+
+            <article class="finding">
+              <div><span class="severity high">High</span></div>
+              <div>
+                <h3>Give terminal run effects one awaited owner</h3>
+                <p>Task, schedule, pipeline, and memory projections are launched independently. The renderer then reloads after arbitrary 50, 80, or 100 ms delays. Slow storage can return stale state even though the run event has already arrived.</p>
+                <div class="evidence">Evidence: <a href="../src/main/index.ts">src/main/index.ts</a> run subscription; <a href="../src/main/ipc.ts">src/main/ipc.ts</a> task projection; <a href="../src/renderer/src/pages/TasksPage.tsx">TasksPage.tsx</a>; <a href="../src/renderer/src/components/SchedulePanel.tsx">SchedulePanel.tsx</a>; <a href="../src/renderer/src/components/PipelinePanel.tsx">PipelinePanel.tsx</a>.</div>
+              </div>
+              <div class="check"><strong>Smallest check</strong>Hold persistence with a deferred promise and assert no projection event is published until the save resolves.</div>
+            </article>
+
+            <article class="finding">
+              <div><span class="severity high">High</span></div>
+              <div>
+                <h3>Delete duplicate run controllers and the unused raw-chat path</h3>
+                <p><code>AgentRunner</code> and <code>useChatStore</code> independently own conversation identity, event correlation, streaming, refresh, start, and cancel. Main IPC also carries a separate raw provider chat path with no renderer caller. Reuse the canonical chat store and remove code before inventing a shared controller.</p>
+                <div class="evidence">Evidence: <a href="../src/renderer/src/components/AgentRunner.tsx">AgentRunner.tsx</a>; <a href="../src/renderer/src/store/useChatStore.ts">useChatStore.ts</a>; raw chat block in <a href="../src/main/ipc.ts">src/main/ipc.ts</a>; no renderer use of <code>api.chat.send</code>.</div>
+              </div>
+              <div class="check"><strong>Smallest check</strong>Open the same agent twice, send once, and assert one direct conversation plus one <code>runs.start</code> call.</div>
+            </article>
+
+            <article class="finding">
+              <div><span class="severity high">High</span></div>
+              <div>
+                <h3>Validate every renderer mutation at the main-process boundary</h3>
+                <p>Several writes are validated, but conversation saves, settings patches, and tool authorization accept typed renderer values as if TypeScript were runtime validation. Tool side-effect class should be derived in main from a tool allow-list before execution exists.</p>
+                <div class="evidence">Evidence: conversation, tool-policy, and settings handlers in <a href="../src/main/ipc.ts">src/main/ipc.ts</a>; approval behavior in <a href="../src/main/toolPolicy.ts">src/main/toolPolicy.ts</a>.</div>
+              </div>
+              <div class="check"><strong>Smallest check</strong>Invoke captured IPC handlers with malformed payloads and assert rejection without persistence.</div>
+            </article>
+
+            <article class="finding">
+              <div><span class="severity medium">Medium</span></div>
+              <div>
+                <h3>Preserve edits during agent SOUL hydration</h3>
+                <p>The agent list returns a shell and the editor later hydrates SOUL content. The hydration callback replaces the entire draft, so a fast edit to name, role, model, or another enabled field can disappear.</p>
+                <div class="evidence">Evidence: hydration effect in <a href="../src/renderer/src/components/AgentEditor.tsx">AgentEditor.tsx</a>; shell/hydrated split in <a href="../src/main/store.ts">src/main/store.ts</a>.</div>
+              </div>
+              <div class="check"><strong>Smallest check</strong>Delay <code>agents.get</code>, edit Name, resolve hydration, and assert Name remains while SOUL is populated.</div>
+            </article>
+
+            <article class="finding">
+              <div><span class="severity medium">Medium</span></div>
+              <div>
+                <h3>Make startup failure recoverable</h3>
+                <p><code>App</code> fire-and-forgets initializers while <code>loadAll</code> only sets <code>ready</code> after an all-or-nothing <code>Promise.all</code>. One rejected IPC call can leave the application on Loading indefinitely.</p>
+                <div class="evidence">Evidence: <a href="../src/renderer/src/App.tsx">App.tsx</a>; <a href="../src/renderer/src/store/useAppStore.ts">useAppStore.ts</a>; concurrent agent initialization consumers.</div>
+              </div>
+              <div class="check"><strong>Smallest check</strong>Reject startup once, retry successfully, and assert state becomes ready. Assert concurrent init calls make one IPC request.</div>
+            </article>
+
+            <article class="finding">
+              <div><span class="severity medium">Medium</span></div>
+              <div>
+                <h3>Constrain file reads and completed-run retention</h3>
+                <p>Managed memory confines paths lexically but can follow a Markdown symlink outside its root. Separately, completed idempotency and response promises are retained for the app lifetime. Reuse the existing LLM-wiki realpath pattern and bound completed-run history.</p>
+                <div class="evidence">Evidence: <code>walk</code>/<code>readPath</code> in <a href="../src/main/memoryService.ts">memoryService.ts</a>; <code>confinedFile</code> in <a href="../src/main/llmWikiService.ts">llmWikiService.ts</a>; maps in <a href="../src/main/runService.ts">runService.ts</a>.</div>
+              </div>
+              <div class="check"><strong>Smallest check</strong>Reject an external symlink; complete more than the retention limit and assert old entries are evicted without breaking active idempotency.</div>
+            </article>
+
+            <article class="finding">
+              <div><span class="severity medium">Medium</span></div>
+              <div>
+                <h3>Add one non-writing verification command</h3>
+                <p>The repository has typecheck and tests, but no canonical gate. Packaging can proceed without either. Prettier is write-only and the existing tree is not yet at a clean check baseline.</p>
+                <div class="evidence">Evidence: scripts in <a href="../package.json">package.json</a>; test config in <a href="../vitest.config.ts">vitest.config.ts</a>; scripts table in <a href="../README.md">README.md</a>.</div>
+              </div>
+              <div class="check"><strong>Smallest check</strong>After one isolated formatting baseline, run <code>npm run check</code> locally and in packaging.</div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="principles" aria-labelledby="principles-title">
+        <div class="inner">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">XP plus Ponytail</div>
+              <h2 id="principles-title">The rules for every improvement slice</h2>
+            </div>
+            <p>XP supplies the feedback discipline. Ponytail supplies the complexity budget. Together they favor a small tested correction over a broad architectural program.</p>
+          </div>
+          <div class="principle-grid">
+            <article class="principle"><span class="principle-number">01 / TEST FIRST</span><h3>Expose the failure</h3><p>Add one focused check that fails for the current behavior. Avoid snapshot suites and broad fixtures.</p></article>
+            <article class="principle"><span class="principle-number">02 / ONE OWNER</span><h3>Fix the controlling path</h3><p>Repair the service where all callers route, not each renderer symptom or timer.</p></article>
+            <article class="principle"><span class="principle-number">03 / DELETE FIRST</span><h3>Remove duplicate paths</h3><p>Reuse <code>useChatStore</code> and trusted runs. Do not build another run-controller abstraction.</p></article>
+            <article class="principle"><span class="principle-number">04 / SMALL RELEASE</span><h3>One behavior per change</h3><p>Keep persistence, routing, runtime events, and folder moves in separate reviewable changes.</p></article>
+            <article class="principle"><span class="principle-number">05 / MOVE ON TOUCH</span><h3>Rehome only active files</h3><p>Move a cohesive feature cluster when it receives a real behavior change, then fix imports mechanically.</p></article>
+            <article class="principle"><span class="principle-number">06 / YAGNI GATE</span><h3>Demand evidence for tools</h3><p>No database, router, DI container, schema framework, or monorepo until a measured constraint requires it.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="arrangement" aria-labelledby="arrangement-title">
+        <div class="inner">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">Proposed arrangement</div>
+              <h2 id="arrangement-title">Feature clusters where they already exist</h2>
+            </div>
+            <p>The main process remains mostly flat because its modules already have clear names. The renderer benefits from feature locality because pages, components, stores, and helpers currently change together across four technical directories.</p>
+          </div>
+          <div class="tree-grid">
+            <article class="tree-panel">
+              <div class="tree-header"><h3>Current pressure points</h3><span>Technical folders scatter feature changes.</span></div>
+              <pre><code>src/
+|-- main/
+|   |-- index.ts
+|   |-- ipc.ts                 [many jobs]
+|   |-- runService.ts          [run + policy]
+|   |-- store.ts               [storage mechanics]
+|   |-- memoryService.ts
+|   |-- pipelineService.ts
+|   |-- scheduleService.ts
+|   |-- providers/
+|   `-- github/
+|-- preload/
+|-- renderer/src/
+|   |-- components/            [20 files]
+|   |-- pages/                 [8 files]
+|   |-- store/                 [3 stores]
+|   `-- lib/                   [mixed helpers]
+`-- shared/
+    |-- types.ts               [638 lines]
+    `-- ipc.ts</code></pre>
+            </article>
+            <article class="tree-panel">
+              <div class="tree-header"><h3>Target after opportunistic moves</h3><span>Not a single migration. Each arrow is earned by a tested change.</span></div>
+              <pre><code>src/
+|-- main/
+|   |-- index.ts               [Electron lifecycle only]
+|   |-- appRuntime.ts          [+ composition + event fan-out]
+|   |-- ipc.ts                 [validation + registration]
+|   |-- store.ts               [keep facade flat]
+|   |-- vault.ts
+|   |-- jsonFile.ts            [+ only when Store + Vault share it]
+|   |-- runs/
+|   |   |-- runService.ts
+|   |   |-- contextAssembler.ts
+|   |   `-- delegationPolicy.ts [+ pure routing policy]
+|   |-- memoryService.ts       [keep cohesive]
+|   |-- llmWikiService.ts
+|   |-- pipelineService.ts
+|   |-- scheduleService.ts
+|   |-- teamGraph.ts
+|   |-- toolPolicy.ts
+|   |-- providers/             [keep unchanged]
+|   `-- github/                [keep unchanged]
+|-- preload/                   [keep unchanged]
+|-- renderer/src/
+|   |-- App.tsx
+|   |-- main.tsx
+|   |-- globals.css
+|   |-- features/
+|   |   |-- agents/            [page + editor + map + store]
+|   |   |-- chat/              [page + view + composer + store]
+|   |   |-- tasks/             [board + pipeline panel]
+|   |   |-- operations/        [runs + schedule + policy]
+|   |   `-- settings/          [connections + wiki setup]
+|   |-- pages/                 [dashboard, memory, data only]
+|   |-- components/            [Modal, NavRail, icons only]
+|   |-- store/useAppStore.ts   [app shell state]
+|   `-- lib/api.ts             [one-line test seam]
+`-- shared/
+    |-- types.ts               [keep until real conflict]
+    `-- ipc.ts                 [keep]</code></pre>
+            </article>
+          </div>
+          <div class="tree-key"><span class="keep">Keep in place</span><span class="move">Move only while touching behavior</span><span class="new">Extract after two real consumers exist</span></div>
+
+          <div style="margin-top:2rem; overflow-x:auto;">
+            <table class="decision-table">
+              <thead><tr><th>Surface</th><th>Decision</th><th>Reason</th><th>Trigger</th></tr></thead>
+              <tbody>
+                <tr><td>Main process</td><td class="later">Mostly keep flat</td><td>About fifteen named production modules remain easy to scan. Deep domain folders would add navigation without reducing coupling.</td><td>Create <code>runs/</code> only when extracting pure delegation policy.</td></tr>
+                <tr><td>Renderer</td><td class="yes">Group five proven features</td><td>These clusters already have a page, collaborators, state, and tests that change together.</td><td>Move one cluster with its next behavior change.</td></tr>
+                <tr><td>Shared types</td><td class="later">Do not split by size alone</td><td>It is central, but a broad import rewrite has little user value. Static catalogs may leave later if merge conflicts become frequent.</td><td>Two unrelated teams repeatedly collide in the file.</td></tr>
+                <tr><td>Provider adapters</td><td class="no">Do not reorganize</td><td>The registry and protocol adapters are already small, cohesive, and independently tested.</td><td>Only a new shared protocol behavior justifies change.</td></tr>
+                <tr><td>Persistence</td><td class="yes">Extract one primitive later</td><td><code>jsonFile.ts</code> is justified only after both Store and Vault use the same atomic queued mutation.</td><td>Second real consumer lands.</td></tr>
+                <tr><td>Pages with no cluster</td><td class="no">Keep in <code>pages/</code></td><td>Dashboard, Memory, and Data Explorer do not need one-file feature directories.</td><td>A page gains two or more dedicated collaborators.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" aria-labelledby="matrix-title">
+        <div class="inner">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">Impact and effort</div>
+              <h2 id="matrix-title">The upper-left work goes first</h2>
+            </div>
+            <p>Folder moves rank below correctness, deletion, and feedback. That ordering is both XP and Ponytail: reduce risk with the least structure necessary.</p>
+          </div>
+          <div class="matrix" aria-label="Recommendation impact effort matrix">
+            <div></div><div class="matrix-label">Lower effort</div><div class="matrix-label">Higher effort</div>
+            <div class="matrix-label vertical">Higher impact</div>
+            <div class="matrix-cell priority"><h3>Do now</h3><div class="matrix-item">Capability-based routing</div><div class="matrix-item">Queued read-modify-write</div><div class="matrix-item">Hydration edit preservation</div><div class="matrix-item">Canonical check command</div></div>
+            <div class="matrix-cell"><h3>Do in thin slices</h3><div class="matrix-item">Awaited runtime projection owner</div><div class="matrix-item">Delete duplicate run paths</div><div class="matrix-item">Startup reconciliation</div><div class="matrix-item">Trust-boundary validation</div></div>
+            <div class="matrix-label vertical">Lower impact</div>
+            <div class="matrix-cell"><h3>Clean while nearby</h3><div class="matrix-item">README drift</div><div class="matrix-item">Unused assets</div><div class="matrix-item">Dependency placement</div></div>
+            <div class="matrix-cell"><h3>Do not schedule</h3><div class="matrix-item">Whole-tree folder migration</div><div class="matrix-item">Generic repositories/hooks</div><div class="matrix-item">SQLite without measurements</div><div class="matrix-item">Router without deep links</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="roadmap" aria-labelledby="roadmap-title">
+        <div class="inner">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">Incremental roadmap</div>
+              <h2 id="roadmap-title">Six reviewable phases, no rewrite</h2>
+            </div>
+            <p>Each phase can ship independently. Within a phase, keep pull requests to one behavior and its focused checks. Do not combine cleanup with correctness fixes.</p>
+          </div>
+          <div class="roadmap">
+            <article class="phase"><div class="phase-dot">0</div><div class="phase-body"><h3>Lock the feedback baseline</h3><div class="phase-meta"><span class="tag">Low risk</span><span class="tag">No architecture</span><span class="tag">1 isolated formatting change</span></div><ul><li>Add focused regression tests for concurrent persistence and capability routing.</li><li>Establish a Prettier baseline separately, then add non-writing <code>format:check</code> and <code>check</code> scripts.</li><li>Run the gate before packaging. Update README scripts without volatile test counts.</li></ul></div></article>
+            <article class="phase"><div class="phase-dot">1</div><div class="phase-body"><h3>Repair persistence and confinement</h3><div class="phase-meta"><span class="tag">Highest value</span><span class="tag">No file moves</span></div><ul><li>Convert every Store collection to queued <code>updateJson</code> read-modify-write.</li><li>Make Vault atomic, serialized, and explicit on corruption.</li><li>Reject managed-memory symlinks outside the root and serialize daily appends.</li></ul></div></article>
+            <article class="phase"><div class="phase-dot">2</div><div class="phase-body"><h3>Unify run behavior</h3><div class="phase-meta"><span class="tag">Delete code</span><span class="tag">Behavior tests first</span></div><ul><li>Use capability manifests for routing and move pure parsing/matching into <code>delegationPolicy.ts</code>.</li><li>Replace <code>AgentRunner</code> with the canonical direct-agent chat flow.</li><li>Remove unused raw chat IPC, channels, preload API, tracing duplication, and tests for that dead path.</li><li>Bound completed run retention and remove <code>maxAttempts</code> until retries are real.</li></ul></div></article>
+            <article class="phase"><div class="phase-dot">3</div><div class="phase-body"><h3>Own runtime completion</h3><div class="phase-meta"><span class="tag">Small extraction</span><span class="tag">Event ordering</span></div><ul><li>Create <code>appRuntime.ts</code> for service construction, restart reconciliation, and terminal run fan-out.</li><li>Await task, schedule, pipeline, and memory projections with explicit error handling.</li><li>Publish completion after persistence; remove renderer delay timers.</li></ul></div></article>
+            <article class="phase"><div class="phase-dot">4</div><div class="phase-body"><h3>Harden the renderer boundary</h3><div class="phase-meta"><span class="tag">User-visible resilience</span><span class="tag">Focused UI checks</span></div><ul><li>Validate all mutation payloads in main and derive tool side effects there.</li><li>Preserve local edits during hydration.</li><li>Add startup error and Retry; coalesce duplicate initializers.</li><li>Use feature-local errors. Do not add a generic async-state framework.</li></ul></div></article>
+            <article class="phase"><div class="phase-dot">5</div><div class="phase-body"><h3>Rehome active feature clusters</h3><div class="phase-meta"><span class="tag">Mechanical</span><span class="tag">Move on touch</span></div><ul><li>Move agents, chat, tasks, operations, and settings one feature at a time.</li><li>Keep shared <code>Modal</code>, <code>NavRail</code>, icons, app store, and API seam outside features.</li><li>Delete or reduce unused <code>config/agents.json</code>, the unconsumed CSAM soul, and packaged manual diagnostics after confirming product intent.</li></ul></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="feedback" aria-labelledby="feedback-title">
+        <div class="inner">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">XP feedback loop</div>
+              <h2 id="feedback-title">The repository should answer in under two minutes</h2>
+            </div>
+            <p>The current test suite is fast. Preserve that advantage. Add only the smallest behavior checks around risky boundaries, then run the complete gate before integration.</p>
+          </div>
+          <div class="test-loop" aria-label="Recommended XP development loop">
+            <article class="loop-step"><span>1 / RED</span><h3>Name one behavior</h3><p>Write a focused failing check for the reported risk.</p></article>
+            <article class="loop-step"><span>2 / GREEN</span><h3>Fix one owner</h3><p>Change the controlling service or store method.</p></article>
+            <article class="loop-step"><span>3 / SIMPLIFY</span><h3>Delete duplication</h3><p>Remove obsolete paths before extracting helpers.</p></article>
+            <article class="loop-step"><span>4 / VERIFY</span><h3>Run the full gate</h3><p>Typecheck, tests, formatting check, and build.</p></article>
+            <article class="loop-step"><span>5 / SHIP</span><h3>Release the slice</h3><p>Keep the change independently reversible and reviewable.</p></article>
+          </div>
+          <div class="command-block"><code>npm run typecheck &amp;&amp; npm test &amp;&amp; npm run format:check &amp;&amp; npm run build</code></div>
+          <p class="caption">Recommended future alias: <code>npm run check</code>. Add <code>format:check</code> only after an isolated formatting baseline so the gate starts green.</p>
+
+          <div style="margin-top:2rem; overflow-x:auto;">
+            <table class="decision-table">
+              <thead><tr><th>Boundary</th><th>Focused checks to add</th><th>Avoid</th></tr></thead>
+              <tbody>
+                <tr><td>Store and Vault</td><td>Concurrent distinct saves; corruption; backup recovery; permission errors.</td><td>Mocking away filesystem ordering.</td></tr>
+                <tr><td>Run and delegation</td><td>Real Store routing profile; retention; cancellation cascade; restart state.</td><td>More all-in-one fixtures in the 1,246-line run suite.</td></tr>
+                <tr><td>IPC boundary</td><td>Registration parity and malformed mutation payloads.</td><td>A schema framework before repeated hand validation becomes costly.</td></tr>
+                <tr><td>Renderer stores</td><td>Startup Retry, active connection cleanup, one direct agent thread, stream terminal states.</td><td>Snapshots and pixel assertions for state logic.</td></tr>
+                <tr><td>Focused components</td><td>Hydration race, rejected save feedback, Modal Escape behavior.</td><td>A broad browser suite for every component.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="guardrails" aria-labelledby="guardrails-title">
+        <div class="inner">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">Ponytail guardrails</div>
+              <h2 id="guardrails-title">Keep, change, avoid</h2>
+            </div>
+            <p>The target is not maximum modularity. It is minimum cognitive load with reliable behavior. These constraints prevent the cleanup from becoming its own maintenance problem.</p>
+          </div>
+          <div class="keep-stop">
+            <article class="keep"><h3>Keep</h3><ul><li>Electron process boundaries</li><li>Strict TypeScript config</li><li>Co-located Vitest files</li><li>Dependency-record test seams</li><li>Provider registry and adapters</li><li>Simple in-memory page switch</li><li>One-line renderer API seam</li><li>JSON storage at current scale</li></ul></article>
+            <article class="change"><h3>Change when touched</h3><ul><li>Queued storage mutations</li><li>Runtime event ownership</li><li>Delegation policy extraction</li><li>Renderer feature locality</li><li>Startup and IPC error states</li><li>Documentation drift</li><li>Unused tracked assets</li><li>Manual diagnostic packaging</li></ul></article>
+            <article class="avoid"><h3>Do not add</h3><ul><li>DI container</li><li>Repository interfaces per entity</li><li>Generic CRUD hooks</li><li>One-component folders</li><li>Barrel files everywhere</li><li>SQLite without measured limits</li><li>Router without deep links</li><li>Monorepo or package split</li></ul></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" aria-labelledby="hygiene-title">
+        <div class="inner">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">Repository hygiene</div>
+              <h2 id="hygiene-title">Small cleanup after correctness</h2>
+            </div>
+            <p>These items improve trust in the repository but should not displace the state and runtime work above.</p>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="decision-table">
+              <thead><tr><th>Item</th><th>Recommendation</th><th>Ponytail rationale</th></tr></thead>
+              <tbody>
+                <tr><td><code>README.md</code></td><td>Refresh features and scripts; document the verification command. Remove volatile test counts from long-lived docs.</td><td>Delete drift-prone facts instead of generating documentation.</td></tr>
+                <tr><td><code>config/agents.json</code></td><td>Delete the runtime-shaped snapshot if it remains unconsumed. If an example is required, keep one small stable record.</td><td>Tracked data with no reader is inventory, not architecture.</td></tr>
+                <tr><td>CSAM soul</td><td>Remove or correct the unconsumed placeholder after confirming product intent.</td><td>One accurate template is better than a misleading library entry.</td></tr>
+                <tr><td><code>test-chat.ts</code></td><td>Delete if unused; otherwise rename to <code>diagnose:chat</code> and exclude it from packaged output.</td><td>Manual network diagnostics are not automated tests or product code.</td></tr>
+                <tr><td>Graph packages</td><td>Place renderer-bundled graph libraries with other renderer build dependencies; retain <code>cron-parser</code> as a runtime dependency.</td><td>Dependency ownership should match the bundle boundary already in use.</td></tr>
+                <tr><td>Declarations</td><td>Keep one <code>Window.api</code> declaration and delete the duplicate.</td><td>One contract has one source.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div class="footer-inner">
+          <div><strong>Agent Control Panel maintainability assessment</strong><br>Prepared from the current repository state on 19 July 2026.</div>
+          <div>Recommendation style: XP feedback, small releases, collective clarity, and Ponytail/YAGNI.</div>
+        </div>
+      </footer>
+    </main>
+  </div>
+</body>
+</html>

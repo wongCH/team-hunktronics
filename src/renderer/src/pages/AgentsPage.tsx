@@ -3,8 +3,16 @@ import clsx from 'clsx';
 import type { AgentConfig, AgentRole, RunView } from '@shared/types';
 import { useAgentStore } from '@/store/useAgentStore';
 import { useAppStore } from '@/store/useAppStore';
+import { useChatStore } from '@/store/useChatStore';
 import { api } from '@/lib/api';
-import { getWorkingAgentIds, mergeRunActivity } from '@/lib/runActivity';
+import {
+  getActiveDelegationActivity,
+  getEdgeActivity,
+  getWorkingAgentIds,
+  mergeDelegationActivity,
+  mergeRunActivity,
+  type DelegationActivity
+} from '@/lib/runActivity';
 import { AgentEditor } from '@/components/AgentEditor';
 import { CreateAgentModal } from '@/components/CreateAgentModal';
 import { AgentLibraryModal } from '@/components/AgentLibraryModal';
@@ -78,6 +86,10 @@ export function AgentsPage() {
   const [view, setView] = useState<'map' | 'configure'>('map');
   const [wikiOnboarding, setWikiOnboarding] = useState(false);
   const [runActivity, setRunActivity] = useState<ReadonlyMap<string, RunView>>(() => new Map());
+  const [delegationActivity, setDelegationActivity] = useState<ReadonlyMap<string, DelegationActivity>>(
+    () => new Map()
+  );
+  const openAgentConversation = useChatStore((state) => state.openAgentConversation);
 
   useEffect(() => {
     void init();
@@ -90,8 +102,12 @@ export function AgentsPage() {
     };
     const unsubscribe = api.runs.onEvent((event) => {
       if (event.type === 'state') update([event.run]);
+      setDelegationActivity((current) => mergeDelegationActivity(current, event));
     });
-    void api.runs.listActive().then(update);
+    void api.runs.listActive().then((runs) => {
+      update(runs);
+      setDelegationActivity((current) => new Map([...getActiveDelegationActivity(runs), ...current]));
+    });
     return () => {
       mounted = false;
       unsubscribe();
@@ -100,10 +116,15 @@ export function AgentsPage() {
 
   const selected = agents.find((a) => a.id === selectedId) ?? null;
   const workingAgentIds = useMemo(() => getWorkingAgentIds(runActivity), [runActivity]);
+  const edgeActivity = useMemo(() => getEdgeActivity(delegationActivity), [delegationActivity]);
   const orchestrators = agents.filter((a) => a.role === 'orchestrator');
   const leads = agents.filter((a) => a.role === 'team-lead');
   const specialists = agents.filter((a) => a.role === 'specialist');
   const hasRoot = orchestrators.length > 0;
+  const selectForChat = (id: string) => {
+    select(id);
+    void openAgentConversation(id);
+  };
 
   return (
     <div className="flex-1 flex min-h-0">
@@ -148,7 +169,7 @@ export function AgentsPage() {
                     agent={a}
                     active={a.id === selectedId}
                     working={workingAgentIds.has(a.id)}
-                    onClick={() => select(a.id)}
+                    onClick={() => selectForChat(a.id)}
                   />
                 ))}
               </div>
@@ -166,7 +187,7 @@ export function AgentsPage() {
                     agent={a}
                     active={a.id === selectedId}
                     working={workingAgentIds.has(a.id)}
-                    onClick={() => select(a.id)}
+                    onClick={() => selectForChat(a.id)}
                   />
                 ))}
               </div>
@@ -184,7 +205,7 @@ export function AgentsPage() {
                     agent={a}
                     active={a.id === selectedId}
                     working={workingAgentIds.has(a.id)}
-                    onClick={() => select(a.id)}
+                    onClick={() => selectForChat(a.id)}
                   />
                 ))}
               </div>
@@ -220,7 +241,8 @@ export function AgentsPage() {
             agents={agents.filter((agent) => !agent.archived)}
             selectedId={selectedId}
             workingAgentIds={workingAgentIds}
-            onSelect={select}
+            edgeActivity={edgeActivity}
+            onSelect={selectForChat}
             onConfigure={(id) => {
               select(id);
               setView('configure');

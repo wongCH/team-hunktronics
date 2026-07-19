@@ -3,18 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Agent Control Panel — Technical Specification</title>
-
-    <!-- Clawpilot theme detection (must run before any other JS) -->
+    <title>Agent Control Panel - Current Technical Specification</title>
+    <!-- prettier-ignore -->
     <script>
       (() => {
-        const param = new URLSearchParams(window.location.search).get('scoutTheme');
+        const param = new URLSearchParams(window.location.search).get("scoutTheme");
         const theme =
-          param || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-theme', theme);
+          param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
       })();
     </script>
-
     <style>
       :root {
         color-scheme: light;
@@ -42,7 +40,8 @@
         --cp-sheen: rgba(255, 255, 255, 0.55);
         --cp-highlight: rgba(177, 31, 75, 0.12);
       }
-      html[data-theme='dark'] {
+      /* prettier-ignore */
+      html[data-theme="dark"] {
         color-scheme: dark;
         --cp-bg: #3d3b3a;
         --cp-bg-elevated: #343231;
@@ -72,1109 +71,2166 @@
       * {
         box-sizing: border-box;
       }
+
       html {
         scroll-behavior: smooth;
       }
+
       body {
         margin: 0;
         background: var(--cp-bg);
         color: var(--cp-text);
-        font-family: 'Segoe UI', Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+        /* prettier-ignore */
+        font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
         font-size: 15px;
-        line-height: 1.6;
+        line-height: 1.58;
       }
+
+      button,
+      input {
+        font: inherit;
+      }
+
       code,
       pre,
       .mono {
-        font-family: Consolas, 'Courier New', Courier, monospace;
+        /* prettier-ignore */
+        font-family: Consolas, "Courier New", Courier, monospace;
       }
 
-      /* Layout */
-      .layout {
+      a {
+        color: var(--cp-link);
+      }
+
+      .shell {
         display: grid;
-        grid-template-columns: 288px minmax(0, 1fr);
-        max-width: 1320px;
+        grid-template-columns: 280px minmax(0, 1fr);
+        max-width: 1480px;
         margin: 0 auto;
       }
-      nav.toc {
+
+      .toc {
         position: sticky;
         top: 0;
-        align-self: start;
         height: 100vh;
         overflow-y: auto;
         padding: 28px 20px 40px;
-        border-right: 1px solid var(--cp-border);
         background: var(--cp-bg-elevated);
+        border-right: 1px solid var(--cp-border);
       }
-      nav.toc .brand {
-        font-weight: 700;
-        font-size: 15px;
-        letter-spacing: 0.2px;
-        margin-bottom: 4px;
+
+      .brand {
+        margin-bottom: 20px;
       }
-      nav.toc .brand span {
+
+      .brand strong {
+        display: block;
+        font-size: 16px;
+      }
+
+      .brand span {
         color: var(--cp-accent);
       }
-      nav.toc .brand-sub {
+
+      .brand small {
         color: var(--cp-text-muted);
-        font-size: 12.5px;
-        margin-bottom: 18px;
       }
-      nav.toc a {
+
+      .toc a {
         display: block;
+        margin: 2px 0;
+        padding: 6px 10px;
         color: var(--cp-text-muted);
         text-decoration: none;
-        padding: 5px 10px;
+        border-left: 2px solid var(--cp-bg-elevated);
         border-radius: 0.625rem;
-        font-size: 13.5px;
-        border-left: 2px solid transparent;
+        font-size: 13px;
       }
-      nav.toc a:hover {
-        color: var(--cp-text);
-        background: var(--cp-surface-soft);
-      }
-      nav.toc a.active {
+
+      .toc a:hover,
+      .toc a.active {
         color: var(--cp-accent);
         background: var(--cp-accent-soft);
         border-left-color: var(--cp-accent);
-        font-weight: 600;
-      }
-      nav.toc a.sub {
-        padding-left: 22px;
-        font-size: 12.5px;
       }
 
       main {
-        padding: 0 48px 120px;
         min-width: 0;
+        padding: 0 48px 96px;
       }
 
-      /* Hero */
-      header.hero {
-        padding: 52px 0 28px;
+      .hero {
+        padding: 52px 0 32px;
         border-bottom: 1px solid var(--cp-border);
-        margin-bottom: 8px;
       }
+
       .eyebrow {
-        text-transform: uppercase;
-        letter-spacing: 2px;
+        color: var(--cp-accent);
         font-size: 12px;
         font-weight: 700;
-        color: var(--cp-accent);
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
       }
+
       h1 {
-        font-size: 34px;
-        line-height: 1.2;
-        margin: 10px 0 6px;
-        letter-spacing: -0.3px;
+        margin: 8px 0;
+        font-size: clamp(32px, 5vw, 50px);
+        line-height: 1.08;
+        letter-spacing: -1px;
       }
+
       .subtitle {
+        max-width: 76ch;
         color: var(--cp-text-muted);
-        font-size: 16px;
-        max-width: 60ch;
+        font-size: 17px;
       }
-      .meta-grid {
+
+      .meta {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        grid-template-columns: repeat(5, minmax(120px, 1fr));
         gap: 10px;
-        margin-top: 26px;
+        margin-top: 24px;
       }
-      .meta-cell {
+
+      .meta-item,
+      .card,
+      .metric,
+      details {
         background: var(--cp-surface);
         border: 1px solid var(--cp-border);
-        border-radius: 0.625rem;
-        padding: 10px 14px;
+        border-radius: 16px;
+        box-shadow: 0 0 0 1px var(--cp-sheen);
       }
-      .meta-cell .k {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
+
+      .meta-item {
+        padding: 12px 14px;
+      }
+
+      .meta-item span {
+        display: block;
         color: var(--cp-text-soft);
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
       }
-      .meta-cell .v {
-        font-weight: 600;
-        font-size: 14px;
+
+      .meta-item strong {
+        display: block;
         margin-top: 2px;
       }
 
       section {
-        padding-top: 40px;
-        scroll-margin-top: 20px;
+        padding-top: 42px;
+        scroll-margin-top: 18px;
       }
+
       h2 {
-        font-size: 24px;
-        margin: 0 0 6px;
-        letter-spacing: -0.2px;
         display: flex;
+        gap: 10px;
         align-items: baseline;
-        gap: 12px;
+        margin: 0 0 8px;
+        font-size: 26px;
+        letter-spacing: -0.4px;
       }
+
       h2 .num {
         color: var(--cp-accent);
         font-size: 18px;
-        font-weight: 700;
       }
+
       h3 {
-        font-size: 17px;
-        margin: 28px 0 8px;
+        margin: 28px 0 10px;
+        font-size: 18px;
       }
+
       h4 {
-        font-size: 14px;
-        margin: 18px 0 6px;
+        margin: 20px 0 8px;
         color: var(--cp-text-muted);
+        font-size: 13px;
+        letter-spacing: 0.5px;
         text-transform: uppercase;
-        letter-spacing: 0.6px;
       }
+
       p {
         margin: 8px 0;
       }
-      a.inline {
-        color: var(--cp-link);
-      }
+
       ul,
       ol {
         margin: 8px 0;
         padding-left: 22px;
       }
+
       li {
-        margin: 4px 0;
-      }
-      hr {
-        border: none;
-        border-top: 1px solid var(--cp-border);
-        margin: 40px 0 0;
+        margin: 5px 0;
       }
 
-      .lead {
-        font-size: 16px;
-        color: var(--cp-text-muted);
-      }
-
-      /* Cards */
-      .card {
-        background: var(--cp-surface);
-        border: 1px solid var(--cp-border);
-        border-radius: 16px;
-        padding: 18px 20px;
-        box-shadow: 0 0 2px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.14);
-      }
-      .grid-2 {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 14px;
-        margin-top: 14px;
-      }
-      .stat {
-        text-align: center;
-      }
-      .stat .big {
-        font-size: 30px;
-        font-weight: 700;
-        color: var(--cp-accent);
-      }
-      .stat .lbl {
-        font-size: 12.5px;
-        color: var(--cp-text-muted);
-      }
-
-      /* Tables */
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 14px 0;
-        font-size: 13.5px;
-        background: var(--cp-surface);
-        border: 1px solid var(--cp-border);
-        border-radius: 12px;
-        overflow: hidden;
-      }
-      thead th {
-        text-align: left;
-        background: var(--cp-surface-soft);
-        color: var(--cp-text);
-        font-weight: 600;
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--cp-border);
-      }
-      tbody td {
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--cp-border);
-        vertical-align: top;
-      }
-      tbody tr:last-child td {
-        border-bottom: none;
-      }
-      tbody tr:hover {
-        background: var(--cp-accent-soft);
-      }
-      td .req-id,
-      .req-id {
-        font-family: Consolas, 'Courier New', Courier, monospace;
-        font-weight: 700;
-        color: var(--cp-accent);
-        white-space: nowrap;
-      }
-      td.center {
-        text-align: center;
-      }
-
-      code:not(pre code) {
+      code {
+        padding: 1px 5px;
         background: var(--cp-surface-soft);
         border: 1px solid var(--cp-border);
-        padding: 1px 6px;
-        border-radius: 6px;
-        font-size: 12.5px;
-        color: var(--cp-text);
+        border-radius: 0.625rem;
+        font-size: 0.9em;
       }
+
       pre {
+        overflow-x: auto;
+        margin: 12px 0;
+        padding: 16px;
         background: var(--cp-bg-elevated);
         border: 1px solid var(--cp-border);
-        border-radius: 12px;
-        padding: 14px 16px;
-        overflow-x: auto;
-        font-size: 12.5px;
-        line-height: 1.5;
+        border-radius: 0.625rem;
+        color: var(--cp-text);
+        font-size: 13px;
       }
 
-      /* Badges */
-      .badge {
-        display: inline-block;
-        font-size: 11px;
-        font-weight: 700;
-        padding: 2px 8px;
-        border-radius: 999px;
-        letter-spacing: 0.3px;
-        white-space: nowrap;
-        border: 1px solid transparent;
-      }
-      .badge.must {
-        background: var(--cp-accent-soft);
-        color: var(--cp-accent);
-        border-color: var(--cp-accent);
-      }
-      .badge.should {
-        color: var(--cp-warning);
-        border-color: var(--cp-warning);
-        background: transparent;
-      }
-      .badge.could {
-        color: var(--cp-text-muted);
-        border-color: var(--cp-border-strong);
-        background: transparent;
-      }
-      .badge.ok {
-        color: var(--cp-success);
-        border-color: var(--cp-success);
-        background: transparent;
-      }
-      .badge.exp {
-        color: var(--cp-warning);
-        border-color: var(--cp-warning);
-        background: transparent;
-      }
-      .badge.no {
-        color: var(--cp-text-soft);
-        border-color: var(--cp-border);
-        background: transparent;
-      }
-      .pill {
-        display: inline-block;
-        background: var(--cp-surface-soft);
-        border: 1px solid var(--cp-border);
-        color: var(--cp-text-muted);
-        border-radius: 999px;
-        padding: 2px 10px;
-        font-size: 12px;
-        margin: 2px 4px 2px 0;
+      pre code {
+        padding: 0;
+        border: 0;
       }
 
-      /* Architecture diagram */
-      .arch {
-        display: flex;
-        flex-direction: column;
+      .grid-2,
+      .grid-3,
+      .metrics {
+        display: grid;
         gap: 14px;
+      }
+
+      .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         margin: 18px 0;
       }
-      .arch-row {
-        display: grid;
-        grid-template-columns: 130px 1fr;
-        gap: 14px;
-        align-items: stretch;
+
+      .card {
+        padding: 18px;
       }
-      .arch-label {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        font-weight: 700;
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-        color: var(--cp-accent-fg);
-        background: var(--cp-accent);
-        border-radius: 12px;
-        padding: 10px;
+
+      .card h3,
+      .card h4 {
+        margin-top: 0;
       }
-      .arch-label.muted {
-        background: var(--cp-border-strong);
-        color: var(--cp-bg-elevated);
+
+      .metric {
+        padding: 16px;
       }
-      .arch-boxes {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-      .arch-box {
-        flex: 1 1 130px;
-        background: var(--cp-surface);
-        border: 1px solid var(--cp-border);
-        border-radius: 12px;
-        padding: 10px 12px;
-        font-size: 13px;
-      }
-      .arch-box b {
+
+      .metric strong {
         display: block;
-        font-size: 13px;
-      }
-      .arch-box small {
-        color: var(--cp-text-soft);
-        font-size: 11.5px;
-      }
-      .arrow {
-        text-align: center;
-        color: var(--cp-text-soft);
-        font-size: 18px;
+        color: var(--cp-accent);
+        font-size: 25px;
         line-height: 1;
       }
 
-      .callout {
-        border-left: 3px solid var(--cp-accent);
-        background: var(--cp-accent-soft);
-        padding: 12px 16px;
-        border-radius: 0 12px 12px 0;
-        margin: 16px 0;
-      }
-      .callout.warn {
-        border-left-color: var(--cp-warning);
-        background: transparent;
-        border: 1px solid var(--cp-warning);
-        border-left-width: 3px;
-      }
-      .callout b {
-        color: var(--cp-text);
+      .metric span {
+        display: block;
+        margin-top: 7px;
+        color: var(--cp-text-muted);
+        font-size: 12px;
       }
 
-      /* Theme toggle */
-      .theme-toggle {
-        position: fixed;
-        top: 16px;
-        right: 18px;
-        z-index: 50;
+      .callout {
+        margin: 16px 0;
+        padding: 14px 16px;
+        background: var(--cp-accent-soft);
+        border-left: 4px solid var(--cp-accent);
+        border-radius: 0.625rem;
+      }
+
+      .callout.warning {
+        border-left-color: var(--cp-warning);
+      }
+
+      .callout.danger {
+        border-left-color: var(--cp-danger);
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+        margin: 18px 0;
+      }
+
+      .flow-step {
+        position: relative;
+        padding: 14px;
         background: var(--cp-surface);
         border: 1px solid var(--cp-border);
-        color: var(--cp-text);
-        border-radius: 999px;
-        padding: 7px 14px;
-        font-size: 12.5px;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 0 2px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.14);
-      }
-      .theme-toggle:hover {
-        border-color: var(--cp-accent);
-        color: var(--cp-accent);
-      }
-      footer {
-        margin-top: 60px;
-        padding-top: 20px;
-        border-top: 1px solid var(--cp-border);
-        color: var(--cp-text-soft);
-        font-size: 12.5px;
+        border-radius: 0.625rem;
+        font-size: 13px;
       }
 
-      @media (max-width: 900px) {
-        .layout {
+      .flow-step b {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--cp-accent);
+      }
+
+      .layer {
+        display: grid;
+        grid-template-columns: 150px minmax(0, 1fr);
+        gap: 12px;
+        margin: 10px 0;
+        padding: 14px;
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 0.625rem;
+      }
+
+      .layer-label {
+        color: var(--cp-accent);
+        font-weight: 700;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .chip,
+      .status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 2px 8px;
+        border: 1px solid var(--cp-border);
+        border-radius: 0.625rem;
+        background: var(--cp-surface-soft);
+        color: var(--cp-text-muted);
+        font-size: 12px;
+      }
+
+      .status.current {
+        color: var(--cp-success);
+        border-color: var(--cp-success);
+      }
+
+      .status.boundary {
+        color: var(--cp-warning);
+        border-color: var(--cp-warning);
+      }
+
+      .status.blocked {
+        color: var(--cp-danger);
+        border-color: var(--cp-danger);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        margin: 12px 0;
+        border: 1px solid var(--cp-border);
+        border-radius: 0.625rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--cp-surface);
+        font-size: 13px;
+      }
+
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--cp-border);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--cp-surface-soft);
+        color: var(--cp-text-muted);
+        font-size: 11px;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      tbody tr:hover {
+        background: var(--cp-highlight);
+      }
+
+      details {
+        margin: 10px 0;
+        padding: 0 16px;
+      }
+
+      summary {
+        cursor: pointer;
+        padding: 12px 0;
+        font-weight: 700;
+      }
+
+      details > :last-child {
+        margin-bottom: 16px;
+      }
+
+      .theme-toggle {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 10;
+        padding: 8px 12px;
+        color: var(--cp-accent-fg);
+        background: var(--cp-accent);
+        border: 1px solid var(--cp-accent);
+        border-radius: 0.625rem;
+        cursor: pointer;
+      }
+
+      .theme-toggle:hover {
+        background: var(--cp-accent-hover);
+      }
+
+      footer {
+        margin-top: 54px;
+        padding-top: 24px;
+        color: var(--cp-text-muted);
+        border-top: 1px solid var(--cp-border);
+        font-size: 12px;
+      }
+
+      @media (max-width: 1050px) {
+        .meta {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .grid-3,
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .flow {
           grid-template-columns: 1fr;
         }
-        nav.toc {
+      }
+
+      @media (max-width: 780px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .toc {
           position: static;
           height: auto;
-          border-right: none;
+          border-right: 0;
           border-bottom: 1px solid var(--cp-border);
         }
+
         main {
-          padding: 0 22px 80px;
+          padding: 0 22px 72px;
+        }
+
+        .meta,
+        .grid-2,
+        .grid-3,
+        .metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .layer {
+          grid-template-columns: 1fr;
         }
       }
+
       @media print {
-        nav.toc,
+        .toc,
         .theme-toggle {
           display: none;
         }
-        .layout {
-          grid-template-columns: 1fr;
+
+        .shell {
+          display: block;
         }
-        tbody tr:hover {
-          background: transparent;
+
+        main {
+          padding: 0;
         }
       }
     </style>
   </head>
   <body>
-    <button class="theme-toggle" id="themeToggle" type="button">◐ Theme</button>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle color theme">
+      Toggle theme
+    </button>
 
-    <div class="layout">
-      <nav class="toc" id="toc">
-        <div class="brand">AI Agent <span>Control Panel</span></div>
-        <div class="brand-sub">Technical Specification</div>
-        <a href="#doc-control">Document Control</a>
-        <a href="#intro"><b>1.</b> Introduction</a>
-        <a href="#scope" class="sub">1.1 Scope</a>
-        <a href="#glossary" class="sub">1.2 Glossary</a>
-        <a href="#overview"><b>2.</b> System Overview</a>
-        <a href="#stack" class="sub">2.1 Technology Stack</a>
-        <a href="#architecture"><b>3.</b> Architecture</a>
-        <a href="#datamodel"><b>4.</b> Data Model</a>
-        <a href="#functional"><b>5.</b> Functional Requirements</a>
-        <a href="#ipc"><b>6.</b> IPC / API Contract</a>
-        <a href="#providers"><b>7.</b> Provider Matrix</a>
-        <a href="#nonfunctional"><b>8.</b> Non-Functional Reqs</a>
-        <a href="#security"><b>9.</b> Security Requirements</a>
-        <a href="#build"><b>10.</b> Build &amp; Deployment</a>
-        <a href="#constraints"><b>11.</b> Constraints &amp; Assumptions</a>
-        <a href="#outofscope"><b>12.</b> Out of Scope</a>
-        <a href="#traceability"><b>13.</b> Traceability</a>
+    <div class="shell">
+      <nav class="toc" aria-label="Technical specification sections">
+        <div class="brand">
+          <strong>Agent <span>Control Panel</span></strong>
+          <small>Current technical specification</small>
+        </div>
+        <a href="#document-control">Document control</a>
+        <a href="#overview">1. Product overview</a>
+        <a href="#architecture">2. Architecture</a>
+        <a href="#runtime">3. Trusted run lifecycle</a>
+        <a href="#routing">4. Team and routing</a>
+        <a href="#model">5. Domain model</a>
+        <a href="#persistence">6. Persistence and memory</a>
+        <a href="#ipc">7. IPC contract</a>
+        <a href="#providers">8. Provider layer</a>
+        <a href="#frontend">9. Renderer and UX</a>
+        <a href="#automation">10. Work automation</a>
+        <a href="#security">11. Security and privacy</a>
+        <a href="#quality">12. Build and quality</a>
+        <a href="#boundaries">13. Current boundaries</a>
+        <a href="#traceability">14. Traceability</a>
       </nav>
 
       <main>
         <header class="hero">
-          <div class="eyebrow">Software Requirements &amp; Technical Specification</div>
-          <h1>AI Agent Control Panel</h1>
+          <div class="eyebrow">Implementation contract / 2026-07-19</div>
+          <h1>Agent Control Panel</h1>
           <p class="subtitle">
-            A cross-platform Electron desktop application for chatting with multiple LLM backends
-            from a single interface, with API keys encrypted at rest by the operating system
-            keychain.
+            A local-first Electron command center for direct multi-provider chat, hierarchical AI
+            agent teams, specialist-first delegation, managed memory, durable work orchestration,
+            and operational diagnostics.
           </p>
-          <div class="meta-grid">
-            <div class="meta-cell"><div class="k">Document ID</div><div class="v">ACP-SRS-001</div></div>
-            <div class="meta-cell"><div class="k">Version</div><div class="v">0.1.0 (MVP)</div></div>
-            <div class="meta-cell"><div class="k">Status</div><div class="v">Draft</div></div>
-            <div class="meta-cell"><div class="k">Date</div><div class="v">2026-07-09</div></div>
-            <div class="meta-cell"><div class="k">Owner</div><div class="v">team-hunktronics</div></div>
-            <div class="meta-cell"><div class="k">License</div><div class="v">MIT</div></div>
+          <div class="meta">
+            <div class="meta-item"><span>Document</span><strong>ACP-TS-002</strong></div>
+            <div class="meta-item"><span>Spec revision</span><strong>0.2.2</strong></div>
+            <div class="meta-item"><span>Package version</span><strong>0.1.0</strong></div>
+            <div class="meta-item"><span>Status</span><strong>Current implementation</strong></div>
+            <div class="meta-item"><span>License</span><strong>MIT</strong></div>
           </div>
         </header>
 
-        <!-- DOCUMENT CONTROL -->
-        <section id="doc-control">
-          <h2><span class="num">§</span> Document Control</h2>
-          <table>
-            <thead>
-              <tr><th>Version</th><th>Date</th><th>Author</th><th>Summary of change</th></tr>
-            </thead>
-            <tbody>
-              <tr><td class="mono">0.1.0</td><td>2026-07-09</td><td>team-hunktronics</td><td>Initial specification derived from the MVP codebase.</td></tr>
-            </tbody>
-          </table>
-          <div class="grid-2">
-            <div class="card stat"><div class="big" id="frCount">—</div><div class="lbl">Functional requirements</div></div>
-            <div class="card stat"><div class="big" id="nfrCount">—</div><div class="lbl">Non-functional requirements</div></div>
-            <div class="card stat"><div class="big" id="secCount">—</div><div class="lbl">Security requirements</div></div>
-            <div class="card stat"><div class="big">6</div><div class="lbl">LLM providers supported</div></div>
+        <section id="document-control">
+          <h2><span class="num">§</span> Document control</h2>
+          <div class="callout">
+            <strong>Source of truth.</strong> Source code and automated tests define implemented
+            behavior. This document describes that behavior; it is not a backlog. Planning and
+            prioritization remain outside this specification.
           </div>
-        </section>
-
-        <!-- 1 INTRODUCTION -->
-        <section id="intro">
-          <h2><span class="num">1</span> Introduction</h2>
-          <p class="lead">
-            This document captures the functional and non-functional requirements and the technical
-            design of the AI Agent Control Panel (internally <code>agent-control-panel</code>). It is
-            intended for engineers, reviewers, and QA working on the product.
-          </p>
-          <h4>Purpose</h4>
-          <p>
-            Provide a single, secure desktop client that lets a user configure connections to
-            several Large Language Model (LLM) providers, store credentials safely, and hold
-            streaming chat conversations that persist locally.
-          </p>
-          <h4>Product perspective</h4>
-          <p>
-            The application is a self-contained Electron desktop app. It has no backend server of its
-            own; each configured connection talks directly from the user's machine to the chosen
-            provider's HTTPS API. All state (connections, conversations, settings, encrypted secrets)
-            is persisted to the OS <em>user-data</em> directory.
-          </p>
-
-          <div id="scope">
-            <h3>1.1 Scope</h3>
-            <h4>In scope</h4>
-            <ul>
-              <li>Managing multiple provider connections (Ollama, OpenAI, Anthropic, GitHub Models, OpenAI-compatible endpoints, GitHub Copilot).</li>
-              <li>Encrypted, OS-backed storage of API keys and tokens.</li>
-              <li>GitHub OAuth device-flow login for token-based providers.</li>
-              <li>Model discovery, streaming chat with cancellation, and locally persisted conversations.</li>
-              <li>Application settings including active connection/model and experimental toggles.</li>
-            </ul>
-            <h4>Out of scope (MVP)</h4>
-            <p>See <a class="inline" href="#outofscope">§12 Out of Scope</a>.</p>
-          </div>
-
-          <div id="glossary">
-            <h3>1.2 Glossary &amp; Definitions</h3>
+          <div class="table-wrap">
             <table>
-              <thead><tr><th style="width:180px">Term</th><th>Definition</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Revision</th>
+                  <th>Date</th>
+                  <th>Scope</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr><td><b>Main process</b></td><td>The Electron Node.js process that owns windows, file system, and privileged operations.</td></tr>
-                <tr><td><b>Renderer</b></td><td>The sandboxed Chromium process running the React UI. Has no direct Node access.</td></tr>
-                <tr><td><b>Preload</b></td><td>Isolated bridge script exposing a narrow, typed API to the renderer via <code>contextBridge</code>.</td></tr>
-                <tr><td><b>Vault</b></td><td>Encrypted secret store backed by the OS keychain via Electron <code>safeStorage</code>.</td></tr>
-                <tr><td><b>Store</b></td><td>Plaintext (non-secret) JSON persistence for connections, conversations, and settings.</td></tr>
-                <tr><td><b>Connection</b></td><td>A configured provider endpoint (type, label, base URL, default model, key presence).</td></tr>
-                <tr><td><b>Provider</b></td><td>An adapter implementing model listing and streaming chat for a given backend.</td></tr>
-                <tr><td><b>Device flow</b></td><td>GitHub OAuth flow where the user authorizes via a code, suitable for public clients.</td></tr>
-                <tr><td><b>MoSCoW</b></td><td>Prioritization: <span class="badge must">Must</span> <span class="badge should">Should</span> <span class="badge could">Could</span>.</td></tr>
+                <tr>
+                  <td class="mono">0.1.0</td>
+                  <td>2026-07-09</td>
+                  <td>Initial chat-client MVP specification.</td>
+                </tr>
+                <tr>
+                  <td class="mono">0.2.0</td>
+                  <td>2026-07-19</td>
+                  <td>
+                    Rebased on the current repository: agent hierarchy, delegated runs, sessions,
+                    themes, memory, skills, LLM wiki, tasks, pipelines, schedules, policy, traces,
+                    local data, tests, and current release boundaries.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">0.2.1</td>
+                  <td>2026-07-19</td>
+                  <td>
+                    Added the implemented new-agent creation flow, including validation, manager
+                    registration, atomic persistence, and renderer completion behavior.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">0.2.2</td>
+                  <td>2026-07-19</td>
+                  <td>
+                    Clarified that agents do not receive execution workspaces at creation time and
+                    documented immediate, lazy, and external agent dependencies.
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
+          <div class="metrics">
+            <div class="metric"><strong>8</strong><span>Renderer pages</span></div>
+            <div class="metric"><strong>7</strong><span>Provider types</span></div>
+            <div class="metric"><strong>6</strong><span>Selectable themes</span></div>
+            <div class="metric"><strong>157</strong><span>Passing automated tests</span></div>
+          </div>
         </section>
 
-        <!-- 2 SYSTEM OVERVIEW -->
         <section id="overview">
-          <h2><span class="num">2</span> System Overview</h2>
+          <h2><span class="num">1</span> Product overview</h2>
           <p>
-            The product follows Electron's three-process security model. The React renderer never
-            touches Node APIs directly; it communicates with the main process exclusively through a
-            small, allow-listed, typed IPC surface exposed by the preload bridge. Secrets are held,
-            encrypted, and used only within the main process.
+            The application is a desktop-only Electron system with no application-owned backend
+            service. The renderer controls configuration and presents state; the sandboxed preload
+            bridge exposes an allow-listed API; the main process owns credentials, provider traffic,
+            trusted context assembly, run state, persistence, scheduling, and policy decisions.
           </p>
 
-          <div class="arch">
-            <div class="arch-row">
-              <div class="arch-label">Renderer<br />(Chromium)</div>
-              <div class="arch-boxes">
-                <div class="arch-box"><b>React 18 UI</b><small>Chat, Composer, Sidebar, Connections &amp; Settings modals</small></div>
-                <div class="arch-box"><b>Zustand stores</b><small>useAppStore, useChatStore</small></div>
-                <div class="arch-box"><b>window.api</b><small>typed client wrapper</small></div>
-              </div>
-            </div>
-            <div class="arrow">▲ &nbsp; contextBridge &nbsp; ▼</div>
-            <div class="arch-row">
-              <div class="arch-label muted">Preload<br />(isolated)</div>
-              <div class="arch-boxes">
-                <div class="arch-box"><b>Allow-listed IPC</b><small>invoke() calls + event subscriptions; no secrets returned</small></div>
-              </div>
-            </div>
-            <div class="arrow">▲ &nbsp; ipcMain / ipcRenderer &nbsp; ▼</div>
-            <div class="arch-row">
-              <div class="arch-label">Main<br />(Node.js)</div>
-              <div class="arch-boxes">
-                <div class="arch-box"><b>IPC handlers</b><small>connections, secrets, models, chat, settings, github</small></div>
-                <div class="arch-box"><b>Vault</b><small>safeStorage encrypt/decrypt → vault.json</small></div>
-                <div class="arch-box"><b>Store</b><small>connections / conversations / settings JSON</small></div>
-                <div class="arch-box"><b>Providers</b><small>Provider interface + device flow</small></div>
-              </div>
-            </div>
-            <div class="arrow">▼ &nbsp; HTTPS (fetch, SSE streaming) &nbsp; ▼</div>
-            <div class="arch-row">
-              <div class="arch-label muted">External</div>
-              <div class="arch-boxes">
-                <div class="arch-box"><b>LLM providers</b><small>OpenAI, Anthropic, Ollama, GitHub Models/Copilot, OpenAI-compatible</small></div>
-                <div class="arch-box"><b>OS keychain</b><small>macOS Keychain / Win DPAPI / Linux secret service</small></div>
-              </div>
-            </div>
+          <div class="grid-3">
+            <article class="card">
+              <h3>Conversation</h3>
+              <p>
+                Persistent direct and delegated threads, Markdown output, streaming, cancellation,
+                new sessions, clear-chat behavior, and per-agent chat.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Agent team</h3>
+              <p>
+                One orchestrator, optional team leads, and specialists. The team graph powers
+                automatic domain routing and nested delegation.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Managed work</h3>
+              <p>
+                Tasks, sequential pipelines, app-open schedules, memory review, approvals, traces,
+                and bounded local-data inspection.
+              </p>
+            </article>
           </div>
 
-          <div id="stack">
-            <h3>2.1 Technology Stack</h3>
-            <table>
-              <thead><tr><th>Layer</th><th>Technology</th><th>Version</th></tr></thead>
-              <tbody>
-                <tr><td>Runtime shell</td><td>Electron</td><td class="mono">31.7.7</td></tr>
-                <tr><td>Build / bundling</td><td>electron-vite + Vite</td><td class="mono">2.3.x / 5.3.x</td></tr>
-                <tr><td>UI framework</td><td>React + React DOM</td><td class="mono">18.3.x</td></tr>
-                <tr><td>State management</td><td>Zustand</td><td class="mono">4.5.x</td></tr>
-                <tr><td>Styling</td><td>Tailwind CSS + PostCSS + Autoprefixer</td><td class="mono">3.4.x</td></tr>
-                <tr><td>Markdown rendering</td><td>react-markdown, remark-gfm, rehype-highlight, highlight.js</td><td class="mono">—</td></tr>
-                <tr><td>Language</td><td>TypeScript</td><td class="mono">5.5.x</td></tr>
-                <tr><td>Packaging</td><td>electron-builder</td><td class="mono">24.13.x</td></tr>
-                <tr><td>Tooling</td><td>Prettier, Node.js</td><td class="mono">3.3.x / 18+</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- 3 ARCHITECTURE -->
-        <section id="architecture">
-          <h2><span class="num">3</span> Architecture</h2>
-          <h3>3.1 Process responsibilities</h3>
+          <h3>1.1 In-scope capabilities</h3>
           <ul>
-            <li><b>Main</b> — window lifecycle, security policy (navigation/window-open handling), IPC registration, provider orchestration, encrypted vault, plaintext store, and GitHub device flow.</li>
-            <li><b>Preload</b> — exposes <code>window.api</code> with namespaced methods (<code>vault</code>, <code>connections</code>, <code>secrets</code>, <code>models</code>, <code>chat</code>, <code>conversations</code>, <code>settings</code>, <code>github</code>, <code>shell</code>). Only these channels are reachable from the UI.</li>
-            <li><b>Renderer</b> — React UI plus two Zustand stores: <code>useAppStore</code> (connections, settings, models, modals, vault status) and <code>useChatStore</code> (conversations, streaming lifecycle).</li>
+            <li>Seven provider adapters and per-connection model discovery.</li>
+            <li>OS-backed encrypted secrets that never return to the renderer.</li>
+            <li>Main-owned trusted runs with persisted conversations and live run events.</li>
+            <li>
+              Hierarchical agent editing, team visualization, archiving, tools, skills, and autonomy
+              metadata.
+            </li>
+            <li>Specialist-first automatic routing with team-lead and orchestrator fallbacks.</li>
+            <li>Managed Markdown memory plus read-only human LLM-wiki context.</li>
+            <li>
+              Durable tasks, one-to-eight-stage pipelines, cron schedules, policy records, and API
+              traces.
+            </li>
+            <li>Six persisted visual themes; <b>Indigo Nebula</b> is the default.</li>
           </ul>
 
-          <h3>3.2 Streaming chat flow</h3>
+          <h3>1.2 Repository layout</h3>
+          <pre><code>src/
+  main/                 Electron lifecycle, IPC, services, providers, persistence
+  preload/              Typed contextBridge surface
+  renderer/             React UI, pages, components, Zustand stores
+  shared/               Cross-process types and IPC channel names
+agent-library/souls/    Bundled agent persona templates
+config/agents.json      Sanitized example agent configuration
+docs/                   Technical specification, PRDs, skill documentation
+electron.vite.config.ts Main/preload/renderer build configuration
+electron-builder.yml    macOS arm64 packaging configuration
+vitest.config.ts        Node test and V8 coverage configuration</code></pre>
+        </section>
+
+        <section id="architecture">
+          <h2><span class="num">2</span> Architecture</h2>
+
+          <div class="layer">
+            <div class="layer-label">Renderer</div>
+            <div>
+              React 18 pages and components; Zustand stores for application, chat, and agents; React
+              Flow plus Dagre for the team graph. No direct Node.js access.
+            </div>
+          </div>
+          <div class="layer">
+            <div class="layer-label">Preload</div>
+            <div>
+              Sandboxed <code>contextBridge</code> exposing 20 namespaced APIs and callback
+              subscriptions. It contains no business logic and returns unsubscribe functions for
+              events.
+            </div>
+          </div>
+          <div class="layer">
+            <div class="layer-label">Main process</div>
+            <div>
+              IPC validation and orchestration, <code>RunService</code>, context assembly,
+              <code>Store</code>, <code>Vault</code>, memory, LLM wiki, schedules, pipelines, tool
+              policy, provider adapters, and GitHub device flow.
+            </div>
+          </div>
+          <div class="layer">
+            <div class="layer-label">External systems</div>
+            <div>
+              Selected LLM endpoints, GitHub OAuth endpoints, the OS keychain, local JSON/Markdown
+              files, and the OS browser for approved <code>http(s)</code> links.
+            </div>
+          </div>
+
+          <h3>2.1 Main-process composition</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Module</th>
+                  <th>Responsibility</th>
+                  <th>Durability</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">index.ts</td>
+                  <td>Window security, service wiring, event fan-out, schedule lifecycle.</td>
+                  <td>Process lifecycle</td>
+                </tr>
+                <tr>
+                  <td class="mono">ipc.ts</td>
+                  <td>Runtime validation, channel handlers, provider execution, tracing.</td>
+                  <td>Bridges renderer to services</td>
+                </tr>
+                <tr>
+                  <td class="mono">runService.ts</td>
+                  <td>Trusted runs, idempotency, cancellation, delegation, synthesis.</td>
+                  <td>Run registry is in memory; conversations are durable</td>
+                </tr>
+                <tr>
+                  <td class="mono">store.ts</td>
+                  <td>Non-secret JSON persistence, backups, local-data queries.</td>
+                  <td>Durable</td>
+                </tr>
+                <tr>
+                  <td class="mono">vault.ts</td>
+                  <td>OS-encrypted provider secrets.</td>
+                  <td>Durable encrypted ciphertext</td>
+                </tr>
+                <tr>
+                  <td class="mono">memoryService.ts</td>
+                  <td>Managed memory, history, search, health, compression.</td>
+                  <td>Durable Markdown</td>
+                </tr>
+                <tr>
+                  <td class="mono">scheduleService.ts</td>
+                  <td>Cron evaluation, run dispatch, terminal status correlation.</td>
+                  <td>Definitions/status durable; timer process-local</td>
+                </tr>
+                <tr>
+                  <td class="mono">pipelineService.ts</td>
+                  <td>Sequential stages, briefs, outputs, review state.</td>
+                  <td>Executions and artifacts durable</td>
+                </tr>
+                <tr>
+                  <td class="mono">toolPolicy.ts</td>
+                  <td>Grant checks, argument redaction/digest, approval decisions.</td>
+                  <td>Actions and approvals durable</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>2.2 Technology stack</h3>
+          <div class="chips">
+            <span class="chip">Electron 31.7.x</span>
+            <span class="chip">electron-vite 2.3.x</span>
+            <span class="chip">Vite 5.x</span>
+            <span class="chip">React 18.3.x</span>
+            <span class="chip">TypeScript 5.5.x</span>
+            <span class="chip">Zustand 4.5.x</span>
+            <span class="chip">Tailwind 3.4.x</span>
+            <span class="chip">@xyflow/react 12.11.x</span>
+            <span class="chip">Dagre 3.x</span>
+            <span class="chip">cron-parser 5.6.x</span>
+            <span class="chip">Vitest 2.1.x</span>
+          </div>
+        </section>
+
+        <section id="runtime">
+          <h2><span class="num">3</span> Trusted run lifecycle</h2>
+          <p>
+            Regular chat and agent work use <code>runs:start</code>, not the lower-level
+            <code>chat:send</code> transport. The main process owns history, agent identity,
+            context, persistence, and lifecycle transitions.
+          </p>
+
+          <div class="flow" aria-label="Trusted run sequence">
+            <div class="flow-step">
+              <b>1. Validate</b>Conversation, input, idempotency key, agent.
+            </div>
+            <div class="flow-step"><b>2. Resolve</b>Agent or default connection/model.</div>
+            <div class="flow-step">
+              <b>3. Assemble</b>Soul, policy, wiki, skills, memory, history.
+            </div>
+            <div class="flow-step"><b>4. Execute</b>Provider stream or delegated child runs.</div>
+            <div class="flow-step">
+              <b>5. Persist</b>Assistant result, terminal state, trace, daily log.
+            </div>
+          </div>
+
+          <h3>3.1 Context ordering and budget</h3>
           <ol>
-            <li>Renderer calls <code>chat.send()</code>; main validates the connection/model, resolves the provider and context, and creates a <code>streamId</code> plus an <code>AbortController</code>.</li>
-            <li>The provider streams tokens; the main process forwards each delta to the renderer via <code>chat:chunk</code> events, then emits <code>chat:done</code> or <code>chat:error</code>.</li>
-            <li>The renderer appends deltas to the trailing assistant message and persists the conversation on completion.</li>
-            <li><code>chat.cancel(streamId)</code> aborts the underlying request; the stream is removed from the active map.</li>
+            <li>Agent <code>soul</code> identity, when an agent is selected.</li>
+            <li>Runtime authorization and delegation transport instructions.</li>
+            <li>Bounded, read-only human LLM-wiki context.</li>
+            <li>Assigned skill instructions in configured order.</li>
+            <li>Team baseline memory and agent baseline memory.</li>
+            <li>Newest conversation history that fits.</li>
+            <li>The current user input.</li>
+          </ol>
+          <div class="grid-3">
+            <div class="card">
+              <h4>Default context window</h4>
+              <p><code>32,768</code> estimated tokens.</p>
+            </div>
+            <div class="card">
+              <h4>Completion reserve</h4>
+              <p><code>4,096</code> estimated tokens.</p>
+            </div>
+            <div class="card">
+              <h4>Estimator</h4>
+              <p>Approximately four characters per token plus per-message overhead.</p>
+            </div>
+          </div>
+          <p>
+            Required identity, runtime instructions, wiki, skills, memory, and current input fail
+            closed if they exceed the budget. Older history is dropped newest-first only after
+            required context fits.
+          </p>
+
+          <h3>3.2 State and idempotency</h3>
+          <ul>
+            <li>
+              Run states: <code>queued</code>, <code>running</code>, <code>completed</code>,
+              <code>failed</code>, <code>cancelled</code>.
+            </li>
+            <li>Duplicate idempotency keys return the existing run view/completion.</li>
+            <li>Active runs and completion promises are process-local and disappear on restart.</li>
+            <li>
+              Conversation messages, provider traces, task links, schedule state, pipeline state,
+              and artifacts are durable.
+            </li>
+            <li>Parent cancellation recursively aborts active delegated children.</li>
+          </ul>
+
+          <h3>3.3 Lower-level direct chat path</h3>
+          <p>
+            <code>chat:send</code> remains a one-shot provider transport with streaming events and
+            traces. It is used by AI-assisted persona generation. It does not load authoritative
+            conversations, managed memory, skills, or team routing.
+          </p>
+        </section>
+
+        <section id="routing">
+          <h2><span class="num">4</span> Team model and delegation routing</h2>
+
+          <h3>4.1 Hierarchy invariants</h3>
+          <div class="grid-2">
+            <article class="card">
+              <h4>Required graph rules</h4>
+              <ul>
+                <li>Exactly one active orchestrator when the team is non-empty.</li>
+                <li>The orchestrator has no reporting manager.</li>
+                <li>Every other active agent reports to an active manager.</li>
+                <li>Specialists cannot manage agents.</li>
+                <li>No cycles; maximum graph depth is three tiers.</li>
+                <li>Specialists cannot receive the <code>code</code> tool grant.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h4>Relationship storage</h4>
+              <ul>
+                <li><code>reportsTo</code> is the canonical manager edge.</li>
+                <li><code>delegatesTo</code> is derived from canonical child edges.</li>
+                <li>Agent save/delete normalizes and validates the complete graph.</li>
+                <li>
+                  Agent mutations are queued atomically so concurrent child creation preserves every
+                  registration.
+                </li>
+              </ul>
+            </article>
+          </div>
+
+          <h3>4.2 New-agent creation flow</h3>
+          <p>
+            Creating a team or adding a team member crosses the renderer/preload trust boundary and
+            commits the complete team graph as one validated mutation.
+          </p>
+          <div class="flow" role="img" aria-label="New-agent creation flow diagram">
+            <div class="flow-step">
+              <b>1. Capture</b>
+              The modal requires a name and, for non-orchestrators, an eligible reporting manager.
+              It may build or generate the agent soul.
+            </div>
+            <div class="flow-step">
+              <b>2. Construct</b>
+              <code>useAgentStore</code> assigns the ID, role defaults, canonical
+              <code>reportsTo</code>, draft autonomy, timestamps, and empty grants.
+            </div>
+            <div class="flow-step">
+              <b>3. Validate IPC</b>
+              <code>agents:save</code> trims and bounds the payload, accepts only known roles and
+              autonomy levels, and discards incoming derived <code>delegatesTo</code>.
+            </div>
+            <div class="flow-step">
+              <b>4. Register + persist</b>
+              A queued read-modify-write inserts the agent, derives every manager's
+              <code>delegatesTo</code>, validates the full hierarchy, then atomically writes
+              <code>agents.json</code>.
+            </div>
+            <div class="flow-step">
+              <b>5. Complete</b>
+              The normalized roster returns to the renderer, the new agent is selected, and
+              <code>onCreated</code> advances the UI to that agent. No per-agent folder is created
+              in this transaction.
+            </div>
+          </div>
+          <div class="callout">
+            <strong>Failure path.</strong> Invalid names, managers, roles, cycles, depth, tool
+            grants, or storage operations reject the save. No invalid graph is committed; the
+            creation modal stays available and displays the propagated error.
+          </div>
+
+          <h4>Filesystem and dependent artifacts</h4>
+          <div class="callout warning">
+            <strong>Not an execution workspace.</strong> The current implementation has no per-agent
+            checkout, working directory, sandbox, or arbitrary file workspace. The physical path
+            <code>&lt;userData&gt;/memory/agents/&lt;agent-id&gt;/</code> is a managed Markdown
+            memory scope and is created lazily, not when the agent record is saved. On macOS,
+            <code>&lt;userData&gt;</code> is typically
+            <code>~/Library/Application Support/Agent Control Panel</code>.
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Lifecycle point</th>
+                  <th>Created or changed</th>
+                  <th>Dependencies and notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Agent save</td>
+                  <td>
+                    One entry inside <code>&lt;userData&gt;/agents.json</code>; the manager's
+                    derived <code>delegatesTo</code> list is recomputed in the same roster. A valid
+                    prior roster is retained as <code>agents.json.bak</code>.
+                  </td>
+                  <td>
+                    A valid non-specialist manager is required for non-orchestrators. The active
+                    graph must keep one root, no cycles, and at most three tiers.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Agent defaults</td>
+                  <td>
+                    UUID, icon, name, title, role, inline soul text, canonical
+                    <code>reportsTo</code>, draft autonomy, and timestamps.
+                  </td>
+                  <td>
+                    <code>connectionId</code> and <code>model</code> are null; tools and skills are
+                    empty. The editor's <code>soul.md</code> label does not represent a separate
+                    physical file.
+                  </td>
+                </tr>
+                <tr>
+                  <td>First memory write or terminal run</td>
+                  <td>
+                    <code>&lt;userData&gt;/memory/agents/&lt;agent-id&gt;/</code> and a requested
+                    Markdown file. Terminal runs append <code>YYYY-MM-DD.md</code>.
+                  </td>
+                  <td>
+                    <code>MEMORY.md</code> is not automatically seeded for a new agent; it appears
+                    only after an explicit baseline write or accepted compression.
+                  </td>
+                </tr>
+                <tr>
+                  <td>First direct chat</td>
+                  <td>A direct agent thread in <code>conversations.json</code>.</td>
+                  <td>
+                    Opening chat creates/reuses the conversation; agent creation alone does not.
+                  </td>
+                </tr>
+                <tr>
+                  <td>First runnable request</td>
+                  <td>Provider traces and the eventual daily memory log.</td>
+                  <td>
+                    The agent must first be assigned an existing provider connection and model.
+                    Optional tools, skills, managed memory, and the global human LLM wiki are loaded
+                    only when configured.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Explicit automation setup</td>
+                  <td>Tasks, schedules, pipelines, executions, and artifacts.</td>
+                  <td>None are created as a side effect of creating the agent.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Agent deletion removes the roster entry but does not currently remove an existing
+            managed-memory directory. Memory cleanup is therefore a separate lifecycle concern.
+          </p>
+
+          <h3>4.3 Routing priority</h3>
+          <div class="callout">
+            <strong>Execution order:</strong> matching specialist first; matching team lead if no
+            specialist matches; the orchestrator performs the work only when neither tier matches.
+          </div>
+          <ol>
+            <li>
+              The manager scores active direct reports and specialists under each direct-report
+              branch using names, titles, skill IDs, and bounded soul capability text.
+            </li>
+            <li>
+              Explicit agent-name matches receive the highest score. Specialists qualify with one
+              meaningful lexical overlap; team leads require two.
+            </li>
+            <li>
+              If a nested specialist matches, the orchestrator delegates to that specialist's direct
+              team-lead branch; the team lead then routes to the specialist.
+            </li>
+            <li>
+              Multiple equally relevant branches may fan out, capped at three concurrent direct
+              reports.
+            </li>
+            <li>
+              Each parent synthesizes child results into its own output. Child failures are supplied
+              as synthesis data rather than silently converted into success.
+            </li>
           </ol>
 
-          <h3>3.3 Persistence layout</h3>
-          <p>All files live in the Electron <code>userData</code> directory (never in the repository):</p>
-          <table>
-            <thead><tr><th>File</th><th>Content</th><th>Sensitivity</th></tr></thead>
-            <tbody>
-              <tr><td class="mono">vault.json</td><td>Base64 ciphertext of secrets, written with mode <code>0600</code></td><td><span class="badge must">Encrypted</span></td></tr>
-              <tr><td class="mono">connections.json</td><td>Connection configs (no secrets; <code>hasKey</code> flag only)</td><td><span class="badge no">Non-secret</span></td></tr>
-              <tr><td class="mono">conversations.json</td><td>Chat history</td><td><span class="badge no">Local</span></td></tr>
-              <tr><td class="mono">settings.json</td><td>App settings</td><td><span class="badge no">Local</span></td></tr>
-            </tbody>
-          </table>
+          <h3>4.4 Delegation safety limits</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Control</th>
+                  <th>Current limit / rule</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Delegation depth</td>
+                  <td>Maximum two child edges below the root run.</td>
+                </tr>
+                <tr>
+                  <td>Fan-out</td>
+                  <td>One to three unique direct reports per round.</td>
+                </tr>
+                <tr>
+                  <td>Rounds</td>
+                  <td>One delegation round per run; synthesis cannot delegate again.</td>
+                </tr>
+                <tr>
+                  <td>Task text</td>
+                  <td>Maximum 20,000 characters.</td>
+                </tr>
+                <tr>
+                  <td>Root context supplied to child</td>
+                  <td>Maximum 20,000 characters.</td>
+                </tr>
+                <tr>
+                  <td>Returned child output</td>
+                  <td>Maximum 20,000 characters per result.</td>
+                </tr>
+                <tr>
+                  <td>Capability profile</td>
+                  <td>Maximum 2,000 soul characters per routed agent.</td>
+                </tr>
+                <tr>
+                  <td>Target validation</td>
+                  <td>Must remain an active direct report when execution starts.</td>
+                </tr>
+                <tr>
+                  <td>External effects</td>
+                  <td>Delegated runs are text-only; no external tool or MCP execution.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
 
-        <!-- 4 DATA MODEL -->
-        <section id="datamodel">
-          <h2><span class="num">4</span> Data Model</h2>
-          <p>Core shared types (defined in <code>src/shared/types.ts</code>) used across all processes.</p>
+        <section id="model">
+          <h2><span class="num">5</span> Domain model</h2>
 
-          <h4>ConnectionConfig</h4>
-          <table>
-            <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
-            <tbody>
-              <tr><td class="mono">id</td><td class="mono">string</td><td>UUID; also the vault key.</td></tr>
-              <tr><td class="mono">providerType</td><td class="mono">ProviderType</td><td>One of the 6 allow-listed provider types.</td></tr>
-              <tr><td class="mono">label</td><td class="mono">string</td><td>Required, trimmed, max 120 chars.</td></tr>
-              <tr><td class="mono">baseUrl?</td><td class="mono">string</td><td>Override for Ollama / OpenAI-compatible.</td></tr>
-              <tr><td class="mono">defaultModel?</td><td class="mono">string</td><td>Preferred model id.</td></tr>
-              <tr><td class="mono">hasKey</td><td class="mono">boolean</td><td>Whether a secret exists — <em>never</em> the key itself.</td></tr>
-              <tr><td class="mono">createdAt / updatedAt</td><td class="mono">number</td><td>Epoch millis.</td></tr>
-            </tbody>
-          </table>
+          <details open>
+            <summary>Connections, messages, conversations, runs, and traces</summary>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Purpose and key fields</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">ConnectionConfig</td>
+                    <td>
+                      Provider type, label, optional base URL/default model, key-presence flag,
+                      timestamps.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">ChatMessage</td>
+                    <td>System/user/assistant role and text content.</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">Conversation</td>
+                    <td>
+                      Direct or delegated thread, optional agent binding, provider target, messages,
+                      timestamps.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">StartRunCommand</td>
+                    <td>
+                      Conversation ID, user input, optional agent ID, required idempotency key.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">RunView / RunEvent</td>
+                    <td>
+                      Lifecycle, lineage, stream identity, provider target, chunks, and delegation
+                      direction.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">ApiTrace</td>
+                    <td>
+                      Request counts/flags, provider metadata, bounded response preview, status,
+                      error, and agent scope.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
 
-          <h4>Conversation &amp; ChatMessage</h4>
-          <table>
-            <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
-            <tbody>
-              <tr><td class="mono">id / title</td><td class="mono">string</td><td>Title auto-derived from first user message.</td></tr>
-              <tr><td class="mono">connectionId / model</td><td class="mono">string | null</td><td>Binding used for the last send.</td></tr>
-              <tr><td class="mono">messages[]</td><td class="mono">ChatMessage</td><td><code>{ role: 'system'|'user'|'assistant', content: string }</code></td></tr>
-              <tr><td class="mono">createdAt / updatedAt</td><td class="mono">number</td><td>Epoch millis.</td></tr>
-            </tbody>
-          </table>
+          <details>
+            <summary>Agents, tools, and skills</summary>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Purpose and key fields</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">AgentConfig</td>
+                    <td>
+                      Name/icon/title, role, reportsTo, connection/model, soul, tools, ordered
+                      skills, autonomy, derived delegatesTo, archive flag.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">AgentRole</td>
+                    <td>
+                      <code>orchestrator</code>, <code>team-lead</code>, or <code>specialist</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">AgentAutonomy</td>
+                    <td><code>draft</code>, <code>assist</code>, or <code>autonomous</code>.</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">SkillDefinition</td>
+                    <td>
+                      Imported Markdown instructions with derived ID/name/description and source
+                      filename.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">ToolAction / Approval</td>
+                    <td>
+                      Authorization audit record, sanitized arguments, digest, side-effect class,
+                      approval state.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
 
-          <h4>AppSettings</h4>
-          <table>
-            <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
-            <tbody>
-              <tr><td class="mono">theme</td><td class="mono">'neon-blue'</td><td>Active visual theme.</td></tr>
-              <tr><td class="mono">experimentalCopilot</td><td class="mono">boolean</td><td>Gate for the Copilot provider.</td></tr>
-              <tr><td class="mono">activeConnectionId</td><td class="mono">string | null</td><td>Current selection.</td></tr>
-              <tr><td class="mono">activeModel</td><td class="mono">string | null</td><td>Current model.</td></tr>
-              <tr><td class="mono">githubClientId</td><td class="mono">string</td><td>OAuth client id for device flow (public, configurable).</td></tr>
-            </tbody>
-          </table>
+          <details>
+            <summary>Tasks, schedules, pipelines, and artifacts</summary>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Purpose and key fields</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">AgentTask</td>
+                    <td>
+                      Board status/priority, assigned agent, conversation/current run, last error.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">AgentSchedule</td>
+                    <td>
+                      Cron/timezone, prompt, enabled state, next/last run, reusable conversation,
+                      current run.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">AgentPipeline</td>
+                    <td>Owner and one-to-eight ordered direct-report stages.</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">PipelineExecution</td>
+                    <td>Goal, status, stage index, current run, artifacts, error.</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">RunArtifact</td>
+                    <td>Versioned stage brief or output linked to execution, run, and agent.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+
+          <details>
+            <summary>Memory, settings, LLM wiki, and local data</summary>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Purpose and key fields</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">MemoryDocument</td>
+                    <td>Scope, agent, kind, content, revision, line count, bytes, timestamp.</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">MemoryHealth</td>
+                    <td>Score, totals, and critical/warning/info findings.</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">MemoryCompressionProposal</td>
+                    <td>
+                      Reviewable baseline revision, proposed content, source daily logs, warnings.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">AppSettings</td>
+                    <td>
+                      Theme, Copilot gate, active connection/model, protected LLM-wiki path, GitHub
+                      client ID.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">LlmWikiStatus</td>
+                    <td>
+                      Ready/found/unconfigured/missing/invalid state, path, page count, message.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">LocalDataResult</td>
+                    <td>
+                      Allow-listed JSON collection rows and total/matched/returned/truncated counts.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
         </section>
 
-        <!-- 5 FUNCTIONAL REQUIREMENTS -->
-        <section id="functional">
-          <h2><span class="num">5</span> Functional Requirements</h2>
-          <p class="lead">
-            Each requirement has a stable ID and a MoSCoW priority
-            (<span class="badge must">Must</span> <span class="badge should">Should</span>
-            <span class="badge could">Could</span>).
-          </p>
+        <section id="persistence">
+          <h2><span class="num">6</span> Persistence and memory</h2>
 
-          <h3>5.1 Application Shell &amp; Window</h3>
-          <table>
-            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id fr">FR-APP-01</span></td><td>Launch a single main window (1180×800, min 900×600) with a macOS hidden-inset title bar and custom traffic-light position.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-APP-02</span></td><td>Show the window only once the renderer is ready to display, to avoid a blank/white flash.</td><td class="center"><span class="badge should">Should</span></td></tr>
-              <tr><td><span class="req-id fr">FR-APP-03</span></td><td>On macOS, re-create the window when the app is activated and no window is open.</td><td class="center"><span class="badge should">Should</span></td></tr>
-              <tr><td><span class="req-id fr">FR-APP-04</span></td><td>Quit when all windows are closed, except on macOS where the app remains active.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-APP-05</span></td><td>Open external <code>http(s)</code> links in the OS default browser and deny in-app navigation/window creation.</td><td class="center"><span class="badge must">Must</span></td></tr>
-            </tbody>
-          </table>
-
-          <h3>5.2 Provider Connections</h3>
-          <table>
-            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id fr">FR-CONN-01</span></td><td>List all saved connections.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CONN-02</span></td><td>Create or update a connection; a non-empty label and a valid provider type are required, with optional base URL and default model.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CONN-03</span></td><td>Remove a connection and simultaneously clear its stored secret.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CONN-04</span></td><td>Test a connection by attempting to list models, returning success state, a message, and any discovered models.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CONN-05</span></td><td>Drive the connection editor UI from per-provider metadata (key/base-URL requirements, placeholders, docs links, defaults).</td><td class="center"><span class="badge should">Should</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CONN-06</span></td><td>Generate a UUID for new connections and truncate labels to 120 characters.</td><td class="center"><span class="badge could">Could</span></td></tr>
-            </tbody>
-          </table>
-
-          <h3>5.3 Credential / Secret Management</h3>
-          <table>
-            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id fr">FR-SEC-01</span></td><td>Store a per-connection secret encrypted via the OS keychain; reject empty secrets.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-SEC-02</span></td><td>Clear a stored secret for a connection.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-SEC-03</span></td><td>Report whether a secret exists for a connection (boolean only).</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-SEC-04</span></td><td>Keep the <code>hasKey</code> flag on the connection synchronized whenever a secret is set or cleared.</td><td class="center"><span class="badge should">Should</span></td></tr>
-              <tr><td><span class="req-id fr">FR-SEC-05</span></td><td>Report vault availability and the active encryption backend name to the UI.</td><td class="center"><span class="badge must">Must</span></td></tr>
-            </tbody>
-          </table>
-
-          <h3>5.4 Model Discovery</h3>
-          <table>
-            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id fr">FR-MOD-01</span></td><td>List available models for a connection via its provider adapter.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-MOD-02</span></td><td>On listing failure, fall back to the provider's suggested models and surface the error message.</td><td class="center"><span class="badge should">Should</span></td></tr>
-            </tbody>
-          </table>
-
-          <h3>5.5 Chat &amp; Streaming</h3>
-          <table>
-            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id fr">FR-CHAT-01</span></td><td>Send a chat request (connection, model, message history, optional params) and return a stream identifier.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CHAT-02</span></td><td>Stream assistant output incrementally to the UI via chunk/done/error events keyed by stream id.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CHAT-03</span></td><td>Allow cancelling an in-progress generation, aborting the underlying request.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CHAT-04</span></td><td>Reject Copilot chat unless the experimental Copilot setting is enabled.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CHAT-05</span></td><td>Run generation in the background so the UI stays responsive; support concurrent streams tracked by id.</td><td class="center"><span class="badge should">Should</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CHAT-06</span></td><td>Map an aborted request to a friendly "Generation stopped." message and render errors inline in the assistant bubble.</td><td class="center"><span class="badge should">Should</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CHAT-07</span></td><td>Render assistant messages as Markdown with GitHub-flavoured syntax highlighting.</td><td class="center"><span class="badge should">Should</span></td></tr>
-            </tbody>
-          </table>
-
-          <h3>5.6 Conversation Management</h3>
-          <table>
-            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id fr">FR-CONV-01</span></td><td>Create, select, and delete conversations.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CONV-02</span></td><td>Persist conversations to local storage and reload them on startup.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CONV-03</span></td><td>Auto-title a new conversation from the first user message (≤48 chars).</td><td class="center"><span class="badge could">Could</span></td></tr>
-              <tr><td><span class="req-id fr">FR-CONV-04</span></td><td>Persist the conversation when a stream finishes or errors.</td><td class="center"><span class="badge should">Should</span></td></tr>
-            </tbody>
-          </table>
-
-          <h3>5.7 Settings</h3>
-          <table>
-            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id fr">FR-SET-01</span></td><td>Read and partially update application settings.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-SET-02</span></td><td>Persist the active connection and active model across restarts.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-SET-03</span></td><td>Provide a toggle for experimental Copilot support.</td><td class="center"><span class="badge should">Should</span></td></tr>
-              <tr><td><span class="req-id fr">FR-SET-04</span></td><td>Allow configuring the GitHub OAuth client id used for device flow.</td><td class="center"><span class="badge could">Could</span></td></tr>
-            </tbody>
-          </table>
-
-          <h3>5.8 GitHub Device-Flow Authentication</h3>
-          <table>
-            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id fr">FR-GH-01</span></td><td>Start a GitHub device flow for a connection and emit the user code and verification URI to the UI.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-GH-02</span></td><td>Poll for authorization honouring the server interval, <code>slow_down</code>, <code>expired_token</code>, and <code>access_denied</code> responses.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-GH-03</span></td><td>On success, store the returned token as the connection's encrypted secret.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id fr">FR-GH-04</span></td><td>Allow cancelling an in-progress device flow.</td><td class="center"><span class="badge should">Should</span></td></tr>
-            </tbody>
-          </table>
-        </section>
-
-        <!-- 6 IPC CONTRACT -->
-        <section id="ipc">
-          <h2><span class="num">6</span> IPC / API Contract</h2>
+          <h3>6.1 Application data files</h3>
           <p>
-            All renderer ↔ main communication uses the channels below (from
-            <code>src/shared/ipc.ts</code>), surfaced as typed methods on <code>window.api</code>.
-            Request/response types are shared, guaranteeing compile-time consistency across
-            processes.
+            All runtime data lives under Electron's OS-specific <code>userData</code> directory.
           </p>
-          <table>
-            <thead><tr><th>Channel</th><th>Kind</th><th>Request → Response</th></tr></thead>
-            <tbody>
-              <tr><td class="mono">vault:status</td><td>invoke</td><td class="mono">() → VaultStatus</td></tr>
-              <tr><td class="mono">connections:list</td><td>invoke</td><td class="mono">() → ConnectionConfig[]</td></tr>
-              <tr><td class="mono">connections:upsert</td><td>invoke</td><td class="mono">(conn) → ConnectionConfig[]</td></tr>
-              <tr><td class="mono">connections:remove</td><td>invoke</td><td class="mono">(id) → ConnectionConfig[]</td></tr>
-              <tr><td class="mono">connections:test</td><td>invoke</td><td class="mono">(id) → TestResult</td></tr>
-              <tr><td class="mono">secrets:set</td><td>invoke</td><td class="mono">(id, secret) → { ok }</td></tr>
-              <tr><td class="mono">secrets:clear</td><td>invoke</td><td class="mono">(id) → { ok }</td></tr>
-              <tr><td class="mono">secrets:has</td><td>invoke</td><td class="mono">(id) → boolean</td></tr>
-              <tr><td class="mono">models:list</td><td>invoke</td><td class="mono">(id) → ModelInfo[]</td></tr>
-              <tr><td class="mono">chat:send</td><td>invoke</td><td class="mono">(ChatRequest) → { streamId }</td></tr>
-              <tr><td class="mono">chat:cancel</td><td>invoke</td><td class="mono">(streamId) → { ok }</td></tr>
-              <tr><td class="mono">chat:chunk / chat:done / chat:error</td><td>event</td><td class="mono">main → renderer (streaming)</td></tr>
-              <tr><td class="mono">conversations:list / save / delete</td><td>invoke</td><td class="mono">(…) → Conversation[]</td></tr>
-              <tr><td class="mono">settings:get / set</td><td>invoke</td><td class="mono">(patch?) → AppSettings</td></tr>
-              <tr><td class="mono">github:startDeviceFlow</td><td>invoke</td><td class="mono">(connectionId, scope?) → DeviceFlowResult</td></tr>
-              <tr><td class="mono">github:deviceCode</td><td>event</td><td class="mono">main → renderer (user code)</td></tr>
-              <tr><td class="mono">github:cancelDeviceFlow</td><td>invoke</td><td class="mono">() → { ok }</td></tr>
-              <tr><td class="mono">shell:openExternal</td><td>invoke</td><td class="mono">(url) → { ok }</td></tr>
-            </tbody>
-          </table>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Path</th>
+                  <th>Content</th>
+                  <th>Write behavior</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">vault.json</td>
+                  <td>Base64 OS-encrypted secrets.</td>
+                  <td>Direct mode-0600 write; in-memory cache.</td>
+                </tr>
+                <tr>
+                  <td class="mono">connections.json</td>
+                  <td>Provider configurations without plaintext secrets.</td>
+                  <td>Serialized atomic JSON write.</td>
+                </tr>
+                <tr>
+                  <td class="mono">conversations.json</td>
+                  <td>Direct/delegated threads and messages.</td>
+                  <td>Atomic queued update.</td>
+                </tr>
+                <tr>
+                  <td class="mono">agents.json</td>
+                  <td>Normalized, validated team graph.</td>
+                  <td>Atomic queued update.</td>
+                </tr>
+                <tr>
+                  <td class="mono">tasks.json</td>
+                  <td>Durable task board.</td>
+                  <td>Serialized atomic JSON write.</td>
+                </tr>
+                <tr>
+                  <td class="mono">schedules.json</td>
+                  <td>Cron definitions and terminal status.</td>
+                  <td>Serialized atomic JSON write.</td>
+                </tr>
+                <tr>
+                  <td class="mono">pipelines.json</td>
+                  <td>Pipeline definitions.</td>
+                  <td>Serialized atomic JSON write.</td>
+                </tr>
+                <tr>
+                  <td class="mono">pipeline-executions.json</td>
+                  <td>Execution progress.</td>
+                  <td>Serialized atomic JSON write.</td>
+                </tr>
+                <tr>
+                  <td class="mono">artifacts.json</td>
+                  <td>Versioned briefs and outputs.</td>
+                  <td>Serialized atomic JSON write.</td>
+                </tr>
+                <tr>
+                  <td class="mono">tool-actions.json / approvals.json</td>
+                  <td>Policy audit and human decisions.</td>
+                  <td>Serialized atomic JSON write.</td>
+                </tr>
+                <tr>
+                  <td class="mono">skills.json</td>
+                  <td>Imported skill definitions.</td>
+                  <td>Serialized atomic JSON write.</td>
+                </tr>
+                <tr>
+                  <td class="mono">traces.json</td>
+                  <td>Provider-call diagnostics.</td>
+                  <td>Atomic queued update.</td>
+                </tr>
+                <tr>
+                  <td class="mono">settings.json</td>
+                  <td>Theme and application selection state.</td>
+                  <td>Serialized atomic JSON write.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>6.2 JSON reliability contract</h3>
+          <ul>
+            <li>Missing files return typed defaults.</li>
+            <li>Non-vault writes are serialized per file.</li>
+            <li>Writes use a mode-0600 temporary file, file sync, and atomic rename.</li>
+            <li>A valid current file is copied to <code>.bak</code> before replacement.</li>
+            <li>A malformed primary file recovers from its valid backup.</li>
+            <li>
+              If both primary and backup are invalid, the read fails explicitly rather than
+              returning a success-shaped empty value.
+            </li>
+          </ul>
+
+          <h3>6.3 Managed memory tree</h3>
+          <pre><code>memory/
+  team/
+    MEMORY.md
+    &lt;evergreen&gt;.md
+  agents/&lt;agent-id&gt;/
+    MEMORY.md
+    YYYY-MM-DD.md
+    &lt;evergreen&gt;.md
+    archive/
+  .history/</code></pre>
+          <ul>
+            <li>
+              Only <code>team/MEMORY.md</code> is initialized automatically when memory is first
+              accessed. Agent directories and documents are lazy first-use artifacts.
+            </li>
+            <li>
+              Safe Markdown names and path confinement prevent writes outside the managed root.
+            </li>
+            <li>Documents are limited to 100 KB; baseline files are limited to 200 lines.</li>
+            <li>Optimistic revision checks prevent overwriting a concurrently changed document.</li>
+            <li>Previous versions are retained under <code>.history</code>.</li>
+            <li>Terminal agent runs append dated per-agent daily log entries.</li>
+            <li>
+              Search is local lexical scoring; health checks detect size, age, duplicates, missing
+              links, and baseline limits.
+            </li>
+            <li>
+              Compression is propose-then-apply; accepted source daily logs move into archive.
+            </li>
+          </ul>
+
+          <h3>6.4 Human-owned LLM wiki</h3>
+          <p>
+            A configured external wiki is treated as bounded, read-only run context. The app can
+            scaffold an initial <code>LLM-Vault</code>, select an existing vault, or remove the
+            reference. During runs it reads identity, schema/rules, selected index sections, the
+            latest action page, and the recent log tail.
+          </p>
+          <ul>
+            <li>
+              Required root files: <code>identity.md</code>, <code>index.md</code>, and one of
+              <code>SCHEMA.md</code>, <code>AGENTS.md</code>, or <code>CLAUDE.md</code>.
+            </li>
+            <li>Symlinked roots/files and paths resolving outside the vault are rejected.</li>
+            <li>Individual source files must be regular files no larger than 1 MB.</li>
+            <li>
+              Scanning stops after depth eight or 2,000 Markdown files and excludes
+              raw/archive/hidden trees.
+            </li>
+            <li>
+              The general settings API cannot directly change <code>llmWikiPath</code>; dedicated
+              handlers own that reference.
+            </li>
+          </ul>
         </section>
 
-        <!-- 7 PROVIDER MATRIX -->
+        <section id="ipc">
+          <h2><span class="num">7</span> IPC and preload contract</h2>
+          <p>
+            Channel constants live in <code>src/shared/ipc.ts</code>; typed renderer methods live in
+            <code>src/preload/index.ts</code>. The renderer receives only the explicit
+            <code>window.api</code> surface.
+          </p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Namespace</th>
+                  <th>Operations / event channels</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">vault</td>
+                  <td><code>status</code></td>
+                </tr>
+                <tr>
+                  <td class="mono">connections</td>
+                  <td>
+                    <code>list</code>, <code>upsert</code>, <code>remove</code>, <code>test</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">secrets</td>
+                  <td><code>set</code>, <code>clear</code>, <code>has</code></td>
+                </tr>
+                <tr>
+                  <td class="mono">models</td>
+                  <td><code>list</code></td>
+                </tr>
+                <tr>
+                  <td class="mono">chat</td>
+                  <td>
+                    <code>send</code>, <code>cancel</code>, <code>onChunk</code>,
+                    <code>onDone</code>, <code>onError</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">runs</td>
+                  <td>
+                    <code>start</code>, <code>cancel</code>, <code>listActive</code>,
+                    <code>onEvent</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">traces</td>
+                  <td>
+                    <code>list</code>, <code>clear</code>, <code>clearScope</code>,
+                    <code>onUpdate</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">conversations</td>
+                  <td><code>list</code>, <code>save</code>, <code>delete</code></td>
+                </tr>
+                <tr>
+                  <td class="mono">agents</td>
+                  <td><code>list</code>, <code>save</code>, <code>delete</code></td>
+                </tr>
+                <tr>
+                  <td class="mono">skills</td>
+                  <td><code>list</code>, <code>import</code>, <code>delete</code></td>
+                </tr>
+                <tr>
+                  <td class="mono">llmWiki</td>
+                  <td>
+                    <code>status</code>, <code>referenceFound</code>, <code>choose</code>,
+                    <code>create</code>, <code>remove</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">memory</td>
+                  <td>
+                    <code>list</code>, <code>write</code>, <code>search</code>, <code>health</code>,
+                    <code>compressPropose</code>, <code>compressApply</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">tasks</td>
+                  <td>
+                    <code>list</code>, <code>save</code>, <code>delete</code>, <code>start</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">schedules</td>
+                  <td>
+                    <code>list</code>, <code>save</code>, <code>delete</code>, <code>runNow</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">pipelines</td>
+                  <td>
+                    <code>list</code>, <code>save</code>, <code>delete</code>, <code>start</code>,
+                    <code>executions</code>, <code>artifacts</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">toolPolicy</td>
+                  <td>
+                    <code>actions</code>, <code>authorize</code>, <code>approvals</code>,
+                    <code>decide</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">localData</td>
+                  <td><code>query</code></td>
+                </tr>
+                <tr>
+                  <td class="mono">settings</td>
+                  <td><code>get</code>, <code>set</code></td>
+                </tr>
+                <tr>
+                  <td class="mono">github</td>
+                  <td>
+                    <code>startDeviceFlow</code>, <code>cancelDeviceFlow</code>,
+                    <code>onDeviceCode</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">shell</td>
+                  <td><code>openExternal</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout warning">
+            <strong>Runtime validation boundary.</strong> Shared TypeScript types provide
+            compile-time consistency, not universal runtime schema validation. Main validates
+            provider connections, runs, agents, tasks, schedules, pipelines, skill imports, memory
+            searches, and selected settings. Conversation saves, generic chat payloads, and some
+            policy/settings fields rely on narrower checks and trusted renderer callers.
+          </div>
+        </section>
+
         <section id="providers">
-          <h2><span class="num">7</span> Provider Capability Matrix</h2>
-          <table>
-            <thead>
-              <tr><th>Provider</th><th class="center">Key</th><th class="center">Base URL</th><th class="center">Device flow</th><th class="center">Status</th></tr>
-            </thead>
-            <tbody>
-              <tr><td><b>Ollama</b> <small>(local)</small></td><td class="center"><span class="badge no">No</span></td><td class="center"><span class="badge must">Required</span></td><td class="center"><span class="badge no">—</span></td><td class="center"><span class="badge ok">Stable</span></td></tr>
-              <tr><td><b>OpenAI</b></td><td class="center"><span class="badge must">Required</span></td><td class="center"><span class="badge no">Default</span></td><td class="center"><span class="badge no">—</span></td><td class="center"><span class="badge ok">Stable</span></td></tr>
-              <tr><td><b>Anthropic (Claude)</b></td><td class="center"><span class="badge must">Required</span></td><td class="center"><span class="badge no">Default</span></td><td class="center"><span class="badge no">—</span></td><td class="center"><span class="badge ok">Stable</span></td></tr>
-              <tr><td><b>GitHub Models</b></td><td class="center"><span class="badge must">Token</span></td><td class="center"><span class="badge no">Default</span></td><td class="center"><span class="badge ok">Yes</span></td><td class="center"><span class="badge ok">Stable</span></td></tr>
-              <tr><td><b>OpenAI-compatible</b></td><td class="center"><span class="badge should">Optional</span></td><td class="center"><span class="badge must">Required</span></td><td class="center"><span class="badge no">—</span></td><td class="center"><span class="badge ok">Stable</span></td></tr>
-              <tr><td><b>GitHub Copilot</b></td><td class="center"><span class="badge no">No</span></td><td class="center"><span class="badge no">—</span></td><td class="center"><span class="badge ok">Yes</span></td><td class="center"><span class="badge exp">Experimental</span></td></tr>
-            </tbody>
-          </table>
-          <div class="callout warn">
-            <b>Note:</b> The GitHub Copilot provider is experimental and unofficial; using it may
-            violate GitHub's Terms of Service. It is disabled unless explicitly enabled in Settings
-            (FR-CHAT-04 / FR-SET-03).
+          <h2><span class="num">8</span> Provider layer</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Provider</th>
+                  <th>Credential</th>
+                  <th>Endpoint</th>
+                  <th>Model listing</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Ollama</td>
+                  <td>None</td>
+                  <td>Configurable, local default</td>
+                  <td>Native adapter</td>
+                  <td><span class="status current">Stable</span></td>
+                </tr>
+                <tr>
+                  <td>OpenAI</td>
+                  <td>API key</td>
+                  <td>Official default</td>
+                  <td>OpenAI-compatible</td>
+                  <td><span class="status current">Stable</span></td>
+                </tr>
+                <tr>
+                  <td>Anthropic</td>
+                  <td>API key</td>
+                  <td>Official default</td>
+                  <td>Anthropic adapter</td>
+                  <td><span class="status current">Stable</span></td>
+                </tr>
+                <tr>
+                  <td>GitHub Models</td>
+                  <td>GitHub token / device flow</td>
+                  <td>GitHub inference API</td>
+                  <td>GitHub adapter</td>
+                  <td><span class="status current">Stable</span></td>
+                </tr>
+                <tr>
+                  <td>LM Studio</td>
+                  <td>None</td>
+                  <td><code>127.0.0.1:1234/v1</code></td>
+                  <td>OpenAI-compatible</td>
+                  <td><span class="status current">Stable</span></td>
+                </tr>
+                <tr>
+                  <td>OpenAI-compatible</td>
+                  <td>Configured API key</td>
+                  <td>Required/configurable</td>
+                  <td>OpenAI-compatible</td>
+                  <td><span class="status current">Stable</span></td>
+                </tr>
+                <tr>
+                  <td>GitHub Copilot</td>
+                  <td>Device login</td>
+                  <td>Provider-owned</td>
+                  <td>Copilot adapter</td>
+                  <td><span class="status boundary">Experimental</span></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </section>
-
-        <!-- 8 NON-FUNCTIONAL -->
-        <section id="nonfunctional">
-          <h2><span class="num">8</span> Non-Functional Requirements</h2>
-
-          <h3>8.1 Performance</h3>
-          <table>
-            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id nfr">NFR-PERF-01</span></td><td>Assistant responses must render incrementally as tokens arrive; the UI must not block during generation.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-PERF-02</span></td><td>Generation runs on background tasks in the main process; multiple streams may run concurrently.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-PERF-03</span></td><td>The window must appear without a blank flash (deferred show until ready).</td></tr>
-              <tr><td><span class="req-id nfr">NFR-PERF-04</span></td><td>Vault contents are cached in memory after first read to avoid repeated disk/decrypt cost.</td></tr>
-            </tbody>
-          </table>
-
-          <h3>8.2 Reliability</h3>
-          <table>
-            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id nfr">NFR-REL-01</span></td><td>Provider and IPC errors are surfaced as user-facing messages rather than crashing the app.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-REL-02</span></td><td>Missing or corrupt persistence files fall back to safe defaults (empty lists / default settings).</td></tr>
-              <tr><td><span class="req-id nfr">NFR-REL-03</span></td><td>Device flow tolerates pending/slow-down responses and honours expiry and denial.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-REL-04</span></td><td>Aborted or completed streams are removed from the active-stream registry to prevent leaks.</td></tr>
-            </tbody>
-          </table>
-
-          <h3>8.3 Usability &amp; UX</h3>
-          <table>
-            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id nfr">NFR-UX-01</span></td><td>Native-feeling macOS chrome (hidden-inset title bar, custom traffic-light offset, dark-mode support).</td></tr>
-              <tr><td><span class="req-id nfr">NFR-UX-02</span></td><td>Connection testing provides clear success/failure feedback including model counts.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-UX-03</span></td><td>Model selection offers fallback suggestions when a provider has no list endpoint.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-UX-04</span></td><td>Rich Markdown chat rendering with code syntax highlighting.</td></tr>
-            </tbody>
-          </table>
-
-          <h3>8.4 Portability &amp; Compatibility</h3>
-          <table>
-            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id nfr">NFR-CMP-01</span></td><td>Primary target is macOS arm64, packaged as DMG and ZIP.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-CMP-02</span></td><td>Secret storage abstracts across macOS Keychain, Windows DPAPI, and Linux secret service, keeping the codebase cross-platform ready.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-CMP-03</span></td><td>Requires Node.js 18+ and runs on Electron 31 / Chromium.</td></tr>
-            </tbody>
-          </table>
-
-          <h3>8.5 Maintainability</h3>
-          <table>
-            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id nfr">NFR-MNT-01</span></td><td>TypeScript is used across all processes with a single shared types module for cross-process contracts.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-MNT-02</span></td><td>Providers implement a common <code>Provider</code> interface, so new backends can be added without touching the UI or IPC layer.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-MNT-03</span></td><td>IPC channel names are centralized as constants to avoid string drift.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-MNT-04</span></td><td>Code is formatted with Prettier and type-checked via a dedicated script.</td></tr>
-            </tbody>
-          </table>
-
-          <h3>8.6 Privacy &amp; Observability</h3>
-          <table>
-            <thead><tr><th style="width:120px">ID</th><th>Requirement</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id nfr">NFR-PRV-01</span></td><td>Local-first: no telemetry or analytics; all data stays in the user-data directory.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-PRV-02</span></td><td>Requests go directly from the user's machine to the selected provider; no intermediary server.</td></tr>
-              <tr><td><span class="req-id nfr">NFR-OBS-01</span></td><td>Detached DevTools are available in development; runtime failures are returned through IPC responses/events.</td></tr>
-            </tbody>
-          </table>
-        </section>
-
-        <!-- 9 SECURITY -->
-        <section id="security">
-          <h2><span class="num">9</span> Security Requirements</h2>
-          <p class="lead">Security is a first-class, non-negotiable concern for this application.</p>
-          <table>
-            <thead><tr><th style="width:110px">ID</th><th>Requirement</th><th style="width:90px">Priority</th></tr></thead>
-            <tbody>
-              <tr><td><span class="req-id sec">SEC-01</span></td><td>The renderer runs with <code>contextIsolation: true</code>, <code>nodeIntegration: false</code>, and <code>sandbox: true</code>.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id sec">SEC-02</span></td><td>Secrets are encrypted at rest with the OS keychain (<code>safeStorage</code>), stored as base64 ciphertext with file permission <code>0600</code>.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id sec">SEC-03</span></td><td>Plaintext secrets never cross IPC to the renderer; the secrets API is write-/presence-only.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id sec">SEC-04</span></td><td>Only an explicit allow-list of IPC channels is exposed to the UI through <code>contextBridge</code>.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id sec">SEC-05</span></td><td>In-app navigation is blocked; only <code>http(s)</code> links are opened externally, and <code>window.open</code> is denied.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id sec">SEC-06</span></td><td>Provider type and connection payloads are validated against an allow-list before use.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id sec">SEC-07</span></td><td>The <code>openExternal</code> handler validates the URL scheme to prevent arbitrary command/URI execution.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id sec">SEC-08</span></td><td>Encryption must fail closed: if OS encryption is unavailable, storing/decrypting secrets throws rather than persisting plaintext.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id sec">SEC-09</span></td><td>No secrets, tokens, or credential files are committed to the repository; local data files are git-ignored, and only a public OAuth client id is embedded.</td><td class="center"><span class="badge must">Must</span></td></tr>
-              <tr><td><span class="req-id sec">SEC-10</span></td><td>The experimental Copilot path is disabled by default and gated behind an explicit user opt-in.</td><td class="center"><span class="badge should">Should</span></td></tr>
-            </tbody>
-          </table>
-          <div class="callout">
-            <b>OWASP alignment:</b> The design mitigates common risks — secrets are never exposed to
-            the untrusted renderer (sensitive-data exposure), IPC input is validated (injection),
-            navigation and link handling are constrained (SSRF/redirect), and the client stores no
-            secrets in source control.
-          </div>
-        </section>
-
-        <!-- 10 BUILD -->
-        <section id="build">
-          <h2><span class="num">10</span> Build, Packaging &amp; Deployment</h2>
-          <h4>Scripts</h4>
-          <table>
-            <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
-            <tbody>
-              <tr><td class="mono">npm run dev</td><td>Start the app in development with hot reload and detached DevTools.</td></tr>
-              <tr><td class="mono">npm run build</td><td>Build main, preload, and renderer bundles.</td></tr>
-              <tr><td class="mono">npm run typecheck</td><td>Type-check the whole project with <code>tsc --noEmit</code>.</td></tr>
-              <tr><td class="mono">npm run format</td><td>Format sources with Prettier.</td></tr>
-              <tr><td class="mono">npm run package</td><td>Build and package a macOS app via electron-builder.</td></tr>
-            </tbody>
-          </table>
-          <h4>Packaging</h4>
           <ul>
-            <li>App id <code>com.hunktronics.agentcontrolpanel</code>, product name “Agent Control Panel”, category developer-tools.</li>
-            <li>Targets: DMG + ZIP for macOS arm64; dark-mode support enabled.</li>
-            <li>Code signing and notarization are intentionally omitted for local MVP builds and <b>must</b> be added before public distribution.</li>
-          </ul>
-          <div class="callout warn">
-            <b>Deployment gap:</b> Add <code>identity</code>, <code>hardenedRuntime</code>,
-            entitlements, and notarization configuration prior to shipping outside the team.
-          </div>
-        </section>
-
-        <!-- 11 CONSTRAINTS -->
-        <section id="constraints">
-          <h2><span class="num">11</span> Constraints &amp; Assumptions</h2>
-          <h4>Constraints</h4>
-          <ul>
-            <li>Must run as a desktop app; no server-side component is permitted.</li>
-            <li>Secrets must be handled only in the main process and encrypted by the OS keychain.</li>
-            <li>The renderer must remain sandboxed with context isolation on.</li>
-            <li>OS encryption must be available for secret-backed providers to function.</li>
-          </ul>
-          <h4>Assumptions</h4>
-          <ul>
-            <li>The user supplies valid provider credentials or a reachable local endpoint (e.g. Ollama).</li>
-            <li>Network access to the selected provider's HTTPS API is available.</li>
-            <li>The embedded GitHub OAuth client id is a public client identifier (not a secret).</li>
+            <li>Provider adapters implement model discovery and streaming chat.</li>
+            <li>Secrets are resolved into provider context only in the main process.</li>
+            <li>
+              Model-list failures may fall back to static per-provider suggestions in the renderer.
+            </li>
+            <li>
+              Copilot execution is blocked unless <code>experimentalCopilot</code> is enabled.
+            </li>
+            <li>
+              Every provider call creates a durable trace with counts, status, and a response
+              preview capped at 2,000 characters.
+            </li>
           </ul>
         </section>
 
-        <!-- 12 OUT OF SCOPE -->
-        <section id="outofscope">
-          <h2><span class="num">12</span> Out of Scope / Future Work</h2>
+        <section id="frontend">
+          <h2><span class="num">9</span> Renderer architecture and UX</h2>
+
+          <h3>9.1 Pages</h3>
           <div class="grid-2">
             <div class="card">
-              <h4 style="margin-top:0">Not in the MVP</h4>
-              <span class="pill">Multi-window</span><span class="pill">Cloud sync</span>
-              <span class="pill">Team sharing</span><span class="pill">Telemetry</span>
-              <span class="pill">Auto-update</span><span class="pill">Code signing / notarization</span>
-              <span class="pill">Windows / Linux installers</span><span class="pill">Plugins/tools/function-calling</span>
-              <span class="pill">Attachments / images</span><span class="pill">Conversation search/export</span>
+              <b>Dashboard</b>
+              <p>Entry overview and active operational state.</p>
             </div>
             <div class="card">
-              <h4 style="margin-top:0">Candidate future requirements</h4>
-              <ul style="margin:0">
-                <li>Signed &amp; notarized distributables with auto-update.</li>
-                <li>Additional themes beyond <code>neon-blue</code>.</li>
-                <li>System prompt / parameter presets per connection.</li>
-                <li>Conversation export and full-text search.</li>
-                <li>Automated unit/integration test suite (currently none).</li>
-              </ul>
+              <b>Agents</b>
+              <p>Team map, agent editor, creation flows, library, and direct agent chat.</p>
             </div>
+            <div class="card">
+              <b>Tasks</b>
+              <p>Task board and pipeline management/execution.</p>
+            </div>
+            <div class="card">
+              <b>Chat</b>
+              <p>
+                Persistent sessions, agent selection, Markdown streaming, new session, clear, and
+                delete.
+              </p>
+            </div>
+            <div class="card">
+              <b>Memory</b>
+              <p>Team/agent documents, search, health, editing, and compression review.</p>
+            </div>
+            <div class="card">
+              <b>Operations</b>
+              <p>Provider traces, schedules, and tool-policy approval panels.</p>
+            </div>
+            <div class="card">
+              <b>Local Data</b>
+              <p>Read-only, bounded inspection of allow-listed JSON collections.</p>
+            </div>
+            <div class="card">
+              <b>Settings</b>
+              <p>Connections, themes, Copilot gate, GitHub login settings, and LLM wiki.</p>
+            </div>
+          </div>
+
+          <h3>9.2 Zustand stores</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Store</th>
+                  <th>Owned renderer state</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">useAppStore</td>
+                  <td>Vault status, connections, settings, models, page navigation.</td>
+                </tr>
+                <tr>
+                  <td class="mono">useChatStore</td>
+                  <td>
+                    Conversations, active session/agent, streaming correlation, run cancellation,
+                    errors.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">useAgentStore</td>
+                  <td>Team roster, selected agent, creation, save, and delete operations.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>9.3 Conversation behavior</h3>
+          <ul>
+            <li>New session persists a blank, unbound conversation and selects it.</li>
+            <li>
+              Clear chat preserves agent/provider binding while removing messages; direct-agent
+              titles remain stable.
+            </li>
+            <li>
+              Direct agent conversations are reused; delegated threads are excluded from
+              direct-thread lookup.
+            </li>
+            <li>Session mutations and destructive controls are disabled during streaming.</li>
+            <li>
+              Terminal run events reload authoritative conversations from main-process persistence.
+            </li>
+          </ul>
+
+          <h3>9.4 Themes</h3>
+          <p>
+            Theme choice is persisted in settings and applied to
+            <code>document.documentElement.dataset.theme</code>. Legacy <code>neon-blue</code>
+            values migrate to Graphite Blue.
+          </p>
+          <div class="chips">
+            <span class="chip">Graphite Amber</span>
+            <span class="chip">Indigo Nebula (default)</span>
+            <span class="chip">Neon Green Grid</span>
+            <span class="chip">Graphite Blue</span>
+            <span class="chip">Linear Indigo Light</span>
+            <span class="chip">Graphite Light</span>
           </div>
         </section>
 
-        <!-- 13 TRACEABILITY -->
-        <section id="traceability">
-          <h2><span class="num">13</span> Traceability</h2>
+        <section id="automation">
+          <h2><span class="num">10</span> Work automation and operations</h2>
+
+          <h3>10.1 Tasks</h3>
+          <ul>
+            <li>Tasks move through backlog, in-progress, review, and done.</li>
+            <li>
+              Starting a task requires an assigned, configured agent and creates/reuses a
+              conversation.
+            </li>
+            <li>The trusted run receives a review-ready task prompt.</li>
+            <li>
+              Successful terminal runs move the task to review; failures retain status and record
+              the error.
+            </li>
+          </ul>
+
+          <h3>10.2 Pipelines</h3>
+          <ul>
+            <li>An orchestrator or team lead owns one to eight sequential stages.</li>
+            <li>Every stage agent must be an active direct report of the owner.</li>
+            <li>Each stage requires a name, instructions, and expected-output contract.</li>
+            <li>
+              The service persists a stage brief, runs the agent, versions the output, and feeds
+              prior outputs into the next brief.
+            </li>
+            <li>
+              A completed final stage moves the execution to review; failure/cancellation stops
+              progression while preserving existing artifacts.
+            </li>
+          </ul>
+
+          <h3>10.3 Schedules</h3>
+          <ul>
+            <li>
+              Cron expressions are evaluated with an IANA timezone through <code>cron-parser</code>.
+            </li>
+            <li>
+              The main process polls every 30 seconds while the app is open and supports manual
+              run-now.
+            </li>
+            <li>
+              Each schedule reuses a dedicated conversation and deterministic occurrence idempotency
+              key.
+            </li>
+            <li>
+              Definitions persist <code>maxAttempts</code>, but no automatic retry loop currently
+              consumes it.
+            </li>
+            <li>
+              There is no OS daemon; schedules do not run while the desktop application is closed.
+            </li>
+          </ul>
+
+          <h3>10.4 Policy, traces, and local data</h3>
+          <ul>
+            <li>
+              Tool policy checks grants and side-effect class, then approves, denies, or creates a
+              15-minute approval request.
+            </li>
+            <li>
+              Sensitive argument keys are redacted; a SHA-256 digest represents the original
+              argument object.
+            </li>
+            <li>The policy broker records authorization only; it does not execute tools.</li>
+            <li>Operations receives live trace updates and reads durable provider diagnostics.</li>
+            <li>
+              Local Data searches up to an allow-listed 500-row result; the encrypted vault and
+              managed memory tree are excluded.
+            </li>
+          </ul>
+        </section>
+
+        <section id="security">
+          <h2><span class="num">11</span> Security and privacy</h2>
+
+          <div class="grid-2">
+            <article class="card">
+              <h4>Electron boundary</h4>
+              <ul>
+                <li><code>contextIsolation: true</code></li>
+                <li><code>nodeIntegration: false</code></li>
+                <li><code>sandbox: true</code></li>
+                <li>Blocked in-app navigation and window creation</li>
+                <li>Only <code>http(s)</code> URLs open externally</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h4>Secret boundary</h4>
+              <ul>
+                <li>Electron <code>safeStorage</code> encrypts secrets.</li>
+                <li>Plaintext stays in the main process.</li>
+                <li>Renderer APIs are set/clear/presence only.</li>
+                <li>Secret writes fail closed without OS encryption.</li>
+                <li>Vault file mode is <code>0600</code>.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h4>Content boundary</h4>
+              <ul>
+                <li>Main-owned context and conversation persistence.</li>
+                <li>Bounded context and delegated payloads.</li>
+                <li>Confined memory and LLM-wiki paths.</li>
+                <li>Skill import type/size checks.</li>
+                <li>Team graph validation before persistence.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h4>Audit boundary</h4>
+              <ul>
+                <li>Persisted provider status/counts and response preview.</li>
+                <li>No raw prompt or injected memory fields in trace schema.</li>
+                <li>Sanitized tool arguments and original digest.</li>
+                <li>Explicit approval decisions and expiry.</li>
+                <li>Read-only allow-listed data explorer.</li>
+              </ul>
+            </article>
+          </div>
+
+          <h3>11.1 Privacy statement</h3>
           <p>
-            Each requirement ID maps to a subsystem in the codebase, enabling verification and change
-            impact analysis.
+            There is no application telemetry or app-managed cloud synchronization. Configuration
+            and operational state are local. Prompts and responses necessarily transit the selected
+            provider. A bounded model-generated response preview is retained locally in traces for
+            diagnostics.
           </p>
-          <table>
-            <thead><tr><th>Requirement group</th><th>Primary source module(s)</th></tr></thead>
-            <tbody>
-              <tr><td>FR-APP-*</td><td class="mono">src/main/index.ts</td></tr>
-              <tr><td>FR-CONN-*, FR-MOD-*</td><td class="mono">src/main/ipc.ts, src/main/store.ts, src/main/providers/*</td></tr>
-              <tr><td>FR-SEC-* / SEC-02, SEC-08</td><td class="mono">src/main/vault.ts, src/main/ipc.ts</td></tr>
-              <tr><td>FR-CHAT-*</td><td class="mono">src/main/ipc.ts, src/main/providers/stream.ts, src/renderer/src/store/useChatStore.ts</td></tr>
-              <tr><td>FR-CONV-*, FR-SET-*</td><td class="mono">src/main/store.ts, src/renderer/src/store/*</td></tr>
-              <tr><td>FR-GH-*</td><td class="mono">src/main/github/deviceFlow.ts, src/main/ipc.ts</td></tr>
-              <tr><td>SEC-01, SEC-04, SEC-05</td><td class="mono">src/main/index.ts, src/preload/index.ts</td></tr>
-              <tr><td>IPC contract (§6)</td><td class="mono">src/shared/ipc.ts, src/preload/index.ts</td></tr>
-              <tr><td>Data model (§4)</td><td class="mono">src/shared/types.ts</td></tr>
-            </tbody>
-          </table>
+
+          <div class="callout danger">
+            <strong>Known vault reliability caveat.</strong> Unlike the non-secret store, the vault
+            currently writes directly and treats any read/parse failure as an empty cache. It does
+            not use the JSON store's atomic backup/recovery path.
+          </div>
+        </section>
+
+        <section id="quality">
+          <h2><span class="num">12</span> Build, test, and release profile</h2>
+
+          <h3>12.1 Commands</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Command</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">npm run dev</td>
+                  <td>Electron development mode with hot reload and detached DevTools.</td>
+                </tr>
+                <tr>
+                  <td class="mono">npm run build</td>
+                  <td>Build main, preload, and renderer production bundles.</td>
+                </tr>
+                <tr>
+                  <td class="mono">npm run typecheck</td>
+                  <td>Run TypeScript with no emit.</td>
+                </tr>
+                <tr>
+                  <td class="mono">npm test</td>
+                  <td>Run the Vitest suite once.</td>
+                </tr>
+                <tr>
+                  <td class="mono">npm run test:watch</td>
+                  <td>Run Vitest in watch mode.</td>
+                </tr>
+                <tr>
+                  <td class="mono">npm run test:coverage</td>
+                  <td>Generate text and HTML V8 coverage for main-process modules.</td>
+                </tr>
+                <tr>
+                  <td class="mono">npm run test:chat</td>
+                  <td>Run the manual built Electron chat harness.</td>
+                </tr>
+                <tr>
+                  <td class="mono">npm run format</td>
+                  <td>Format TypeScript, TSX, and CSS sources with Prettier.</td>
+                </tr>
+                <tr>
+                  <td class="mono">npm run package</td>
+                  <td>Build and package the configured macOS artifacts.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>12.2 Automated verification snapshot</h3>
+          <p>
+            On 2026-07-19, the repository passed <b>18 test files / 157 tests</b>, TypeScript
+            checking, and the production Electron build.
+          </p>
+          <div class="chips">
+            <span class="chip">Providers and stream parsing</span>
+            <span class="chip">GitHub device flow</span>
+            <span class="chip">Vault</span>
+            <span class="chip">Store recovery/concurrency</span>
+            <span class="chip">Context assembly</span>
+            <span class="chip">Run lifecycle/delegation</span>
+            <span class="chip">Team graph</span>
+            <span class="chip">Memory</span>
+            <span class="chip">Tasks/chat stores</span>
+            <span class="chip">Pipelines</span>
+            <span class="chip">Schedules</span>
+            <span class="chip">Tool policy</span>
+            <span class="chip">IPC</span>
+          </div>
+          <p>
+            Current Vitest configuration uses a Node environment. There are store/library tests in
+            renderer paths, but no browser-rendered component suite, packaged-app end-to-end suite,
+            or installer verification.
+          </p>
+
+          <h3>12.3 Packaging</h3>
+          <ul>
+            <li>Application ID: <code>com.hunktronics.agentcontrolpanel</code>.</li>
+            <li>Product name: <code>Agent Control Panel</code>.</li>
+            <li>Configured targets: macOS arm64 DMG and ZIP.</li>
+            <li>Category: developer tools; dark mode enabled.</li>
+            <li>
+              Signing, hardened runtime, entitlements, notarization, auto-update, Windows, and Linux
+              packages are not configured.
+            </li>
+          </ul>
+        </section>
+
+        <section id="boundaries">
+          <h2><span class="num">13</span> Current implementation boundaries</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Area</th>
+                  <th>Implemented</th>
+                  <th>Not implemented / boundary</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Agent tools</td>
+                  <td>Catalog, grants, policy, approvals, audit records.</td>
+                  <td>No tool, MCP, email, calendar, file, HTTP, or code execution transport.</td>
+                </tr>
+                <tr>
+                  <td>Skills</td>
+                  <td>Built-in metadata, Markdown import, assignment, prompt injection.</td>
+                  <td>No executable skill engine beyond instructions included in context.</td>
+                </tr>
+                <tr>
+                  <td>Delegation</td>
+                  <td>
+                    Automatic specialist-first text runs, nested routing, synthesis, cancellation.
+                  </td>
+                  <td>No child external side effects; one round per run.</td>
+                </tr>
+                <tr>
+                  <td>Schedules</td>
+                  <td>Cron/timezone, app-open polling, manual run-now, status.</td>
+                  <td>No background daemon or automatic retry consumption.</td>
+                </tr>
+                <tr>
+                  <td>Release</td>
+                  <td>Local macOS arm64 DMG/ZIP packaging.</td>
+                  <td>Unsigned and unnotarized; no production release pipeline.</td>
+                </tr>
+                <tr>
+                  <td>Collaboration</td>
+                  <td>Single local user and local team hierarchy.</td>
+                  <td>
+                    No cloud sync, shared workspace, authentication server, or remote multi-user
+                    editing.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Observability</td>
+                  <td>Local traces, response previews, run events, memory health.</td>
+                  <td>No remote telemetry, metrics backend, or distributed tracing.</td>
+                </tr>
+                <tr>
+                  <td>Input validation</td>
+                  <td>Focused runtime validation on privileged/domain boundaries.</td>
+                  <td>No universal schema validator across every IPC payload.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="traceability">
+          <h2><span class="num">14</span> Source traceability</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Specification area</th>
+                  <th>Primary source modules</th>
+                  <th>Primary tests</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Window/process security</td>
+                  <td class="mono">src/main/index.ts, src/preload/index.ts</td>
+                  <td class="mono">src/main/ipc.test.ts</td>
+                </tr>
+                <tr>
+                  <td>Provider transport</td>
+                  <td class="mono">src/main/providers/*, src/main/ipc.ts</td>
+                  <td class="mono">providers.test.ts, stream.test.ts</td>
+                </tr>
+                <tr>
+                  <td>Trusted runs and routing</td>
+                  <td class="mono">src/main/runService.ts, contextAssembler.ts</td>
+                  <td class="mono">runService.test.ts, contextAssembler.test.ts</td>
+                </tr>
+                <tr>
+                  <td>Agent creation and team graph</td>
+                  <td class="mono">
+                    CreateAgentModal.tsx, useAgentStore.ts, src/main/ipc.ts, teamGraph.ts, store.ts
+                  </td>
+                  <td class="mono">useAgentStore.test.ts, teamGraph.test.ts, store.test.ts</td>
+                </tr>
+                <tr>
+                  <td>Persistence</td>
+                  <td class="mono">src/main/store.ts, vault.ts</td>
+                  <td class="mono">store.test.ts, vault.test.ts</td>
+                </tr>
+                <tr>
+                  <td>Managed memory</td>
+                  <td class="mono">src/main/memoryService.ts</td>
+                  <td class="mono">memoryService.test.ts</td>
+                </tr>
+                <tr>
+                  <td>Human LLM wiki</td>
+                  <td class="mono">src/main/llmWikiService.ts, ipc.ts</td>
+                  <td class="mono">llmWikiService.test.ts</td>
+                </tr>
+                <tr>
+                  <td>Tasks and conversations</td>
+                  <td class="mono">src/main/ipc.ts, src/renderer/src/store/useChatStore.ts</td>
+                  <td class="mono">ipc.test.ts, useChatStore.test.ts</td>
+                </tr>
+                <tr>
+                  <td>Pipelines</td>
+                  <td class="mono">src/main/pipelineService.ts</td>
+                  <td class="mono">pipelineService.test.ts</td>
+                </tr>
+                <tr>
+                  <td>Schedules</td>
+                  <td class="mono">src/main/scheduleService.ts</td>
+                  <td class="mono">scheduleService.test.ts</td>
+                </tr>
+                <tr>
+                  <td>Tool policy</td>
+                  <td class="mono">src/main/toolPolicy.ts</td>
+                  <td class="mono">toolPolicy.test.ts</td>
+                </tr>
+                <tr>
+                  <td>Renderer architecture</td>
+                  <td class="mono">src/renderer/src/App.tsx, store/*, components/*, pages/*</td>
+                  <td class="mono">
+                    useAgentStore.test.ts, runActivity.test.ts, agentLibrary.test.ts
+                  </td>
+                </tr>
+                <tr>
+                  <td>Shared contracts</td>
+                  <td class="mono">src/shared/types.ts, src/shared/ipc.ts</td>
+                  <td>Covered through dependent suites and typecheck.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <footer>
-          <p>
-            AI Agent Control Panel — Technical Specification · Document ACP-SRS-001 · Version 0.1.0 ·
-            Generated 2026-07-09 · team-hunktronics · MIT License. Derived from the project source of
-            record; update this document alongside behavioural changes.
-          </p>
+          Agent Control Panel technical specification ACP-TS-002, revision 0.2.2, updated
+          2026-07-19. Repository behavior was verified against the current source and automated
+          checks. Update this document when architecture or observable contracts change.
         </footer>
       </main>
     </div>
 
     <script>
-      // Theme toggle
       const toggle = document.getElementById('themeToggle');
-      toggle.addEventListener('click', () => {
+      toggle?.addEventListener('click', () => {
         const root = document.documentElement;
-        const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        root.setAttribute('data-theme', next);
+        root.setAttribute(
+          'data-theme',
+          root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+        );
       });
 
-      // Requirement counters (computed from the DOM for accuracy)
-      const count = (sel) => document.querySelectorAll(sel).length;
-      document.getElementById('frCount').textContent = count('.req-id.fr');
-      document.getElementById('nfrCount').textContent = count('.req-id.nfr');
-      document.getElementById('secCount').textContent = count('.req-id.sec');
-
-      // Scrollspy for the table of contents
-      const links = Array.from(document.querySelectorAll('nav.toc a'));
-      const map = new Map();
-      links.forEach((a) => {
-        const id = a.getAttribute('href').slice(1);
-        const el = document.getElementById(id);
-        if (el) map.set(el, a);
-      });
-      const spy = new IntersectionObserver(
+      const links = [...document.querySelectorAll('.toc a')];
+      const sections = links
+        .map((link) => document.querySelector(link.getAttribute('href')))
+        .filter(Boolean);
+      const observer = new IntersectionObserver(
         (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              links.forEach((l) => l.classList.remove('active'));
-              const a = map.get(entry.target);
-              if (a) a.classList.add('active');
-            }
+          const visible = entries.find((entry) => entry.isIntersecting);
+          if (!visible) return;
+          links.forEach((link) => {
+            link.classList.toggle('active', link.getAttribute('href') === `#${visible.target.id}`);
           });
         },
         { rootMargin: '-10% 0px -80% 0px', threshold: 0 }
       );
-      map.forEach((_a, el) => spy.observe(el));
+      sections.forEach((section) => observer.observe(section));
     </script>
   </body>
 </html>

@@ -4,7 +4,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useAgentStore } from '@/store/useAgentStore';
 import { SendIcon, StopIcon } from './icons';
 
-export function Composer() {
+export function Composer({ compact = false }: { compact?: boolean }) {
   const [text, setText] = useState('');
   const { sendMessage, stop, isStreaming, selectedAgentId } = useChatStore();
   const settings = useAppStore((s) => s.settings);
@@ -36,7 +36,7 @@ export function Composer() {
   };
 
   return (
-    <div className="border-t border-border bg-surface/40 px-4 py-3">
+    <div className={compact ? 'border-t border-border bg-surface/40 px-2 py-2' : 'border-t border-border bg-surface/40 px-4 py-3'}>
       <div className="max-w-3xl mx-auto">
         <div className="panel bg-overlay p-2 transition-all focus-within:border-neon/60 focus-within:shadow-neon-sm">
           <div className="flex items-end gap-2">
@@ -72,9 +72,11 @@ export function Composer() {
             )}
           </div>
         </div>
-        <div className="text-[11px] text-content-faint mt-1.5 px-1">
-          Enter to send · Shift+Enter for newline
-        </div>
+        {!compact && (
+          <div className="text-[11px] text-content-faint mt-1.5 px-1">
+            Enter to send · Shift+Enter for newline
+          </div>
+        )}
       </div>
     </div>
   );

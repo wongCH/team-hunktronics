@@ -4,7 +4,7 @@ import { useAgentStore } from '@/store/useAgentStore';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 
-export function ChatView() {
+export function ChatView({ compact = false }: { compact?: boolean }) {
   const error = useChatStore((s) => s.error);
   const connections = useAppStore((s) => s.connections);
   const settings = useAppStore((s) => s.settings);
@@ -24,7 +24,7 @@ export function ChatView() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex-1 min-h-0">
-        <MessageList />
+        <MessageList compact={compact} />
       </div>
 
       {needsCopilotOptIn && (
@@ -53,7 +53,7 @@ export function ChatView() {
           </div>
         </div>
       )}
-      <Composer />
+      <Composer compact={compact} />
     </div>
   );
 }

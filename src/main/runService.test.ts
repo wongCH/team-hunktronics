@@ -115,11 +115,9 @@ describe('RunService', () => {
       { role: 'assistant', content: 'Earlier answer' },
       { role: 'user', content: 'New question' }
     ]);
-    expect(events.filter((event) => event.type === 'state').map((event) => event.run.status)).toEqual([
-      'queued',
-      'running',
-      'completed'
-    ]);
+    expect(
+      events.filter((event) => event.type === 'state').map((event) => event.run.status)
+    ).toEqual(['queued', 'running', 'completed']);
     expect(saved.at(-1)?.messages.at(-1)).toEqual({
       role: 'assistant',
       content: 'Verified response'
@@ -159,10 +157,7 @@ describe('RunService', () => {
   });
 
   it('lists concurrent active agent runs until each reaches a terminal state', async () => {
-    const completions = new Map<
-      string,
-      { resolve: () => void; reject: (error: Error) => void }
-    >();
+    const completions = new Map<string, { resolve: () => void; reject: (error: Error) => void }>();
     const service = new RunService({
       getConversation: async () => conversation(),
       saveConversation: async () => undefined,
@@ -198,10 +193,17 @@ describe('RunService', () => {
       idempotencyKey: 'request-b'
     });
 
-    expect(service.listActive().map((run) => run.agentId).sort()).toEqual(['agent-a', 'agent-b']);
+    expect(
+      service
+        .listActive()
+        .map((run) => run.agentId)
+        .sort()
+    ).toEqual(['agent-a', 'agent-b']);
 
     completions.get('agent-a')!.resolve();
-    await vi.waitFor(() => expect(service.listActive().map((run) => run.agentId)).toEqual(['agent-b']));
+    await vi.waitFor(() =>
+      expect(service.listActive().map((run) => run.agentId)).toEqual(['agent-b'])
+    );
 
     completions.get('agent-b')!.reject(new Error('Provider failed.'));
     await vi.waitFor(() => expect(service.listActive()).toEqual([]));
@@ -280,7 +282,10 @@ describe('RunService', () => {
       getSkills: async () => [],
       execute: async ({ onChunk }) => onChunk('Done'),
       onEvent: () => undefined,
-      createId: vi.fn().mockReturnValueOnce('run-idempotent').mockReturnValueOnce('stream-idempotent')
+      createId: vi
+        .fn()
+        .mockReturnValueOnce('run-idempotent')
+        .mockReturnValueOnce('stream-idempotent')
     });
     const command = {
       conversationId: 'conversation-1',
@@ -308,7 +313,7 @@ describe('RunService', () => {
       reportsTo: parent.id,
       connectionId: 'connection-2',
       model: 'model-2',
-      soul: 'Research only from the supplied context.',
+      soul: 'Cloud: Azure & AWS architecture, networking, IAM, security, cost, and resilience.',
       skills: ['research']
     };
     const conversations = new Map([[conversation().id, conversation()]]);
@@ -325,8 +330,7 @@ describe('RunService', () => {
         teamMemory: 'Shared operating context.',
         agentMemory: id === child.id ? 'Child-specific memory.' : 'Parent-specific memory.'
       }),
-      getSkills: async (ids) =>
-        ids.map((id) => ({ name: id, instructions: `${id} instructions` })),
+      getSkills: async (ids) => ids.map((id) => ({ name: id, instructions: `${id} instructions` })),
       execute: async (execution) => {
         executions.push(execution);
         if (execution.run.agentId === child.id) {
@@ -352,18 +356,34 @@ describe('RunService', () => {
     const run = await service.start({
       conversationId: conversation().id,
       agentId: parent.id,
-      userContent: 'Delegate research and summarize it.',
+      userContent: 'Ask a report for evidence and summarize it.',
       idempotencyKey: 'delegation-request'
     });
 
     await vi.waitFor(() =>
-      expect(events.find((event) => event.run.id === run.id && event.run.status === 'completed')).toBeTruthy()
+      expect(
+        events.find((event) => event.run.id === run.id && event.run.status === 'completed')
+      ).toBeTruthy()
     );
     expect(executions.map((execution) => execution.run.agentId)).toEqual([
       parent.id,
       child.id,
       parent.id
     ]);
+    expect(
+      executions[0].messages.find((message) =>
+        message.content.includes('## Internal delegation transport')
+      )?.content
+    ).toContain(
+      "As the orchestrator, delegate when a user's request materially matches a direct report's role or capabilities."
+    );
+    expect(
+      executions[0].messages.find((message) =>
+        message.content.includes('## Internal delegation transport')
+      )?.content
+    ).toContain(
+      '"capabilities":"Cloud: Azure & AWS architecture, networking, IAM, security, cost, and resilience."'
+    );
     expect(executions[1].messages).toContainEqual({
       role: 'system',
       content: child.soul
@@ -389,16 +409,335 @@ describe('RunService', () => {
       role: 'system',
       content: '## Assigned Skills\n### research\nresearch instructions'
     });
-    expect(executions[1].messages.some((message) => message.content.includes('Child-specific memory.'))).toBe(
-      true
-    );
+    expect(
+      executions[1].messages.some((message) => message.content.includes('Child-specific memory.'))
+    ).toBe(true);
     expect(executions[1].messages.at(-1)?.content).toContain(
-      'Delegate research and summarize it.'
+      'Ask a report for evidence and summarize it.'
     );
     expect(executions[2].messages.at(-1)?.content).toContain('Primary-source finding');
     expect(conversations.get(conversation().id)?.messages.at(-1)?.content).toBe(
       'Synthesized answer'
     );
+    expect([...conversations.values()].find((item) => item.agentId === child.id)?.threadType).toBe(
+      'delegated'
+    );
+    expect(
+      events
+        .filter((event) => event.type === 'delegation')
+        .map((event) => ({ direction: event.direction, agentPath: event.agentPath }))
+    ).toEqual([
+      { direction: 'outbound', agentPath: [parent.id, child.id] },
+      { direction: 'inbound', agentPath: [parent.id, child.id] }
+    ]);
+  });
+
+  it('prioritizes a matching specialist over a matching team lead', async () => {
+    const parent = {
+      ...agent(),
+      id: 'jennifer',
+      name: 'Jennifer',
+      role: 'orchestrator' as const,
+      autonomy: 'autonomous' as const
+    };
+    const child = {
+      ...agent(),
+      id: 'bob',
+      name: 'Bob',
+      title: 'Azure SRE specialist',
+      reportsTo: parent.id,
+      soul: 'Own Azure operations and reliability.'
+    };
+    const lead = {
+      ...agent(),
+      id: 'eric',
+      name: 'Eric',
+      title: 'Azure platform team lead',
+      role: 'team-lead' as const,
+      reportsTo: parent.id,
+      soul: 'Own Azure endpoint architecture and platform decisions.'
+    };
+    const agents = [parent, lead, child];
+    const conversations = new Map([[conversation().id, conversation()]]);
+    const executions: RunExecution[] = [];
+    const events: RunEvent[] = [];
+    const service = new RunService({
+      getConversation: async (id) => conversations.get(id),
+      saveConversation: async (value) => conversations.set(value.id, structuredClone(value)),
+      getAgent: async (id) => agents.find((candidate) => candidate.id === id),
+      listAgents: async () => agents,
+      getConnection: async () => connection(),
+      getDefaultTarget: async () => ({ connectionId: null, model: null }),
+      getMemory: async () => ({ teamMemory: '', agentMemory: '' }),
+      getSkills: async () => [],
+      execute: async (execution) => {
+        executions.push(execution);
+        if (execution.run.agentId === child.id) {
+          execution.onChunk('Bob explains the Azure endpoint.');
+        } else if (execution.run.agentId === lead.id) {
+          execution.onChunk('Eric incorrectly handled specialist work.');
+        } else if (execution.messages.at(-1)?.content.includes('## Delegation results')) {
+          execution.onChunk("Jennifer synthesis of Bob's answer.");
+        } else {
+          execution.onChunk('Jennifer incorrectly performed the Azure work herself.');
+        }
+      },
+      onEvent: (event) => events.push(event)
+    });
+
+    const run = await service.start({
+      conversationId: conversation().id,
+      agentId: parent.id,
+      userContent: 'What is an Azure endpoint?',
+      idempotencyKey: 'automatic-routing'
+    });
+
+    await vi.waitFor(() =>
+      expect(
+        events.some((event) => event.run.id === run.id && event.run.status === 'completed')
+      ).toBe(true)
+    );
+    expect(executions.map((execution) => execution.run.agentId)).toEqual([child.id, parent.id]);
+    expect(executions[1].messages.at(-1)?.content).toContain('Bob explains the Azure endpoint.');
+    expect(conversations.get(conversation().id)?.messages.at(-1)?.content).toBe(
+      "Jennifer synthesis of Bob's answer."
+    );
+    expect(executions.some((execution) => execution.run.agentId === lead.id)).toBe(false);
+  });
+
+  it('automatically routes down the hierarchy and synthesizes results back up', async () => {
+    const root = {
+      ...agent(),
+      id: 'jennifer',
+      name: 'Jennifer',
+      role: 'orchestrator' as const,
+      autonomy: 'autonomous' as const
+    };
+    const lead = {
+      ...agent(),
+      id: 'lta',
+      name: 'LTA',
+      title: 'Customer Success Account Manager for LTA',
+      role: 'team-lead' as const,
+      reportsTo: root.id,
+      soul: 'Coordinate delivery and synthesize delegated work.'
+    };
+    const specialist = {
+      ...agent(),
+      id: 'samuel',
+      name: 'IM-Samuel-LTA',
+      title: 'Azure SRE specialist',
+      reportsTo: lead.id,
+      soul: 'Own Azure endpoint configuration, reliability, and incident response.'
+    };
+    const agents = [root, lead, specialist];
+    const conversations = new Map([[conversation().id, conversation()]]);
+    const executions: RunExecution[] = [];
+    const events: RunEvent[] = [];
+    const service = new RunService({
+      getConversation: async (id) => conversations.get(id),
+      saveConversation: async (value) => conversations.set(value.id, structuredClone(value)),
+      getAgent: async (id) => agents.find((candidate) => candidate.id === id),
+      listAgents: async () => agents,
+      getConnection: async () => connection(),
+      getDefaultTarget: async () => ({ connectionId: null, model: null }),
+      getMemory: async () => ({ teamMemory: '', agentMemory: '' }),
+      getSkills: async () => [],
+      execute: async (execution) => {
+        executions.push(execution);
+        if (execution.run.agentId === specialist.id) {
+          execution.onChunk('Azure specialist assessment');
+        } else if (execution.run.agentId === lead.id) {
+          execution.onChunk('Team lead synthesis');
+        } else {
+          execution.onChunk('Jennifer executive synthesis');
+        }
+      },
+      onEvent: (event) => events.push(event)
+    });
+
+    const run = await service.start({
+      conversationId: conversation().id,
+      agentId: root.id,
+      userContent: 'Assess the Azure endpoint configuration and reliability risks.',
+      idempotencyKey: 'nested-automatic-routing'
+    });
+
+    await vi.waitFor(() =>
+      expect(
+        events.some((event) => event.run.id === run.id && event.run.status === 'completed')
+      ).toBe(true)
+    );
+    expect(executions.map((execution) => execution.run.agentId)).toEqual([
+      specialist.id,
+      lead.id,
+      root.id
+    ]);
+    expect(conversations.get(conversation().id)?.messages.at(-1)?.content).toBe(
+      'Jennifer executive synthesis'
+    );
+  });
+
+  it('falls back to a matching team lead when no specialist matches', async () => {
+    const root = {
+      ...agent(),
+      id: 'jennifer',
+      name: 'Jennifer',
+      role: 'orchestrator' as const
+    };
+    const lead = {
+      ...agent(),
+      id: 'lta',
+      name: 'LTA',
+      title: 'Customer Success team lead',
+      role: 'team-lead' as const,
+      reportsTo: root.id,
+      soul: 'Own LTA customer adoption, account planning, and success reviews.'
+    };
+    const specialist = {
+      ...agent(),
+      id: 'dba',
+      name: 'DBA',
+      title: 'Database specialist',
+      reportsTo: lead.id,
+      soul: 'Own SQL tuning and database performance.'
+    };
+    const agents = [root, lead, specialist];
+    const conversations = new Map([[conversation().id, conversation()]]);
+    const executions: RunExecution[] = [];
+    const events: RunEvent[] = [];
+    const service = new RunService({
+      getConversation: async (id) => conversations.get(id),
+      saveConversation: async (value) => conversations.set(value.id, structuredClone(value)),
+      getAgent: async (id) => agents.find((candidate) => candidate.id === id),
+      listAgents: async () => agents,
+      getConnection: async () => connection(),
+      getDefaultTarget: async () => ({ connectionId: null, model: null }),
+      getMemory: async () => ({ teamMemory: '', agentMemory: '' }),
+      getSkills: async () => [],
+      execute: async (execution) => {
+        executions.push(execution);
+        execution.onChunk(
+          execution.run.agentId === lead.id ? 'LTA account plan' : 'Jennifer synthesis'
+        );
+      },
+      onEvent: (event) => events.push(event)
+    });
+
+    const run = await service.start({
+      conversationId: conversation().id,
+      agentId: root.id,
+      userContent: 'Prepare the LTA customer adoption and account plan.',
+      idempotencyKey: 'team-lead-fallback'
+    });
+
+    await vi.waitFor(() =>
+      expect(
+        events.some((event) => event.run.id === run.id && event.run.status === 'completed')
+      ).toBe(true)
+    );
+    expect(executions.map((execution) => execution.run.agentId)).toEqual([lead.id, root.id]);
+  });
+
+  it('keeps unmatched requests with the orchestrator', async () => {
+    const parent = {
+      ...agent(),
+      id: 'jennifer',
+      name: 'Jennifer',
+      role: 'orchestrator' as const
+    };
+    const child = {
+      ...agent(),
+      id: 'lta',
+      name: 'LTA',
+      title: 'Customer Success Account Manager',
+      reportsTo: parent.id,
+      soul: 'Own customer success and account planning.'
+    };
+    const conversations = new Map([[conversation().id, conversation()]]);
+    const executions: RunExecution[] = [];
+    const events: RunEvent[] = [];
+    const service = new RunService({
+      getConversation: async (id) => conversations.get(id),
+      saveConversation: async (value) => conversations.set(value.id, structuredClone(value)),
+      getAgent: async (id) => [parent, child].find((candidate) => candidate.id === id),
+      listAgents: async () => [parent, child],
+      getConnection: async () => connection(),
+      getDefaultTarget: async () => ({ connectionId: null, model: null }),
+      getMemory: async () => ({ teamMemory: '', agentMemory: '' }),
+      getSkills: async () => [],
+      execute: async (execution) => {
+        executions.push(execution);
+        execution.onChunk('Hello from Jennifer.');
+      },
+      onEvent: (event) => events.push(event)
+    });
+
+    const run = await service.start({
+      conversationId: conversation().id,
+      agentId: parent.id,
+      userContent: 'Hello, how are you?',
+      idempotencyKey: 'unmatched-routing'
+    });
+
+    await vi.waitFor(() =>
+      expect(
+        events.some((event) => event.run.id === run.id && event.run.status === 'completed')
+      ).toBe(true)
+    );
+    expect(executions.map((execution) => execution.run.agentId)).toEqual([parent.id]);
+  });
+
+  it('automatically fans out to explicitly named direct reports', async () => {
+    const parent = {
+      ...agent(),
+      id: 'jennifer',
+      name: 'Jennifer',
+      role: 'orchestrator' as const
+    };
+    const lta = { ...agent(), id: 'lta', name: 'LTA', reportsTo: parent.id };
+    const bob = { ...agent(), id: 'bob', name: 'Bob', reportsTo: parent.id };
+    const agents = [parent, lta, bob];
+    const conversations = new Map([[conversation().id, conversation()]]);
+    const executions: RunExecution[] = [];
+    const events: RunEvent[] = [];
+    const service = new RunService({
+      getConversation: async (id) => conversations.get(id),
+      saveConversation: async (value) => conversations.set(value.id, structuredClone(value)),
+      getAgent: async (id) => agents.find((candidate) => candidate.id === id),
+      listAgents: async () => agents,
+      getConnection: async () => connection(),
+      getDefaultTarget: async () => ({ connectionId: null, model: null }),
+      getMemory: async () => ({ teamMemory: '', agentMemory: '' }),
+      getSkills: async () => [],
+      execute: async (execution) => {
+        executions.push(execution);
+        execution.onChunk(
+          execution.run.agentId === parent.id
+            ? 'Jennifer synthesis'
+            : `${execution.run.agentId} assessment`
+        );
+      },
+      onEvent: (event) => events.push(event)
+    });
+
+    const run = await service.start({
+      conversationId: conversation().id,
+      agentId: parent.id,
+      userContent: 'LTA and Bob, assess the customer and technical risks for this plan.',
+      idempotencyKey: 'named-fan-out'
+    });
+
+    await vi.waitFor(() =>
+      expect(
+        events.some((event) => event.run.id === run.id && event.run.status === 'completed')
+      ).toBe(true)
+    );
+    expect(new Set(executions.slice(0, 2).map((execution) => execution.run.agentId))).toEqual(
+      new Set([lta.id, bob.id])
+    );
+    expect(executions.at(-1)?.run.agentId).toBe(parent.id);
+    expect(executions.filter((execution) => execution.run.agentId === parent.id)).toHaveLength(1);
   });
 
   it('rejects delegation to an agent that is not an active direct report', async () => {
@@ -437,7 +776,9 @@ describe('RunService', () => {
     });
 
     await vi.waitFor(() =>
-      expect(events.find((event) => event.run.id === run.id && event.run.status === 'failed')).toBeTruthy()
+      expect(
+        events.find((event) => event.run.id === run.id && event.run.status === 'failed')
+      ).toBeTruthy()
     );
     expect(execute).toHaveBeenCalledTimes(1);
     expect(events.at(-1)?.run.error).toBe('Delegation target must be an active direct report.');
@@ -489,7 +830,9 @@ describe('RunService', () => {
     });
 
     await vi.waitFor(() =>
-      expect(events.find((event) => event.run.id === run.id && event.run.status === 'failed')).toBeTruthy()
+      expect(
+        events.find((event) => event.run.id === run.id && event.run.status === 'failed')
+      ).toBeTruthy()
     );
     expect(execute).toHaveBeenCalledTimes(1);
     expect(events.at(-1)?.run.error).toBe('Delegation requires 1-3 requests.');
@@ -564,13 +907,14 @@ describe('RunService', () => {
     });
 
     await vi.waitFor(() =>
-      expect(events.find((event) => event.run.id === run.id && event.run.status === 'completed')).toBeTruthy()
+      expect(
+        events.find((event) => event.run.id === run.id && event.run.status === 'completed')
+      ).toBeTruthy()
     );
     expect(executions.some((execution) => execution.run.agentId === tooDeep.id)).toBe(false);
     expect(
-      events.find(
-        (event) => event.run.agentId === nested.id && event.run.status === 'failed'
-      )?.run.error
+      events.find((event) => event.run.agentId === nested.id && event.run.status === 'failed')?.run
+        .error
     ).toBe('Delegation depth cannot exceed 2.');
     expect(
       [...executions]
@@ -639,7 +983,9 @@ describe('RunService', () => {
     });
 
     await vi.waitFor(() =>
-      expect(events.find((event) => event.run.id === run.id && event.run.status === 'completed')).toBeTruthy()
+      expect(
+        events.find((event) => event.run.id === run.id && event.run.status === 'completed')
+      ).toBeTruthy()
     );
     expect(executions.map((execution) => execution.run.agentId)).toEqual([
       root.id,
@@ -647,7 +993,8 @@ describe('RunService', () => {
       root.id
     ]);
     expect(
-      events.find((event) => event.run.agentId === lead.id && event.run.status === 'failed')?.run.error
+      events.find((event) => event.run.agentId === lead.id && event.run.status === 'failed')?.run
+        .error
     ).toBe('Delegation loop detected.');
   });
 
@@ -696,10 +1043,13 @@ describe('RunService', () => {
     });
 
     await vi.waitFor(() =>
-      expect(events.find((event) => event.run.id === run.id && event.run.status === 'completed')).toBeTruthy()
+      expect(
+        events.find((event) => event.run.id === run.id && event.run.status === 'completed')
+      ).toBeTruthy()
     );
     expect(
-      events.find((event) => event.run.agentId === child.id && event.run.status === 'failed')?.run.error
+      events.find((event) => event.run.agentId === child.id && event.run.status === 'failed')?.run
+        .error
     ).toBe('Child provider unavailable.');
     expect(synthesisMessages.at(-1)?.content).toContain('Child provider unavailable.');
     expect(synthesisMessages.at(-1)?.content).toContain('"status":"failed"');
@@ -752,7 +1102,9 @@ describe('RunService', () => {
     });
 
     await vi.waitFor(() =>
-      expect(events.find((event) => event.run.id === run.id && event.run.status === 'failed')).toBeTruthy()
+      expect(
+        events.find((event) => event.run.id === run.id && event.run.status === 'failed')
+      ).toBeTruthy()
     );
     expect(parentCalls).toBe(2);
     expect(executions.map((execution) => execution.run.agentId)).toEqual([
@@ -807,14 +1159,16 @@ describe('RunService', () => {
       idempotencyKey: 'cancel-delegation'
     });
     await vi.waitFor(() =>
-      expect(events.some((event) => event.run.agentId === child.id && event.run.status === 'running')).toBe(
-        true
-      )
+      expect(
+        events.some((event) => event.run.agentId === child.id && event.run.status === 'running')
+      ).toBe(true)
     );
     expect(service.cancel(run.id)).toBe(true);
 
     await vi.waitFor(() =>
-      expect(events.find((event) => event.run.id === run.id && event.run.status === 'cancelled')).toBeTruthy()
+      expect(
+        events.find((event) => event.run.id === run.id && event.run.status === 'cancelled')
+      ).toBeTruthy()
     );
     expect(
       events.find((event) => event.run.agentId === child.id && event.run.status === 'cancelled')
@@ -870,12 +1224,16 @@ describe('RunService', () => {
       userContent: 'Cancel during setup.',
       idempotencyKey: 'cancel-setup-race'
     });
-    await vi.waitFor(() => expect(service.listActive().some((item) => item.id === run.id)).toBe(true));
+    await vi.waitFor(() =>
+      expect(service.listActive().some((item) => item.id === run.id)).toBe(true)
+    );
     expect(service.cancel(run.id)).toBe(true);
     releaseChildLookup();
 
     await vi.waitFor(() =>
-      expect(events.find((event) => event.run.id === run.id && event.run.status === 'cancelled')).toBeTruthy()
+      expect(
+        events.find((event) => event.run.id === run.id && event.run.status === 'cancelled')
+      ).toBeTruthy()
     );
     expect(service.listActive()).toEqual([]);
     const childStates = events

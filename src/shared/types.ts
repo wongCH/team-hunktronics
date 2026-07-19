@@ -76,11 +76,15 @@ export interface RunView {
   updatedAt: number;
 }
 
-export interface RunEvent {
-  type: 'state' | 'chunk';
-  run: RunView;
-  delta?: string;
-}
+export type RunEvent =
+  | { type: 'state'; run: RunView }
+  | { type: 'chunk'; run: RunView; delta: string }
+  | {
+      type: 'delegation';
+      run: RunView;
+      direction: 'outbound' | 'inbound';
+      agentPath: string[];
+    };
 
 export type MemoryScope = 'team' | 'agent';
 export type MemoryKind = 'baseline' | 'evergreen' | 'daily' | 'archive';
@@ -271,6 +275,7 @@ export interface TestResult {
 export interface Conversation {
   id: string;
   title: string;
+  threadType?: 'direct' | 'delegated';
   agentId?: string | null;
   connectionId: string | null;
   model: string | null;
@@ -529,8 +534,12 @@ export interface AgentConfig {
   /** Which LLM connection powers this agent. */
   connectionId: string | null;
   model: string | null;
-  /** soul.md — persona / operating instructions used as the system prompt. */
+  /** Renderer/run hydration field. Canonical content is stored only at soulPath. */
   soul: string;
+  /** User-data-relative canonical identity path: agents/<agent-id>/SOUL.md. */
+  soulPath?: string;
+  /** Compact persisted routing manifest; full SOUL.md is never used to enumerate candidates. */
+  capabilities?: string;
   /** Tool ids the agent is allowed to use. */
   tools: string[];
   /** Ordered skill ids the agent runs as a chain. */

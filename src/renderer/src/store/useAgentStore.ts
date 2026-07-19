@@ -19,6 +19,7 @@ interface AgentState {
 
   init: () => Promise<void>;
   select: (id: string | null) => void;
+  hydrateAgent: (id: string) => Promise<AgentConfig | undefined>;
   createAgent: (input: CreateAgentInput) => Promise<AgentConfig>;
   saveAgent: (agent: AgentConfig) => Promise<void>;
   deleteAgent: (id: string) => Promise<void>;
@@ -37,11 +38,22 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   select: (id) => set({ selectedId: id }),
 
+  hydrateAgent: async (id) => {
+    const agent = await api.agents.get(id);
+    if (agent) {
+      set((state) => ({
+        agents: state.agents.map((candidate) => (candidate.id === id ? agent : candidate))
+      }));
+    }
+    return agent;
+  },
+
   createAgent: async ({ role, icon, name, title, soul, reportsTo }) => {
     const now = Date.now();
     const root = get().agents.find((agent) => agent.role === 'orchestrator' && !agent.archived);
+    const id = crypto.randomUUID();
     const agent: AgentConfig = {
-      id: crypto.randomUUID(),
+      id,
       icon: icon ?? DEFAULT_AGENT_ICONS[role],
       name:
         name?.trim() ||
@@ -54,6 +66,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       connectionId: null,
       model: null,
       soul: soul?.trim() ? soul : role === 'orchestrator' ? DEFAULT_ORCHESTRATOR_SOUL : DEFAULT_WORKER_SOUL,
+      soulPath: `agents/${id}/SOUL.md`,
       tools: [],
       skills: [],
       autonomy: 'draft',
@@ -62,13 +75,18 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       updatedAt: now
     };
     const agents = await api.agents.save(agent);
-    set({ agents, selectedId: agent.id });
+    set({
+      agents: agents.map((candidate) => (candidate.id === agent.id ? { ...candidate, soul: agent.soul } : candidate)),
+      selectedId: agent.id
+    });
     return agent;
   },
 
   saveAgent: async (agent) => {
     const agents = await api.agents.save({ ...agent, updatedAt: Date.now() });
-    set({ agents });
+    set({
+      agents: agents.map((candidate) => (candidate.id === agent.id ? { ...candidate, soul: agent.soul } : candidate))
+    });
   },
 
   deleteAgent: async (id) => {

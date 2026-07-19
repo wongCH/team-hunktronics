@@ -177,7 +177,7 @@ export class MemoryService {
       if (document.kind === 'daily' && ageDays > 60) {
         this.add(findings, 'daily-stale-warning', 'warning', `${document.name} is older than 60 days.`, document.id);
       } else if (document.kind === 'daily' && ageDays >= 30) {
-        this.add(findings, 'daily-stale-info', 'info', `${document.name} should be reviewed for durable insights.`, document.id);
+        this.add(findings, 'daily-stale-info', 'info', `${document.name} should be reviewed for knowledge worth retaining.`, document.id);
       } else if (document.kind === 'evergreen' && ageDays >= 90) {
         this.add(findings, 'evergreen-stale-info', 'info', `${document.name} has not been verified in 90 days.`, document.id);
       }

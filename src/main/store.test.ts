@@ -5,6 +5,7 @@ import { join } from 'path';
 import { Store } from './store';
 import { APP_THEMES, DEFAULT_APP_THEME, DEFAULT_GITHUB_CLIENT_ID } from '@shared/types';
 import type {
+  AgentConfig,
   AgentSchedule,
   AgentTask,
   ApiTrace,
@@ -38,6 +39,26 @@ function convo(id: string, title = 'Chat ' + id): Conversation {
     messages: [],
     createdAt: 1,
     updatedAt: 1
+  };
+}
+
+function agent(overrides: Partial<AgentConfig>): AgentConfig {
+  return {
+    id: 'root',
+    name: 'Root',
+    title: 'Orchestrator',
+    role: 'orchestrator',
+    reportsTo: null,
+    connectionId: null,
+    model: null,
+    soul: '',
+    tools: [],
+    skills: [],
+    autonomy: 'draft',
+    delegatesTo: [],
+    createdAt: 1,
+    updatedAt: 1,
+    ...overrides
   };
 }
 
@@ -198,6 +219,82 @@ describe('Store — conversations (US-401 / US-402)', () => {
     await store.saveConversation(convo('b'));
     const list = await store.deleteConversation('a');
     expect(list.map((c) => c.id)).toEqual(['b']);
+  });
+});
+
+describe('Store — agent manager registration', () => {
+  it('registers a new agent with its manager while keeping souls out of agents.json', async () => {
+    await store.saveAgent(agent({ soul: 'Coordinate the team.' }));
+
+    const team = await store.saveAgent(
+      agent({
+        id: 'bob',
+        name: 'Bob',
+        title: 'Azure specialist',
+        role: 'specialist',
+        reportsTo: 'root',
+        soul: 'Own Azure endpoint questions.'
+      })
+    );
+
+    expect(team.find((item) => item.id === 'root')?.delegatesTo).toEqual(['bob']);
+    const persisted = JSON.parse(await fs.readFile(join(dir, 'agents.json'), 'utf8'));
+    expect(persisted).toContainEqual(
+      expect.objectContaining({
+        id: 'root',
+        delegatesTo: ['bob'],
+        soulPath: 'agents/root/SOUL.md'
+      })
+    );
+    expect(persisted.every((item: Record<string, unknown>) => !('soul' in item))).toBe(true);
+    expect(await fs.readFile(join(dir, 'agents', 'bob', 'SOUL.md'), 'utf8')).toBe(
+      'Own Azure endpoint questions.'
+    );
+    expect((await store.getAgent('bob'))?.soul).toBe('Own Azure endpoint questions.');
+    expect((await store.listAgents()).find((item) => item.id === 'bob')?.soul).toBe('');
+  });
+
+  it('keeps every manager registration when agents are created concurrently', async () => {
+    await store.saveAgent(agent({}));
+
+    await Promise.all([
+      store.saveAgent(agent({ id: 'bob', name: 'Bob', role: 'specialist', reportsTo: 'root' })),
+      store.saveAgent(agent({ id: 'sam', name: 'Sam', role: 'specialist', reportsTo: 'root' }))
+    ]);
+
+    const team = await store.listAgents();
+    expect(team.map((item) => item.id).sort()).toEqual(['bob', 'root', 'sam']);
+    expect(team.find((item) => item.id === 'root')?.delegatesTo.sort()).toEqual(['bob', 'sam']);
+  });
+
+  it('migrates legacy inline souls exactly once without overwriting a canonical file', async () => {
+    await fs.mkdir(join(dir, 'agents', 'root'), { recursive: true });
+    await fs.writeFile(join(dir, 'agents', 'root', 'SOUL.md'), 'Canonical identity', 'utf8');
+    await fs.writeFile(
+      join(dir, 'agents.json'),
+      JSON.stringify([agent({ soul: 'Legacy identity' })]),
+      'utf8'
+    );
+
+    const reopened = new Store(dir);
+    expect((await reopened.getAgent('root'))?.soul).toBe('Canonical identity');
+    const persisted = JSON.parse(await fs.readFile(join(dir, 'agents.json'), 'utf8'));
+    expect(persisted[0]).not.toHaveProperty('soul');
+    expect(persisted[0]).toMatchObject({
+      soulPath: 'agents/root/SOUL.md',
+      capabilities: expect.stringContaining('Legacy identity')
+    });
+  });
+
+  it('archives agents recoverably instead of deleting their identity folder', async () => {
+    await store.saveAgent(agent({ soul: 'Keep this identity.' }));
+    const archived = await store.deleteAgent('root');
+
+    expect(archived[0].archived).toBe(true);
+    expect((await store.getAgent('root'))?.soul).toBe('Keep this identity.');
+    expect(await fs.readFile(join(dir, 'agents', 'root', 'SOUL.md'), 'utf8')).toBe(
+      'Keep this identity.'
+    );
   });
 });
 

@@ -12,6 +12,8 @@ import {
 } from '@xyflow/react';
 import clsx from 'clsx';
 import type { AgentConfig } from '@shared/types';
+import type { EdgeActivity } from '@/lib/runActivity';
+import { ChatView } from './ChatView';
 import { getAgentIcon } from './AgentIconPicker';
 
 const NODE_WIDTH = 224;
@@ -82,7 +84,8 @@ const nodeTypes = { agent: AgentNode };
 function layoutTeam(
   agents: AgentConfig[],
   selectedId: string | null,
-  workingAgentIds: ReadonlySet<string>
+  workingAgentIds: ReadonlySet<string>,
+  edgeActivity: ReadonlyMap<string, EdgeActivity>
 ): { nodes: Node<AgentNodeData>[]; edges: Edge[] } {
   const graph = new dagre.graphlib.Graph();
   graph.setDefaultEdgeLabel(() => ({}));
@@ -112,18 +115,18 @@ function layoutTeam(
       source: agent.reportsTo!,
       target: agent.id,
       type: 'smoothstep',
-      animated: workingAgentIds.has(agent.id) || workingAgentIds.has(agent.reportsTo!),
+      className: edgeActivity.has(`${agent.reportsTo}-${agent.id}`)
+        ? `team-edge-active team-edge-${edgeActivity.get(`${agent.reportsTo}-${agent.id}`)!.direction}`
+        : undefined,
       style: {
         stroke:
-          workingAgentIds.has(agent.id) ||
-          workingAgentIds.has(agent.reportsTo!) ||
+          edgeActivity.has(`${agent.reportsTo}-${agent.id}`) ||
           agent.id === selectedId ||
           agent.reportsTo === selectedId
             ? 'var(--color-neon)'
             : 'var(--color-borderStrong)',
         strokeWidth:
-          workingAgentIds.has(agent.id) ||
-          workingAgentIds.has(agent.reportsTo!) ||
+          edgeActivity.has(`${agent.reportsTo}-${agent.id}`) ||
           agent.id === selectedId ||
           agent.reportsTo === selectedId
             ? 2
@@ -137,30 +140,31 @@ export function TeamMap({
   agents,
   selectedId,
   workingAgentIds,
+  edgeActivity,
   onSelect,
   onConfigure
 }: {
   agents: AgentConfig[];
   selectedId: string | null;
   workingAgentIds: ReadonlySet<string>;
+  edgeActivity: ReadonlyMap<string, EdgeActivity>;
   onSelect: (id: string) => void;
   onConfigure: (id: string) => void;
 }) {
   const { nodes, edges } = useMemo(
-    () => layoutTeam(agents, selectedId, workingAgentIds),
-    [agents, selectedId, workingAgentIds]
+    () => layoutTeam(agents, selectedId, workingAgentIds, edgeActivity),
+    [agents, selectedId, workingAgentIds, edgeActivity]
   );
   const selected = agents.find((agent) => agent.id === selectedId) ?? null;
   const manager = selected?.reportsTo ? agents.find((agent) => agent.id === selected.reportsTo) : null;
-  const reports = selected ? agents.filter((agent) => agent.reportsTo === selected.id) : [];
 
   if (agents.length === 0) {
     return <div className="flex-1 grid place-items-center text-sm text-content-faint">Create an orchestrator to begin the team map.</div>;
   }
 
   return (
-    <div className="flex-1 min-h-0 flex">
-      <div className="flex-1 min-w-0">
+    <div className="flex-1 min-h-0 flex flex-col min-[1200px]:flex-row">
+      <div className="flex-1 min-w-0 min-h-[210px]">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -179,35 +183,22 @@ export function TeamMap({
         </ReactFlow>
       </div>
       {selected && (
-        <aside className="w-72 shrink-0 border-l border-border bg-overlay/40 p-5 overflow-y-auto">
-          <div className="w-12 h-12 rounded-lg bg-neon/10 border border-neon/30 text-neon grid place-items-center text-xl mb-4">
-            {getAgentIcon(selected.icon, selected.role)}
+        <aside className="h-[48%] min-h-[240px] shrink-0 border-t border-border bg-overlay/40 flex flex-col min-[1200px]:h-auto min-[1200px]:min-h-0 min-[1200px]:w-[360px] min-[1200px]:border-l min-[1200px]:border-t-0">
+          <div className="px-4 py-3 border-b border-border flex items-center gap-3">
+            <div className="w-10 h-10 shrink-0 rounded-lg bg-neon/10 border border-neon/30 text-neon grid place-items-center text-lg">
+              {getAgentIcon(selected.icon, selected.role)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-semibold truncate">{selected.name}</h2>
+              <p className="text-[11px] text-content-muted truncate">
+                {roleLabel(selected.role)} · {manager ? `Reports to ${manager.name}` : 'Team root'}
+              </p>
+            </div>
+            <button className="btn-outline !px-2.5 !py-1.5 text-xs" onClick={() => onConfigure(selected.id)}>
+              Configure
+            </button>
           </div>
-          <h2 className="text-lg font-semibold">{selected.name}</h2>
-          <p className="text-sm text-content-muted">{selected.title}</p>
-          <span className="chip mt-3 capitalize">{roleLabel(selected.role)}</span>
-
-          <dl className="mt-6 space-y-4 text-xs">
-            <div>
-              <dt className="text-content-faint uppercase tracking-wider mb-1">Reports to</dt>
-              <dd>{manager?.name ?? 'Team root'}</dd>
-            </div>
-            <div>
-              <dt className="text-content-faint uppercase tracking-wider mb-1">Direct reports</dt>
-              <dd>{reports.length ? reports.map((report) => report.name).join(', ') : 'None'}</dd>
-            </div>
-            <div>
-              <dt className="text-content-faint uppercase tracking-wider mb-1">Tools</dt>
-              <dd>{selected.tools.length ? selected.tools.join(', ') : 'No tools assigned'}</dd>
-            </div>
-            <div>
-              <dt className="text-content-faint uppercase tracking-wider mb-1">Autonomy</dt>
-              <dd className="capitalize">{selected.autonomy}</dd>
-            </div>
-          </dl>
-          <button className="btn-primary w-full mt-6" onClick={() => onConfigure(selected.id)}>
-            Configure agent
-          </button>
+          <ChatView compact />
         </aside>
       )}
     </div>

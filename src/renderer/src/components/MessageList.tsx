@@ -10,13 +10,24 @@ import { useAgentStore } from '@/store/useAgentStore';
 import { getAgentIcon } from './AgentIconPicker';
 import { BotIcon, UserIcon } from './icons';
 
-function Bubble({ message, streaming, agentIcon }: { message: ChatMessage; streaming: boolean; agentIcon?: string }) {
+function Bubble({
+  message,
+  streaming,
+  agentIcon,
+  compact
+}: {
+  message: ChatMessage;
+  streaming: boolean;
+  agentIcon?: string;
+  compact: boolean;
+}) {
   const isUser = message.role === 'user';
   return (
-    <div className={clsx('flex gap-3', isUser ? 'flex-row-reverse' : 'flex-row')}>
+    <div className={clsx('flex', compact ? 'gap-2' : 'gap-3', isUser ? 'flex-row-reverse' : 'flex-row')}>
       <div
         className={clsx(
-          'w-8 h-8 rounded-lg shrink-0 flex items-center justify-center border',
+          compact ? 'w-7 h-7' : 'w-8 h-8',
+          'rounded-lg shrink-0 flex items-center justify-center border',
           isUser
             ? 'bg-white/5 border-border text-content-muted'
             : 'bg-neon/10 border-neon/40 text-neon shadow-neon-sm'
@@ -32,7 +43,8 @@ function Bubble({ message, streaming, agentIcon }: { message: ChatMessage; strea
       </div>
       <div
         className={clsx(
-          'max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
+          compact ? 'max-w-[85%] rounded-lg px-3 py-2 text-xs' : 'max-w-[75%] rounded-2xl px-4 py-3 text-sm',
+          'leading-relaxed',
           isUser
             ? 'bg-white/[0.04] border border-border text-content'
             : 'bg-surface border border-border text-content'
@@ -53,7 +65,7 @@ function Bubble({ message, streaming, agentIcon }: { message: ChatMessage; strea
   );
 }
 
-function Welcome() {
+function Welcome({ compact }: { compact: boolean }) {
   const setPage = useAppStore((s) => s.setPage);
   const hasConnections = useAppStore((s) => s.connections.length > 0);
   const selectedAgentId = useChatStore((state) => state.selectedAgentId);
@@ -61,16 +73,16 @@ function Welcome() {
     state.agents.find((agent) => agent.id === selectedAgentId && !agent.archived)
   );
   return (
-    <div className="h-full flex flex-col items-center justify-center text-center px-6">
-      <div className="w-16 h-16 rounded-2xl bg-neon/10 border border-neon/40 shadow-neon flex items-center justify-center mb-5">
-        <span className="text-neon neon-text text-2xl">
+    <div className={clsx('h-full flex flex-col items-center justify-center text-center', compact ? 'px-4' : 'px-6')}>
+      <div className={clsx('bg-neon/10 border border-neon/40 shadow-neon flex items-center justify-center', compact ? 'w-10 h-10 rounded-lg mb-2' : 'w-16 h-16 rounded-2xl mb-5')}>
+        <span className={clsx('text-neon neon-text', compact ? 'text-lg' : 'text-2xl')}>
           {selectedAgent ? getAgentIcon(selectedAgent.icon, selectedAgent.role) : '◈'}
         </span>
       </div>
-      <h1 className="text-xl font-semibold mb-2">
+      <h1 className={clsx('font-semibold', compact ? 'text-sm mb-1' : 'text-xl mb-2')}>
         {selectedAgent ? selectedAgent.name : 'Agent Control Panel'}
       </h1>
-      <p className="text-content-muted max-w-md text-sm mb-6">
+      <p className={clsx('text-content-muted max-w-md', compact ? 'text-xs mb-2' : 'text-sm mb-6')}>
         {selectedAgent
           ? `Start a direct conversation with your ${selectedAgent.title}.`
           : 'Chat across local and cloud LLM backends from one place. Your API keys are encrypted with your OS keychain and never leave this machine.'}
@@ -84,7 +96,7 @@ function Welcome() {
   );
 }
 
-export function MessageList() {
+export function MessageList({ compact = false }: { compact?: boolean }) {
   const { conversations, activeId, isStreaming, streamConversationId } = useChatStore();
   const conv = conversations.find((c) => c.id === activeId);
   const agent = useAgentStore((state) =>
@@ -96,11 +108,11 @@ export function MessageList() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conv?.messages]);
 
-  if (!conv || conv.messages.length === 0) return <Welcome />;
+  if (!conv || conv.messages.length === 0) return <Welcome compact={compact} />;
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-3xl mx-auto px-6 py-6 space-y-5">
+      <div className={clsx('max-w-3xl mx-auto', compact ? 'px-3 py-3 space-y-3' : 'px-6 py-6 space-y-5')}>
         {conv.messages.map((m, i) => {
           const isLast = i === conv.messages.length - 1;
           const streaming =
@@ -111,6 +123,7 @@ export function MessageList() {
               message={m}
               streaming={streaming}
               agentIcon={agent ? getAgentIcon(agent.icon, agent.role) : undefined}
+              compact={compact}
             />
           );
         })}

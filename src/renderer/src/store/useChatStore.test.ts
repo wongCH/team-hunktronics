@@ -96,6 +96,41 @@ describe('useChatStore agent routing', () => {
     );
   });
 
+  it('creates and activates a separate blank session', async () => {
+    mocks.saveConversation.mockImplementation(async (created: Conversation) => [
+      created,
+      conversation
+    ]);
+
+    await useChatStore.getState().newConversation();
+
+    const state = useChatStore.getState();
+    expect(state.activeId).not.toBe(conversation.id);
+    expect(state.selectedAgentId).toBeNull();
+    expect(mocks.saveConversation).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'New chat', agentId: null, messages: [] })
+    );
+  });
+
+  it('clears the active chat while preserving its agent assignment', async () => {
+    const active = {
+      ...conversation,
+      title: agent.name,
+      messages: [{ role: 'user' as const, content: 'Review my inbox' }]
+    };
+    useChatStore.setState({ conversations: [active] });
+    mocks.saveConversation.mockImplementation(async (cleared: Conversation) => [cleared]);
+
+    await useChatStore.getState().clearConversation();
+
+    expect(useChatStore.getState().conversations[0]).toMatchObject({
+      id: conversation.id,
+      title: agent.name,
+      agentId: agent.id,
+      messages: []
+    });
+  });
+
   it('opens one persistent conversation for an agent contact', async () => {
     useChatStore.setState({ conversations: [], activeId: null, selectedAgentId: null });
 
@@ -108,5 +143,28 @@ describe('useChatStore agent routing', () => {
     expect(mocks.saveConversation).toHaveBeenCalledWith(
       expect.objectContaining({ title: agent.name, agentId: agent.id })
     );
+  });
+
+  it('reuses the existing persistent agent thread when selected from the team', async () => {
+    const delegated: Conversation = {
+      ...conversation,
+      id: 'delegated-conversation',
+      title: 'Delegated: inspect the inbox',
+      threadType: 'delegated'
+    };
+    useChatStore.setState({
+      conversations: [delegated, conversation],
+      activeId: null,
+      selectedAgentId: null
+    });
+
+    await useChatStore.getState().openAgentConversation(agent.id);
+
+    expect(useChatStore.getState()).toMatchObject({
+      activeId: conversation.id,
+      selectedAgentId: agent.id,
+      conversations: [delegated, conversation]
+    });
+    expect(mocks.saveConversation).not.toHaveBeenCalled();
   });
 });

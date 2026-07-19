@@ -28,6 +28,7 @@ export const IPC = {
   conversationsSave: 'conversations:save',
   conversationsDelete: 'conversations:delete',
   agentsList: 'agents:list',
+  agentsGet: 'agents:get',
   agentsSave: 'agents:save',
   agentsDelete: 'agents:delete',
   skillsList: 'skills:list',

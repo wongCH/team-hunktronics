@@ -32,6 +32,7 @@ interface ChatState {
 
   init: () => Promise<void>;
   newConversation: () => Promise<void>;
+  clearConversation: () => Promise<void>;
   openAgentConversation: (agentId: string) => Promise<void>;
   selectConversation: (id: string) => void;
   selectAgent: (id: string | null) => Promise<void>;
@@ -46,6 +47,23 @@ function patchConversation(
   fn: (c: Conversation) => Conversation
 ): Conversation[] {
   return list.map((c) => (c.id === id ? fn(c) : c));
+}
+
+export function findDirectAgentConversation(
+  conversations: Conversation[],
+  agentId: string
+): Conversation | undefined {
+  return (
+    conversations.find(
+      (conversation) => conversation.agentId === agentId && conversation.threadType === 'direct'
+    ) ??
+    conversations.find(
+      (conversation) =>
+        conversation.agentId === agentId &&
+        conversation.threadType !== 'delegated' &&
+        !conversation.title.startsWith('Delegated: ')
+    )
+  );
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -110,20 +128,43 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   newConversation: async () => {
+    if (get().isStreaming) return;
     const conv = makeConversation();
-    set((s) => ({
-      conversations: [conv, ...s.conversations],
-      activeId: conv.id,
-      selectedAgentId: null,
-      error: null
-    }));
-    await api.conversations.save(conv);
+    try {
+      const conversations = await api.conversations.save(conv);
+      set({
+        conversations,
+        activeId: conv.id,
+        selectedAgentId: null,
+        error: null
+      });
+    } catch (reason) {
+      set({ error: (reason as Error).message });
+    }
+  },
+
+  clearConversation: async () => {
+    const { activeId, conversations, isStreaming } = get();
+    if (!activeId || isStreaming) return;
+    const conversation = conversations.find((item) => item.id === activeId);
+    if (!conversation || conversation.messages.length === 0) return;
+
+    const cleared: Conversation = {
+      ...conversation,
+      title: conversation.agentId ? conversation.title : 'New chat',
+      messages: [],
+      updatedAt: Date.now()
+    };
+    try {
+      const next = await api.conversations.save(cleared);
+      set({ conversations: next, error: null });
+    } catch (reason) {
+      set({ error: (reason as Error).message });
+    }
   },
 
   openAgentConversation: async (agentId) => {
-    const existing = get().conversations.find(
-      (conversation) => conversation.agentId === agentId
-    );
+    const existing = findDirectAgentConversation(get().conversations, agentId);
     if (existing) {
       set({ activeId: existing.id, selectedAgentId: agentId, error: null });
       return;
@@ -138,6 +179,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const conversation: Conversation = {
       ...makeConversation(),
       title: agent.name,
+      threadType: 'direct',
       agentId: agent.id,
       connectionId: agent.connectionId,
       model: agent.model

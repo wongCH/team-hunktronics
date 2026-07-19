@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes team-edge-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.react-flow__edge.team-edge-active .react-flow__edge-path {
+  stroke-dasharray: 8 4;
+  animation: team-edge-flow 0.7s linear infinite;
+}
+
+.react-flow__edge.team-edge-inbound .react-flow__edge-path {
+  animation-direction: reverse;
+}
+
+.react-flow__edge.team-edge-both .react-flow__edge-path {
+  animation-direction: alternate;
+}
+
 @layer base {
   :root {
     color-scheme: light;

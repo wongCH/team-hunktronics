@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import type { Conversation } from '@shared/types';
 import { useAgentStore } from '@/store/useAgentStore';
-import { useChatStore } from '@/store/useChatStore';
+import { findDirectAgentConversation, useChatStore } from '@/store/useChatStore';
 import { getAgentIcon } from './AgentIconPicker';
 import { PlusIcon, TrashIcon, BotIcon } from './icons';
 
@@ -20,6 +20,7 @@ export function ConversationSidebar() {
   const {
     conversations,
     activeId,
+    isStreaming,
     newConversation,
     openAgentConversation,
     selectConversation,
@@ -50,8 +51,9 @@ export function ConversationSidebar() {
           </div>
           <button
             className="btn-ghost !p-1.5"
-            title="New direct chat"
-            aria-label="New direct chat"
+            title="New session"
+            aria-label="New session"
+            disabled={isStreaming}
             onClick={() => void newConversation()}
           >
             <PlusIcon className="h-4 w-4" />
@@ -72,7 +74,7 @@ export function ConversationSidebar() {
         </div>
         <div className="space-y-0.5">
           {visibleAgents.map((agent) => {
-            const conversation = conversations.find((item) => item.agentId === agent.id);
+            const conversation = findDirectAgentConversation(conversations, agent.id);
             const active = conversation?.id === activeId;
             const configured = Boolean(agent.connectionId && agent.model);
             return (

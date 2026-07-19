@@ -102,6 +102,7 @@ const api = {
   },
   agents: {
     list: (): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsList),
+    get: (id: string): Promise<AgentConfig | undefined> => ipcRenderer.invoke(IPC.agentsGet, id),
     save: (agent: AgentConfig): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsSave, agent),
     delete: (id: string): Promise<AgentConfig[]> => ipcRenderer.invoke(IPC.agentsDelete, id)
   },

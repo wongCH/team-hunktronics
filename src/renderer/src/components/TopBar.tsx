@@ -3,16 +3,22 @@ import { useAgentStore } from '@/store/useAgentStore';
 import { useChatStore } from '@/store/useChatStore';
 import { PROVIDER_META } from '@shared/types';
 import { getAgentIcon } from './AgentIconPicker';
-import { PlugIcon } from './icons';
+import { PlugIcon, PlusIcon, TrashIcon } from './icons';
 import { ModelPicker } from './ModelPicker';
 
 export function TopBar() {
   const { connections, settings, setActiveConnection, setPage } = useAppStore();
   const agents = useAgentStore((state) => state.agents);
   const selectedAgentId = useChatStore((state) => state.selectedAgentId);
+  const conversations = useChatStore((state) => state.conversations);
+  const activeId = useChatStore((state) => state.activeId);
+  const isStreaming = useChatStore((state) => state.isStreaming);
+  const newConversation = useChatStore((state) => state.newConversation);
+  const clearConversation = useChatStore((state) => state.clearConversation);
   const selectedAgent = agents.find(
     (agent) => agent.id === selectedAgentId && !agent.archived
   );
+  const activeConversation = conversations.find((conversation) => conversation.id === activeId);
 
   const activeConnectionId = selectedAgent?.connectionId ?? settings?.activeConnectionId;
   const activeConn = connections.find((c) => c.id === activeConnectionId);
@@ -58,6 +64,26 @@ export function TopBar() {
             {PROVIDER_META[activeConn.providerType].name}
           </span>
         )}
+        <button
+          className="btn-outline !py-1.5"
+          disabled={isStreaming}
+          onClick={() => void newConversation()}
+          title="Start a separate blank chat"
+        >
+          <PlusIcon className="w-4 h-4" /> New session
+        </button>
+        <button
+          className="btn-ghost !py-1.5"
+          disabled={isStreaming || !activeConversation?.messages.length}
+          onClick={() => {
+            if (window.confirm('Clear all messages in this chat? This cannot be undone.')) {
+              void clearConversation();
+            }
+          }}
+          title="Clear messages from the active chat"
+        >
+          <TrashIcon className="w-4 h-4" /> Clear chat
+        </button>
       </div>
     </header>
   );

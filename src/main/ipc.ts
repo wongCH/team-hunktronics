@@ -371,7 +371,7 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
     const id = typeof value.id === 'string' ? value.id.trim() : '';
     const name = typeof value.name === 'string' ? value.name.trim() : '';
     const title = typeof value.title === 'string' ? value.title.trim() : '';
-    if (!id || id.length > 200) throw new Error('Invalid agent id.');
+    if (!/^[a-zA-Z0-9_-]{1,200}$/.test(id)) throw new Error('Invalid agent id.');
     if (!name || name.length > 120) throw new Error('An agent name is required.');
     if (!title || title.length > 160) throw new Error('An agent title is required.');
     if (!value.role || !validRoles.includes(value.role)) throw new Error('Invalid agent role.');
@@ -390,6 +390,9 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
       connectionId: typeof value.connectionId === 'string' ? value.connectionId : null,
       model: typeof value.model === 'string' ? value.model : null,
       soul: typeof value.soul === 'string' ? value.soul.slice(0, 500_000) : '',
+      soulPath: `agents/${id}/SOUL.md`,
+      capabilities:
+        typeof value.capabilities === 'string' ? value.capabilities.trim().slice(0, 500) : undefined,
       tools: Array.isArray(value.tools)
         ? value.tools.filter((item): item is string => typeof item === 'string').slice(0, 100)
         : [],
@@ -640,6 +643,7 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
 
   // ---- Agents ----
   ipcMain.handle(IPC.agentsList, () => store.listAgents());
+  ipcMain.handle(IPC.agentsGet, (_e, id: string) => store.getAgent(id));
   ipcMain.handle(IPC.agentsSave, (_e, input: unknown) => store.saveAgent(validateAgent(input)));
   ipcMain.handle(IPC.agentsDelete, (_e, id: string) => store.deleteAgent(id));
 
@@ -679,7 +683,13 @@ export function registerIpc({ getWindow, store, vault, memory, llmWiki }: Deps):
   ipcMain.handle(IPC.skillsDelete, async (_e, id: string) => {
     const agents = await store.listAgents();
     for (const agent of agents.filter((item) => item.skills.includes(id))) {
-      await store.saveAgent({ ...agent, skills: agent.skills.filter((skill) => skill !== id) });
+      const hydrated = await store.getAgent(agent.id);
+      if (hydrated) {
+        await store.saveAgent({
+          ...hydrated,
+          skills: hydrated.skills.filter((skill) => skill !== id)
+        });
+      }
     }
     return store.deleteSkill(id);
   });
